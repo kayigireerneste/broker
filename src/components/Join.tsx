@@ -2,6 +2,7 @@
 
 import { motion, useAnimation, useInView } from "framer-motion";
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useRef } from "react";
 
 export default function Join() {
@@ -30,6 +31,7 @@ export default function Join() {
 
   return (
     <div
+      id="about-us"
       ref={ref}
       className="flex flex-col justify-center items-center bg-[#004B5B] px-6 py-8 md:py-12"
     >
@@ -48,9 +50,9 @@ export default function Join() {
             insights. Register today and take control of your financial future
             with confidence.
           </p>
-          <button className="bg-white text-[#004B5B] px-5 py-2.5 rounded-lg font-semibold shadow hover:bg-gray-100 transition">
+          <Link href="/auth/signup" className="bg-white text-[#004B5B] px-5 py-2.5 rounded-lg font-semibold shadow hover:bg-gray-100 transition">
             Create an account
-          </button>
+          </Link>
         </motion.div>
 
         <motion.div

@@ -1,8 +1,8 @@
+/* eslint-disable @next/next/no-html-link-for-pages */
 "use client";
 
 import { useState } from "react";
-import Button from "@/components/ui/Button";
-import Input from "@/components/ui/Input";
+import { motion } from "framer-motion";
 import Card from "@/components/ui/Card";
 
 export default function SignupPage() {
@@ -88,49 +88,70 @@ export default function SignupPage() {
                   Personal Information
                 </h3>
                 <div className="grid md:grid-cols-2 gap-4">
-                  <Input
-                    label="First Name"
-                    placeholder="Enter your first name"
+                  <motion.input
+                    whileFocus={{ scale: 1.03 }}
+                    transition={{ type: "spring", stiffness: 200 }}
+                    type="text"
+                    placeholder="First Name"
                     value={formData.firstName}
                     onChange={(e) =>
                       setFormData({ ...formData, firstName: e.target.value })
                     }
                     required
+                    className="w-full rounded-full px-4 py-2 text-[#004B5B] bg-transparent outline-none border border-[#004B5B]/50 focus:border-[#004B5B]"
                   />
-                  <Input
-                    label="Last Name"
-                    placeholder="Enter your last name"
+                  <motion.input
+                    whileFocus={{ scale: 1.03 }}
+                    transition={{ type: "spring", stiffness: 200 }}
+                    type="text"
+                    placeholder="Last Name"
                     value={formData.lastName}
                     onChange={(e) =>
                       setFormData({ ...formData, lastName: e.target.value })
                     }
                     required
+                    className="w-full rounded-full px-4 py-2 text-[#004B5B] bg-transparent outline-none border border-[#004B5B]/50 focus:border-[#004B5B]"
                   />
                 </div>
-                <Input
-                  label="Email Address"
+                <motion.input
+                  whileFocus={{ scale: 1.03 }}
+                  transition={{ type: "spring", stiffness: 200 }}
                   type="email"
-                  placeholder="Enter your email"
+                  placeholder="Email Address"
                   value={formData.email}
                   onChange={(e) =>
                     setFormData({ ...formData, email: e.target.value })
                   }
                   required
+                  className="w-full rounded-full px-4 py-2 text-[#004B5B] bg-transparent outline-none border border-[#004B5B]/50 focus:border-[#004B5B]"
                 />
-                <Input
-                  label="Phone Number"
+                <motion.input
+                  whileFocus={{ scale: 1.03 }}
+                  transition={{ type: "spring", stiffness: 200 }}
                   type="tel"
-                  placeholder="Enter your phone number"
+                  placeholder="Phone Number"
                   value={formData.phone}
                   onChange={(e) =>
                     setFormData({ ...formData, phone: e.target.value })
                   }
                   required
+                  className="w-full rounded-full px-4 py-2 text-[#004B5B] bg-transparent outline-none border border-[#004B5B]/50 focus:border-[#004B5B]"
                 />
                 <div className="flex justify-end">
-                  <Button onClick={handleNext} type="button">
+                  <motion.button
+                    whileHover={{
+                      scale: 1.05,
+                      backgroundColor: "#003641",
+                      color: "#fff",
+                    }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ type: "spring", stiffness: 200 }}
+                    type="button"
+                    onClick={handleNext}
+                    className="bg-[#004B5B] text-white font-semibold px-8 py-2 rounded-full w-full md:w-auto"
+                  >
                     Next Step
-                  </Button>
+                  </motion.button>
                 </div>
               </div>
             )}
@@ -140,54 +161,76 @@ export default function SignupPage() {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   Security & Verification
                 </h3>
-                <Input
-                  label="Password"
-                  type="password"
-                  placeholder="Create a strong password"
-                  value={formData.password}
-                  onChange={(e) =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
-                  required
-                />
-                <Input
-                  label="Confirm Password"
-                  type="password"
-                  placeholder="Confirm your password"
-                  value={formData.confirmPassword}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      confirmPassword: e.target.value,
-                    })
-                  }
-                  required
-                />
-                <Input
-                  label="National ID Number"
-                  placeholder="Enter your ID number"
-                  value={formData.idNumber}
-                  onChange={(e) =>
-                    setFormData({ ...formData, idNumber: e.target.value })
-                  }
-                  required
-                />
-                <Input
-                  label="Date of Birth"
-                  type="date"
-                  value={formData.dateOfBirth}
-                  onChange={(e) =>
-                    setFormData({ ...formData, dateOfBirth: e.target.value })
-                  }
-                  required
-                />
+
+                {[
+                  {
+                    type: "password",
+                    placeholder: "Password",
+                    value: formData.password,
+                    field: "password",
+                  },
+                  {
+                    type: "password",
+                    placeholder: "Confirm Password",
+                    value: formData.confirmPassword,
+                    field: "confirmPassword",
+                  },
+                  {
+                    type: "text",
+                    placeholder: "National ID Number",
+                    value: formData.idNumber,
+                    field: "idNumber",
+                  },
+                  {
+                    type: "date",
+                    placeholder: "Date of Birth",
+                    value: formData.dateOfBirth,
+                    field: "dateOfBirth",
+                  },
+                ].map((input, i) => (
+                  <motion.input
+                    key={i}
+                    whileFocus={{ scale: 1.03 }}
+                    transition={{ type: "spring", stiffness: 200 }}
+                    type={input.type}
+                    placeholder={input.placeholder}
+                    value={input.value}
+                    onChange={(e) =>
+                      setFormData({ ...formData, [input.field]: e.target.value })
+                    }
+                    required
+                    className="w-full rounded-full px-4 py-2 text-[#004B5B] bg-transparent outline-none border border-[#004B5B]/50 focus:border-[#004B5B]"
+                  />
+                ))}
+
                 <div className="flex justify-between">
-                  <Button variant="outline" onClick={handlePrev} type="button">
+                  <motion.button
+                    whileHover={{
+                      scale: 1.05,
+                      backgroundColor: "#E5E5E5",
+                    }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ type: "spring", stiffness: 200 }}
+                    onClick={handlePrev}
+                    type="button"
+                    className="border border-[#004B5B]/50 text-[#004B5B] font-semibold px-8 py-2 rounded-full w-full md:w-auto bg-transparent"
+                  >
                     Previous
-                  </Button>
-                  <Button onClick={handleNext} type="button">
+                  </motion.button>
+                  <motion.button
+                    whileHover={{
+                      scale: 1.05,
+                      backgroundColor: "#003641",
+                      color: "#fff",
+                    }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ type: "spring", stiffness: 200 }}
+                    onClick={handleNext}
+                    type="button"
+                    className="bg-[#004B5B] text-white font-semibold px-8 py-2 rounded-full w-full md:w-auto"
+                  >
                     Next Step
-                  </Button>
+                  </motion.button>
                 </div>
               </div>
             )}
@@ -197,28 +240,33 @@ export default function SignupPage() {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   KYC Information
                 </h3>
-                <Input
-                  label="Address"
-                  placeholder="Enter your full address"
+                <motion.input
+                  whileFocus={{ scale: 1.03 }}
+                  transition={{ type: "spring", stiffness: 200 }}
+                  type="text"
+                  placeholder="Address"
                   value={formData.address}
                   onChange={(e) =>
                     setFormData({ ...formData, address: e.target.value })
                   }
                   required
+                  className="w-full rounded-full px-4 py-2 text-[#004B5B] bg-transparent outline-none border border-[#004B5B]/50 focus:border-[#004B5B]"
                 />
-                <Input
-                  label="Occupation"
-                  placeholder="Enter your occupation"
+                <motion.input
+                  whileFocus={{ scale: 1.03 }}
+                  transition={{ type: "spring", stiffness: 200 }}
+                  type="text"
+                  placeholder="Occupation"
                   value={formData.occupation}
                   onChange={(e) =>
                     setFormData({ ...formData, occupation: e.target.value })
                   }
                   required
+                  className="w-full rounded-full px-4 py-2 text-[#004B5B] bg-transparent outline-none border border-[#004B5B]/50 focus:border-[#004B5B]"
                 />
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Investment Experience{" "}
-                    <span className="text-red-500">*</span>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Investment Experience
                   </label>
                   <select
                     value={formData.investmentExperience}
@@ -228,8 +276,7 @@ export default function SignupPage() {
                         investmentExperience: e.target.value,
                       })
                     }
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004F64] focus:border-transparent transition-all duration-200 outline-none"
-                    required
+                    className="w-full rounded-full px-4 py-2 text-[#004B5B] bg-transparent border border-[#004B5B]/50 focus:border-[#004B5B] outline-none"
                   >
                     <option value="beginner">Beginner (0-1 years)</option>
                     <option value="intermediate">
@@ -237,33 +284,6 @@ export default function SignupPage() {
                     </option>
                     <option value="experienced">Experienced (5+ years)</option>
                   </select>
-                </div>
-
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <div className="flex items-start">
-                    <svg
-                      className="w-5 h-5 text-blue-600 mt-0.5 mr-3"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    <div>
-                      <h4 className="font-medium text-blue-900">
-                        Account Verification
-                      </h4>
-                      <p className="text-sm text-blue-700 mt-1">
-                        Your account will be reviewed within 24-48 hours. You'll
-                        receive an email confirmation once approved.
-                      </p>
-                    </div>
-                  </div>
                 </div>
 
                 <div className="flex items-center">
@@ -285,12 +305,33 @@ export default function SignupPage() {
                 </div>
 
                 <div className="flex justify-between">
-                  <Button variant="outline" onClick={handlePrev} type="button">
+                  <motion.button
+                    whileHover={{
+                      scale: 1.05,
+                      backgroundColor: "#E5E5E5",
+                    }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ type: "spring", stiffness: 200 }}
+                    onClick={handlePrev}
+                    type="button"
+                    className="border border-[#004B5B]/50 text-[#004B5B] font-semibold px-8 py-2 rounded-full w-full md:w-auto bg-transparent"
+                  >
                     Previous
-                  </Button>
-                  <Button type="submit" size="lg">
+                  </motion.button>
+
+                  <motion.button
+                    whileHover={{
+                      scale: 1.05,
+                      backgroundColor: "#003641",
+                      color: "#fff",
+                    }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ type: "spring", stiffness: 200 }}
+                    type="submit"
+                    className="bg-[#004B5B] text-white font-semibold px-8 py-2 rounded-full w-full md:w-auto"
+                  >
                     Create Account
-                  </Button>
+                  </motion.button>
                 </div>
               </div>
             )}

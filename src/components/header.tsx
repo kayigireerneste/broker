@@ -1,9 +1,9 @@
- "use client";
+"use client";
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { HiOutlineSearch, HiOutlineUser, HiOutlineChevronDown } from "react-icons/hi";
-
+import Link from "next/link";
 
 const shares = [
   { name: "BK Group", price: "$85.50", change: "+2.5%", positive: true },
@@ -11,6 +11,14 @@ const shares = [
   { name: "MTN Rwanda", price: "$28.75", change: "-0.3%", positive: false },
   { name: "I&M Bank", price: "$156.20", change: "+3.1%", positive: true },
   { name: "KCB Group", price: "$67.80", change: "+0.9%", positive: true },
+];
+
+const links = [
+  { label: "Home", target: "home" },
+  { label: "Services", target: "services" },
+  { label: "Market", target: "market" },
+  { label: "About us", target: "about-us" },
+  { label: "Contact us", target: "contactUs" },
 ];
 
 export default function Header() {
@@ -36,14 +44,13 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSearchOpen(false);
-  };
-
-  const toggleSearch = () => {
-    setIsSearchOpen((prev) => !prev);
-    setTimeout(() => searchRef.current?.focus(), 100);
+  const handleScrollTo = (target: string) => {
+    const section = document.getElementById(target);
+    if (section) {
+      const yOffset = -80;
+      const y = section.getBoundingClientRect().top + window.scrollY + yOffset;
+      window.scrollTo({ top: y, behavior: "smooth" });
+    }
   };
 
   return (
@@ -51,42 +58,42 @@ export default function Header() {
       <header className="bg-white shadow-md fixed top-0 left-0 w-full z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex justify-between items-center h-20 relative">
           <div className="flex items-center">
-            <Image
-              src="/logo.svg"
-              alt="logo"
-              width={130}
-              height={40}
-              className="w-24"
-              priority
-            />
+            <Link href="/">
+              <Image
+                src="/logo.svg"
+                alt="logo"
+                width={130}
+                height={40}
+                className="w-24"
+                priority
+              />
+            </Link>
           </div>
 
+          {/* NAV LINKS */}
           <nav className="hidden md:flex items-center space-x-6 lg:space-x-8 text-sm">
-            {["Home", "Services", "Market", "About us", "Contact us"].map(
-              (item) => (
-                <a
-                  key={item}
-                  href={`#${item.toLowerCase().replace(/\s+/g, "")}`}
-                  className="text-gray-700 hover:text-[#006b7d] transition font-medium"
-                >
-                  {item}
-                </a>
-              )
-            )}
+            {links.map(({ label, target }) => (
+              <button
+                key={target}
+                onClick={() => handleScrollTo(target)}
+                className="text-gray-700 hover:text-[#006b7d] transition font-medium"
+              >
+                {label}
+              </button>
+            ))}
           </nav>
 
+          {/* RIGHT SIDE ACTIONS */}
           <div className="flex items-center gap-3 sm:gap-4">
+            {/* Search */}
             <div ref={searchContainerRef} className="relative">
-              <form
-                onSubmit={handleSearchSubmit}
-                className="flex items-center border border-gray-300 rounded-full px-3 py-1 transition-all duration-300 focus-within:ring-2 focus-within:ring-[#006b7d]"
-              >
+              <form className="flex items-center border border-gray-300 rounded-full px-3 py-1 transition-all duration-300 focus-within:ring-2 focus-within:ring-[#006b7d]">
                 <button
-                    type="button"
-                    onClick={toggleSearch}
-                    className="text-gray-600 hover:text-[#006b7d] transition"
-                  >
-                    <HiOutlineSearch className="h-5 w-5" />
+                  type="button"
+                  onClick={() => setIsSearchOpen((prev) => !prev)}
+                  className="text-gray-600 hover:text-[#006b7d] transition"
+                >
+                  <HiOutlineSearch className="h-5 w-5" />
                 </button>
                 <input
                   ref={searchRef}
@@ -100,6 +107,8 @@ export default function Header() {
                 />
               </form>
             </div>
+
+            {/* Language Selector */}
             <div className="relative">
               <button
                 onClick={() => setIsLanguageOpen(!isLanguageOpen)}
@@ -131,10 +140,17 @@ export default function Header() {
                 </div>
               )}
             </div>
-            <button className="hidden sm:flex bg-[#006b7d] text-white px-4 sm:px-5 py-2 rounded-full hover:bg-[#005566] transition font-medium text-sm items-center gap-2">
+
+            {/* Sign In */}
+            <Link
+              className="hidden sm:flex bg-gradient-to-r from-[#2d94b0] to-[#004f64] text-white px-4 sm:px-5 py-2 rounded-full  transition font-medium text-sm items-center gap-2  shadow cursor-pointer transition"
+              href="/auth/login"
+            >
               <HiOutlineUser className="h-4 w-4" />
               Sign in
-            </button>
+            </Link>
+
+            {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="md:hidden flex flex-col justify-center items-center w-8 h-8"
@@ -157,28 +173,30 @@ export default function Header() {
             </button>
           </div>
 
+          {/* MOBILE MENU */}
           {isMenuOpen && (
             <div className="absolute top-20 left-0 w-full bg-white border-t border-gray-200 flex flex-col items-center py-4 space-y-4 shadow-md md:hidden">
-              {["Home", "Services", "Market", "About us", "Contact us"].map(
-                (item) => (
-                  <a
-                    key={item}
-                    href={`#${item.toLowerCase().replace(/\s+/g, "")}`}
-                    onClick={() => setIsMenuOpen(false)}
-                    className="text-gray-700 hover:text-[#006b7d] font-medium"
-                  >
-                    {item}
-                  </a>
-                )
-              )}
-              <button className="bg-[#006b7d] text-white px-5 py-2 rounded-full hover:bg-[#005566] transition font-medium text-sm">
+              {links.map(({ label, target }) => (
+                <button
+                  key={target}
+                  onClick={() => {
+                    handleScrollTo(target);
+                    setIsMenuOpen(false);
+                  }}
+                  className="text-gray-700 hover:text-[#006b7d] font-medium"
+                >
+                  {label}
+                </button>
+              ))}
+              <Link href="/auth/login" className="bg-[#006b7d] text-white px-5 py-2 rounded-full hover:bg-[#005566] transition font-medium text-sm" >
                 Sign in
-              </button>
+              </Link>
             </div>
           )}
         </div>
       </header>
 
+      {/* STOCK SCROLL BAR */}
       <div className="bg-gradient-to-r from-[#004F64] via-[#026b83] to-[#014F63] py-2 mt-20 overflow-hidden fixed w-full z-40">
         <div
           className={`flex whitespace-nowrap text-white font-medium text-sm ${
@@ -201,8 +219,10 @@ export default function Header() {
         </div>
       </div>
 
-      {/* ====== GLOBAL STYLES ====== */}
       <style jsx global>{`
+        html {
+          scroll-behavior: smooth;
+        }
         @keyframes scroll {
           0% {
             transform: translateX(0);

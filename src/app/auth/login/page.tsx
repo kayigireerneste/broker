@@ -1,8 +1,8 @@
+/* eslint-disable @next/next/no-html-link-for-pages */
 "use client";
 
 import { useState } from "react";
-import Button from "@/components/ui/Button";
-import Input from "@/components/ui/Input";
+import { motion } from "framer-motion";
 import Card from "@/components/ui/Card";
 
 export default function LoginPage() {
@@ -53,26 +53,32 @@ export default function LoginPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <Input
-              label="Email Address"
+            {/* Email Input (ContactUs style) */}
+            <motion.input
+              whileFocus={{ scale: 1.03 }}
+              transition={{ type: "spring", stiffness: 200 }}
               type="email"
-              placeholder="Enter your email"
+              placeholder="Email Address"
               value={formData.email}
               onChange={(e) =>
                 setFormData({ ...formData, email: e.target.value })
               }
               required
+              className="w-full rounded-full px-4 py-2 text-[#004B5B] bg-transparent outline-none border border-[#004B5B]/50 focus:border-[#004B5B]"
             />
 
-            <Input
-              label="Password"
+            {/* Password Input (ContactUs style) */}
+            <motion.input
+              whileFocus={{ scale: 1.03 }}
+              transition={{ type: "spring", stiffness: 200 }}
               type="password"
-              placeholder="Enter your password"
+              placeholder="Password"
               value={formData.password}
               onChange={(e) =>
                 setFormData({ ...formData, password: e.target.value })
               }
               required
+              className="w-full rounded-full px-4 py-2 text-[#004B5B] bg-transparent outline-none border border-[#004B5B]/50 focus:border-[#004B5B]"
             />
 
             <div className="flex items-center justify-between">
@@ -88,14 +94,25 @@ export default function LoginPage() {
               </a>
             </div>
 
-            <Button type="submit" className="w-full" size="lg">
+            {/* Button (ContactUs style) */}
+            <motion.button
+              whileHover={{
+                scale: 1.05,
+                backgroundColor: "#003641",
+                color: "#fff",
+              }}
+              whileTap={{ scale: 0.95 }}
+              transition={{ type: "spring", stiffness: 200 }}
+              type="submit"
+              className="bg-[#004B5B] text-white font-semibold px-8 py-2 rounded-full w-full hover:bg-[#003E4C] transition"
+            >
               Sign In
-            </Button>
+            </motion.button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-gray-600">
-              Don't have an account?{" "}
+              Don&apos;t have an account?{" "}
               <a
                 href="/auth/signup"
                 className="text-[#004F64] font-semibold hover:underline"

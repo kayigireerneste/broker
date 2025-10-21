@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 
 export default function Hero() {
   const slides = [
@@ -137,9 +138,9 @@ export default function Hero() {
       </div>
 
       <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 z-30">
-        <button className="relative flex items-center gap-2 bg-[#014F63] text-white text-lg font-semibold px-8 py-4 rounded-full shadow-[2px_2px_0_#A9E2EB] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#A9E2EB] transition-all duration-300">
+        <Link href="/auth/signup" className="relative flex items-center gap-2 bg-[#014F63] text-white text-lg font-semibold px-8 py-4 rounded-full shadow-[2px_2px_0_#A9E2EB] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#A9E2EB] transition-all duration-300">
           Get Started
-        </button>
+        </Link>
       </div>
     </section>
   );
