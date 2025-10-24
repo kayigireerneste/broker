@@ -4,10 +4,37 @@
 import DashboardLayout from "@/components/ui/DashboardLayout";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
+import { useAuth } from "@/hooks/useAuth";
+import { useMemo } from "react";
+import { UserInfoCard } from "@/components/ui/UserInfoCard";
 
 export default function BrokerDashboard() {
+  const { user } = useAuth();
+
+  const { displayName, email, dashboardRole } = useMemo((): {
+    displayName: string;
+    email: string;
+    dashboardRole: "client" | "broker" | "admin" | "auditor";
+  } => {
+    const first = (user?.firstName as string | undefined) ?? "";
+    const last = (user?.lastName as string | undefined) ?? "";
+    const fullName = `${first} ${last}`.trim();
+    const fallbackName = user?.email ? user.email.split("@")[0] : "Broker";
+    const role = user?.role?.toLowerCase();
+    const normalizedRole: "client" | "broker" | "admin" | "auditor" =
+      role === "client" || role === "broker" || role === "admin" || role === "auditor"
+        ? role
+        : "broker";
+
+    return {
+      displayName: fullName || fallbackName,
+      email: user?.email ?? "Not provided",
+      dashboardRole: normalizedRole,
+    };
+  }, [user?.email, user?.firstName, user?.lastName, user?.role]);
+
   return (
-    <DashboardLayout userRole="broker" userName="Sarah Johnson">
+    <DashboardLayout userRole={dashboardRole} userName={displayName} userEmail={email}>
       <div className="space-y-6">
         {/* Welcome Section */}
         <div className="animate-fadeInUp">
@@ -18,6 +45,8 @@ export default function BrokerDashboard() {
             Manage client orders and execute trades efficiently.
           </p>
         </div>
+
+        <UserInfoCard name={displayName} email={email} role={dashboardRole} />
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-slideInRight">

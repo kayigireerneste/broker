@@ -3,10 +3,33 @@
 import DashboardLayout from "@/components/ui/DashboardLayout";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
+import { useAuth } from "@/hooks/useAuth";
+import { useMemo } from "react";
+import { UserInfoCard } from "@/components/ui/UserInfoCard";
 
 export default function AuditorDashboard() {
+  const { user } = useAuth();
+
+  const { displayName, email, dashboardRole } = useMemo(() => {
+    const first = (user?.firstName as string | undefined) ?? "";
+    const last = (user?.lastName as string | undefined) ?? "";
+    const fullName = `${first} ${last}`.trim();
+    const fallbackName = user?.email ? user.email.split("@")[0] : "Auditor";
+    const role = user?.role?.toLowerCase();
+    const normalizedRole =
+      role === "client" || role === "broker" || role === "admin" || role === "auditor"
+        ? role
+        : "auditor";
+
+    return {
+      displayName: fullName || fallbackName,
+      email: user?.email ?? "Not provided",
+      dashboardRole: normalizedRole,
+    };
+  }, [user?.email, user?.firstName, user?.lastName, user?.role]);
+
   return (
-    <DashboardLayout userRole="auditor" userName="Auditor Manager">
+    <DashboardLayout userRole={dashboardRole as "client" | "broker" | "admin" | "auditor"} userName={displayName} userEmail={email}>
       <div className="space-y-6">
         {/* Welcome Section */}
         <div className="animate-fadeInUp">
@@ -18,6 +41,8 @@ export default function AuditorDashboard() {
             reports.
           </p>
         </div>
+
+        <UserInfoCard name={displayName} email={email} role={dashboardRole} />
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-slideInRight">

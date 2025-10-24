@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { HiOutlineSearch, HiOutlineUser, HiOutlineChevronDown } from "react-icons/hi";
 import Link from "next/link";
+import { useAuth } from "@/hooks/useAuth";
 
 const shares = [
   { name: "BK Group", price: "$85.50", change: "+2.5%", positive: true },
@@ -27,6 +28,11 @@ export default function Header() {
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState("English");
+  const { isAuthenticated, dashboardPath, loading } = useAuth();
+
+  const primaryCtaHref = isAuthenticated ? dashboardPath : "/auth/login";
+  const primaryCtaLabel = isAuthenticated ? "Dashboard" : "Sign in";
+  const showPrimaryCta = !loading || isAuthenticated;
 
   const searchRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
@@ -142,13 +148,15 @@ export default function Header() {
             </div>
 
             {/* Sign In */}
-            <Link
-              className="hidden sm:flex bg-gradient-to-r from-[#2d94b0] to-[#004f64] text-white px-4 sm:px-5 py-2 rounded-full  transition font-medium text-sm items-center gap-2  shadow cursor-pointer transition"
-              href="/auth/login"
-            >
-              <HiOutlineUser className="h-4 w-4" />
-              Sign in
-            </Link>
+            {showPrimaryCta && (
+              <Link
+                className="hidden sm:flex bg-linear-to-r from-[#2d94b0] to-[#004f64] transition text-white px-4 sm:px-5 py-2 rounded-full font-medium text-sm items-center gap-2 shadow cursor-pointer"
+                href={primaryCtaHref}
+              >
+                <HiOutlineUser className="h-4 w-4" />
+                {primaryCtaLabel}
+              </Link>
+            )}
 
             {/* Mobile Menu Button */}
             <button
@@ -188,8 +196,11 @@ export default function Header() {
                   {label}
                 </button>
               ))}
-              <Link href="/auth/login" className="bg-[#006b7d] text-white px-5 py-2 rounded-full hover:bg-[#005566] transition font-medium text-sm" >
-                Sign in
+              <Link
+                href={primaryCtaHref}
+                className="bg-linear-to-r from-[#2d94b0] to-[#004f64] text-white px-5 py-2 rounded-full hover:bg-[#005566] transition font-medium text-sm"
+              >
+                {primaryCtaLabel}
               </Link>
             </div>
           )}
@@ -197,7 +208,7 @@ export default function Header() {
       </header>
 
       {/* STOCK SCROLL BAR */}
-      <div className="bg-gradient-to-r from-[#004F64] via-[#026b83] to-[#014F63] py-2 mt-20 overflow-hidden fixed w-full z-40">
+  <div className="bg-linear-to-r from-[#004F64] via-[#026b83] to-[#014F63] py-2 mt-20 overflow-hidden fixed w-full z-40">
         <div
           className={`flex whitespace-nowrap text-white font-medium text-sm ${
             isPaused ? "" : "animate-scroll"

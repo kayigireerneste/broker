@@ -1,23 +1,92 @@
-/* eslint-disable @next/next/no-html-link-for-pages */
 "use client";
 
 import { useState } from "react";
 import { motion } from "framer-motion";
 import Card from "@/components/ui/Card";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { isAxiosError } from "axios";
+import axiosInstance from "@/lib/axios";
+import toast, { Toaster } from "react-hot-toast";
+import { Loader2 } from "lucide-react";
+import { loginSchema } from "@/lib/validations/loginValidation";
+import { z } from "zod";
+import { getDashboardPath } from "@/hooks/useAuth";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Login:", formData);
+    setLoading(true);
+
+    try {
+      const validatedData = loginSchema.parse(formData);
+      const data = await axiosInstance.post("/api/auth/login", validatedData);
+
+      // Log the response for debugging
+      console.log("Login response:", data);
+
+      if (!data || typeof data !== "object") {
+        throw new Error("Invalid response from server");
+      }
+
+      const { token, user, message } = data as {
+        token?: string;
+        user?: unknown;
+        message?: string;
+        error?: string;
+      };
+
+      if (!token || !user) {
+        const apiError = (data as { error?: string }).error;
+        throw new Error(apiError || "Missing token or user data in response");
+      }
+
+      // Store auth data
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
+      document.cookie = `token=${token}; path=/`;
+      
+      toast.success(message || "Login successful!");
+
+      const dashboardHref = getDashboardPath(
+        typeof user === "object" && user !== null && "role" in user
+          ? (user as { role?: string }).role
+          : undefined
+      );
+
+      router.push(dashboardHref);
+    } catch (error) {
+      console.error("Login error:", error);
+
+      if (error instanceof z.ZodError) {
+        // Handle validation errors
+        const firstError = error.issues[0];
+        toast.error(firstError.message || "Please check your input");
+      } else if (isAxiosError(error)) {
+        // Handle API errors
+        const errorMessage = error.response?.data?.error || error.message;
+        toast.error(errorMessage || "Login failed. Please try again.");
+      } else {
+        // Handle other errors
+        const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+        toast.error(errorMessage);
+        console.error("Login error:", error);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen gradient-primary flex items-center justify-center p-4">
+      <Toaster position="top-center" />
       <div className="absolute inset-0 bg-black/10"></div>
 
       <div className="absolute inset-0 overflow-hidden">
@@ -53,7 +122,6 @@ export default function LoginPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Email Input (ContactUs style) */}
             <motion.input
               whileFocus={{ scale: 1.03 }}
               transition={{ type: "spring", stiffness: 200 }}
@@ -67,7 +135,6 @@ export default function LoginPage() {
               className="w-full rounded-full px-4 py-2 text-[#004B5B] bg-transparent outline-none border border-[#004B5B]/50 focus:border-[#004B5B]"
             />
 
-            {/* Password Input (ContactUs style) */}
             <motion.input
               whileFocus={{ scale: 1.03 }}
               transition={{ type: "spring", stiffness: 200 }}
@@ -94,19 +161,20 @@ export default function LoginPage() {
               </a>
             </div>
 
-            {/* Button (ContactUs style) */}
             <motion.button
+              disabled={loading}
               whileHover={{
-                scale: 1.05,
-                backgroundColor: "#003641",
-                color: "#fff",
+                scale: loading ? 1 : 1.05,
               }}
-              whileTap={{ scale: 0.95 }}
+              whileTap={{ scale: loading ? 1 : 0.95 }}
               transition={{ type: "spring", stiffness: 200 }}
               type="submit"
-              className="bg-[#004B5B] text-white font-semibold px-8 py-2 rounded-full w-full hover:bg-[#003E4C] transition"
+              className={`w-full rounded-full px-6 py-3 text-white bg-[#004F64] hover:bg-[#004F64]/90 flex items-center justify-center gap-2 ${
+                loading ? 'opacity-70 cursor-not-allowed' : ''
+              }`}
             >
-              Sign In
+              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+              {loading ? 'Signing in...' : 'Sign In'}
             </motion.button>
           </form>
 
@@ -123,15 +191,13 @@ export default function LoginPage() {
           </div>
         </Card>
 
-        <div className="mt-8 text-center">
-          <a
+          <Link
             href="/"
             className="text-white/80 hover:text-white transition-colors"
           >
             ← Back to Home
-          </a>
+          </Link>
         </div>
       </div>
-    </div>
   );
 }

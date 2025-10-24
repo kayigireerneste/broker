@@ -4,10 +4,20 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import Card from "@/components/ui/Card";
+import { InputField } from "@/components/ui/InputField";
+import OTPModal from "@/components/ui/OTPModal";
+import toast, { Toaster } from 'react-hot-toast';
+import { SignupFormData, signupSchema, stepSchemas } from "@/lib/validations/signupValidation";
+import { z } from "zod";
+import { authApi } from "@/lib/axios";
+import { Loader2 } from "lucide-react";
 
 export default function SignupPage() {
-  const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState({
+  const [isLoading, setIsLoading] = useState(false);
+  const [step, setStep] = useState<number>(1);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showOTPModal, setShowOTPModal] = useState(false);
+  const [formData, setFormData] = useState<SignupFormData>({
     firstName: "",
     lastName: "",
     email: "",
@@ -18,15 +28,85 @@ export default function SignupPage() {
     dateOfBirth: "",
     address: "",
     occupation: "",
-    investmentExperience: "beginner",
+    investmentExperience: "",
   });
 
-  const handleNext = () => setStep(step + 1);
+  const handleNext = () => {
+    try {
+      stepSchemas[step as keyof typeof stepSchemas].parse(formData);
+      setErrors({});
+      setStep(step + 1);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const stepErrors = error.issues.reduce((acc: Record<string, string>, err) => {
+          if (err.path[0]) {
+            acc[err.path[0].toString()] = err.message;
+          }
+          return acc;
+        }, {});
+        setErrors(stepErrors);
+        toast.error('Please fix the errors before proceeding');
+      }
+    }
+  };
+  
   const handlePrev = () => setStep(step - 1);
 
-  const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Signup:", formData);
+    
+    try {
+      signupSchema.parse(formData);
+      
+      const signupData = { ...formData };
+      
+      setIsLoading(true);
+      await toast.promise(
+        authApi.signup(signupData),
+        {
+          loading: 'Creating your account...',
+          success: (response) => {
+            setShowOTPModal(true);
+            return response.message || 'Account created! Please verify your email.';
+          },
+          error: (err) => err.message || 'Failed to create account. Please try again.'
+        }
+      );
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const formErrors = error.issues.reduce((acc: Record<string, string>, err) => {
+          if (err.path[0]) {
+            acc[err.path[0].toString()] = err.message;
+          }
+          return acc;
+        }, {});
+        setErrors(formErrors);
+        toast.error('Please fix all errors before submitting');
+      } else {
+        console.error('Signup error:', error);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+
+    setIsLoading(true);
+    try {
+      await toast.promise(
+        authApi.signup({ ...formData }),
+        {
+          loading: 'Creating your account...',
+          success: (response) => {
+            setShowOTPModal(true);
+            return response.message || 'Account created! Please verify your email.';
+          },
+          error: (err) => err.message || 'Failed to create account. Please try again.'
+        }
+      );
+    } catch (err) {
+      console.error('Signup error:', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -66,7 +146,6 @@ export default function SignupPage() {
               Join Broker and start your investment journey
             </p>
 
-            {/* Progress Bar */}
             <div className="flex justify-center mt-6">
               <div className="flex space-x-2">
                 {[1, 2, 3].map((i) => (
@@ -81,62 +160,67 @@ export default function SignupPage() {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <Toaster position="top-right" />
+            
             {step === 1 && (
-              <div className="space-y-6 animate-fadeInUp">
+              <motion.div 
+                className="space-y-6 animate-fadeInUp"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   Personal Information
                 </h3>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <motion.input
-                    whileFocus={{ scale: 1.03 }}
-                    transition={{ type: "spring", stiffness: 200 }}
-                    type="text"
-                    placeholder="First Name"
-                    value={formData.firstName}
-                    onChange={(e) =>
-                      setFormData({ ...formData, firstName: e.target.value })
-                    }
+                <div className="space-y-6">
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <InputField
+                      name="firstName"
+                      label="First Name"
+                      type="text"
+                      value={formData.firstName}
+                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                      error={errors.firstName}
+                      disabled={isLoading}
+                      placeholder="Enter your first name"
+                      required
+                    />
+                    <InputField
+                      name="lastName"
+                      label="Last Name"
+                      type="text"
+                      value={formData.lastName}
+                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                      error={errors.lastName}
+                      disabled={isLoading}
+                      placeholder="Enter your last name"
+                      required
+                    />
+                  </div>
+                  <InputField
+                    name="email"
+                    label="Email Address"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    error={errors.email}
+                    disabled={isLoading}
+                    placeholder="Enter your email address"
                     required
-                    className="w-full rounded-full px-4 py-2 text-[#004B5B] bg-transparent outline-none border border-[#004B5B]/50 focus:border-[#004B5B]"
                   />
-                  <motion.input
-                    whileFocus={{ scale: 1.03 }}
-                    transition={{ type: "spring", stiffness: 200 }}
-                    type="text"
-                    placeholder="Last Name"
-                    value={formData.lastName}
-                    onChange={(e) =>
-                      setFormData({ ...formData, lastName: e.target.value })
-                    }
+                  <InputField
+                    name="phone"
+                    label="Phone Number"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    error={errors.phone}
+                    disabled={isLoading}
+                    placeholder="Enter your phone number"
                     required
-                    className="w-full rounded-full px-4 py-2 text-[#004B5B] bg-transparent outline-none border border-[#004B5B]/50 focus:border-[#004B5B]"
                   />
                 </div>
-                <motion.input
-                  whileFocus={{ scale: 1.03 }}
-                  transition={{ type: "spring", stiffness: 200 }}
-                  type="email"
-                  placeholder="Email Address"
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                  required
-                  className="w-full rounded-full px-4 py-2 text-[#004B5B] bg-transparent outline-none border border-[#004B5B]/50 focus:border-[#004B5B]"
-                />
-                <motion.input
-                  whileFocus={{ scale: 1.03 }}
-                  transition={{ type: "spring", stiffness: 200 }}
-                  type="tel"
-                  placeholder="Phone Number"
-                  value={formData.phone}
-                  onChange={(e) =>
-                    setFormData({ ...formData, phone: e.target.value })
-                  }
-                  required
-                  className="w-full rounded-full px-4 py-2 text-[#004B5B] bg-transparent outline-none border border-[#004B5B]/50 focus:border-[#004B5B]"
-                />
                 <div className="flex justify-end">
                   <motion.button
                     whileHover={{
@@ -148,60 +232,72 @@ export default function SignupPage() {
                     transition={{ type: "spring", stiffness: 200 }}
                     type="button"
                     onClick={handleNext}
-                    className="bg-[#004B5B] text-white font-semibold px-8 py-2 rounded-full w-full md:w-auto"
+                    disabled={isLoading}
+                    className={`bg-[#004B5B] text-white font-semibold px-8 py-2 rounded-full w-full md:w-auto ${
+                      isLoading ? 'opacity-75 cursor-not-allowed' : ''
+                    }`}
                   >
                     Next Step
                   </motion.button>
                 </div>
-              </div>
+              </motion.div>
             )}
 
             {step === 2 && (
-              <div className="space-y-6 animate-fadeInUp">
+              <motion.div 
+                className="space-y-6 animate-fadeInUp"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   Security & Verification
                 </h3>
-
-                {[
-                  {
-                    type: "password",
-                    placeholder: "Password",
-                    value: formData.password,
-                    field: "password",
-                  },
-                  {
-                    type: "password",
-                    placeholder: "Confirm Password",
-                    value: formData.confirmPassword,
-                    field: "confirmPassword",
-                  },
-                  {
-                    type: "text",
-                    placeholder: "National ID Number",
-                    value: formData.idNumber,
-                    field: "idNumber",
-                  },
-                  {
-                    type: "date",
-                    placeholder: "Date of Birth",
-                    value: formData.dateOfBirth,
-                    field: "dateOfBirth",
-                  },
-                ].map((input, i) => (
-                  <motion.input
-                    key={i}
-                    whileFocus={{ scale: 1.03 }}
-                    transition={{ type: "spring", stiffness: 200 }}
-                    type={input.type}
-                    placeholder={input.placeholder}
-                    value={input.value}
-                    onChange={(e) =>
-                      setFormData({ ...formData, [input.field]: e.target.value })
-                    }
+                <div className="space-y-6">
+                  <InputField
+                    name="password"
+                    label="Password"
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    error={errors.password}
+                    disabled={isLoading}
+                    placeholder="Enter your password"
                     required
-                    className="w-full rounded-full px-4 py-2 text-[#004B5B] bg-transparent outline-none border border-[#004B5B]/50 focus:border-[#004B5B]"
                   />
-                ))}
+                  <InputField
+                    name="confirmPassword"
+                    label="Confirm Password"
+                    type="password"
+                    value={formData.confirmPassword}
+                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                    error={errors.confirmPassword}
+                    disabled={isLoading}
+                    placeholder="Confirm your password"
+                    required
+                  />
+                  <InputField
+                    name="idNumber"
+                    label="National ID Number"
+                    type="text"
+                    value={formData.idNumber}
+                    onChange={(e) => setFormData({ ...formData, idNumber: e.target.value })}
+                    error={errors.idNumber}
+                    disabled={isLoading}
+                    placeholder="Enter your National ID number"
+                    required
+                  />
+                  <InputField
+                    name="dateOfBirth"
+                    label="Date of Birth"
+                    type="date"
+                    value={formData.dateOfBirth}
+                    onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                    error={errors.dateOfBirth}
+                    disabled={isLoading}
+                    required
+                  />
+                </div>
 
                 <div className="flex justify-between">
                   <motion.button
@@ -232,38 +328,43 @@ export default function SignupPage() {
                     Next Step
                   </motion.button>
                 </div>
-              </div>
+              </motion.div>
             )}
 
             {step === 3 && (
-              <div className="space-y-6 animate-fadeInUp">
+              <motion.div 
+                className="space-y-6 animate-fadeInUp"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  KYC Information
+                  Other Information
                 </h3>
-                <motion.input
-                  whileFocus={{ scale: 1.03 }}
-                  transition={{ type: "spring", stiffness: 200 }}
-                  type="text"
-                  placeholder="Address"
-                  value={formData.address}
-                  onChange={(e) =>
-                    setFormData({ ...formData, address: e.target.value })
-                  }
-                  required
-                  className="w-full rounded-full px-4 py-2 text-[#004B5B] bg-transparent outline-none border border-[#004B5B]/50 focus:border-[#004B5B]"
-                />
-                <motion.input
-                  whileFocus={{ scale: 1.03 }}
-                  transition={{ type: "spring", stiffness: 200 }}
-                  type="text"
-                  placeholder="Occupation"
-                  value={formData.occupation}
-                  onChange={(e) =>
-                    setFormData({ ...formData, occupation: e.target.value })
-                  }
-                  required
-                  className="w-full rounded-full px-4 py-2 text-[#004B5B] bg-transparent outline-none border border-[#004B5B]/50 focus:border-[#004B5B]"
-                />
+                <div className="space-y-6">
+                  <InputField
+                    name="address"
+                    label="Address"
+                    type="text"
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    error={errors.address}
+                    disabled={isLoading}
+                    placeholder="Enter your address"
+                    required
+                  />
+                  <InputField
+                    name="occupation"
+                    label="Occupation"
+                    type="text"
+                    value={formData.occupation}
+                    onChange={(e) => setFormData({ ...formData, occupation: e.target.value })}
+                    error={errors.occupation}
+                    disabled={isLoading}
+                    placeholder="Enter your occupation"
+                    required
+                  />
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Investment Experience
@@ -321,19 +422,29 @@ export default function SignupPage() {
 
                   <motion.button
                     whileHover={{
-                      scale: 1.05,
+                      scale: isLoading ? 1 : 1.05,
                       backgroundColor: "#003641",
                       color: "#fff",
                     }}
-                    whileTap={{ scale: 0.95 }}
+                    whileTap={{ scale: isLoading ? 1 : 0.95 }}
                     transition={{ type: "spring", stiffness: 200 }}
                     type="submit"
-                    className="bg-[#004B5B] text-white font-semibold px-8 py-2 rounded-full w-full md:w-auto"
+                    disabled={isLoading}
+                    className={`bg-[#004B5B] text-white font-semibold px-8 py-2 rounded-full w-full md:w-auto flex items-center justify-center ${
+                      isLoading ? 'opacity-75 cursor-not-allowed' : ''
+                    }`}
                   >
-                    Create Account
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Creating Account...
+                      </>
+                    ) : (
+                      'Create Account'
+                    )}
                   </motion.button>
                 </div>
-              </div>
+              </motion.div>
             )}
           </form>
 
@@ -359,6 +470,12 @@ export default function SignupPage() {
           </a>
         </div>
       </div>
+
+      <OTPModal 
+        isOpen={showOTPModal} 
+        onClose={() => setShowOTPModal(false)}
+        email={formData.email} 
+      />
     </div>
   );
 }

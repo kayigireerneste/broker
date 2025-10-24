@@ -1,30 +1,45 @@
 /* eslint-disable react/no-unescaped-entities */
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import DashboardLayout from '@/components/ui/DashboardLayout';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import { useAuth } from '@/hooks/useAuth';
+import { UserInfoCard } from '@/components/ui/UserInfoCard';
 
 export default function ClientDashboard() {
   const [selectedAction, setSelectedAction] = useState('');
+  const { user } = useAuth();
+
+  const { displayName, email, dashboardRole } = useMemo(() => {
+    const first = (user?.firstName as string | undefined) ?? '';
+    const last = (user?.lastName as string | undefined) ?? '';
+    const fullName = `${first} ${last}`.trim();
+    const fallbackName = user?.email ? user.email.split('@')[0] : 'Client';
+    const role = user?.role?.toLowerCase();
+    return {
+      displayName: fullName || fallbackName,
+      email: user?.email ?? 'Not provided',
+      dashboardRole: (role === 'client' || role === 'broker' || role === 'admin' || role === 'auditor' ? role : 'client') as "client" | "broker" | "admin" | "auditor",
+    };
+  }, [user?.email, user?.firstName, user?.lastName, user?.role]);
 
   const handleAction = (action: string) => {
     setSelectedAction(action);
-    // Handle action logic here
     console.log(`${action} clicked`);
   };
 
   return (
-    <DashboardLayout userRole="client" userName="John Doe">
+    <DashboardLayout userRole={dashboardRole} userName={displayName} userEmail={email}>
       <div className="space-y-4">
-        {/* Welcome Section */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">Welcome back, John!</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">Welcome back, {displayName}!</h1>
           <p className="text-sm text-gray-600">Here's your investment overview today.</p>
         </div>
 
-        {/* Stats Cards */}
+        <UserInfoCard name={displayName} email={email} role={dashboardRole} />
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="p-4">
             <div className="flex items-center justify-between">
@@ -88,7 +103,6 @@ export default function ClientDashboard() {
         </div>
 
         <div className="grid lg:grid-cols-4 gap-4">
-          {/* Market Updates */}
           <Card className="p-4">
             <h3 className="text-sm font-semibold text-gray-900 mb-3">Market Updates</h3>
             <div className="space-y-2">
@@ -112,7 +126,6 @@ export default function ClientDashboard() {
             </div>
           </Card>
 
-          {/* Portfolio Chart */}
           <div className="lg:col-span-2">
             <Card className="p-4">
               <div className="flex items-center justify-between mb-4">
@@ -123,8 +136,7 @@ export default function ClientDashboard() {
                   <option>3 months</option>
                 </select>
               </div>
-              {/* Static Chart */}
-              <div className="h-48 relative bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg overflow-hidden">
+              <div className="h-48 relative bg-linear-to-r from-blue-50 to-indigo-50 rounded-lg overflow-hidden">
                 <svg className="w-full h-full" viewBox="0 0 400 200">
                   <defs>
                     <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -151,7 +163,6 @@ export default function ClientDashboard() {
             </Card>
           </div>
 
-          {/* Quick Actions */}
           <Card className="p-4">
             <h3 className="text-sm font-semibold text-gray-900 mb-3">Quick Actions</h3>
             <div className="space-y-2">
@@ -192,7 +203,6 @@ export default function ClientDashboard() {
           </Card>
         </div>
 
-        {/* Holdings Table */}
         <Card className="p-4">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Your Holdings</h2>
           <div className="overflow-x-auto">
