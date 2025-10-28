@@ -1,11 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Fragment, useState } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { InputField } from './InputField'
 import { authApi } from '@/lib/axios'
-import { Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface OTPModalProps {

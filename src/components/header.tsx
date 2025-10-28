@@ -1,18 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import Image from "next/image";
 import { HiOutlineSearch, HiOutlineUser, HiOutlineChevronDown } from "react-icons/hi";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-
-const shares = [
-  { name: "BK Group", price: "$85.50", change: "+2.5%", positive: true },
-  { name: "Equity Bank", price: "$42.30", change: "+1.8%", positive: true },
-  { name: "MTN Rwanda", price: "$28.75", change: "-0.3%", positive: false },
-  { name: "I&M Bank", price: "$156.20", change: "+3.1%", positive: true },
-  { name: "KCB Group", price: "$67.80", change: "+0.9%", positive: true },
-];
+import { useMarketSummary } from "@/hooks/useMarketSummary";
 
 const links = [
   { label: "Home", target: "home" },
@@ -29,6 +22,7 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState("English");
   const { isAuthenticated, dashboardPath, loading } = useAuth();
+  const { data: marketSummary, loading: marketLoading, error: marketError } = useMarketSummary();
 
   const primaryCtaHref = isAuthenticated ? dashboardPath : "/auth/login";
   const primaryCtaLabel = isAuthenticated ? "Dashboard" : "Sign in";
@@ -36,6 +30,29 @@ export default function Header() {
 
   const searchRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  const liveShares = useMemo(() => {
+    if (!marketSummary?.dailySnapshot?.length) return [];
+
+    return marketSummary.dailySnapshot.map((row) => {
+      const change = row.change || "";
+      const trimmedChange = change.trim();
+      const positive = trimmedChange ? !trimmedChange.startsWith("-") : true;
+
+      return {
+        name: row.security || "—",
+        price: row.closing || "N/A",
+        change: trimmedChange || "N/A",
+        positive,
+      };
+    });
+  }, [marketSummary?.dailySnapshot]);
+
+  const tickerItems = useMemo(
+    () => (liveShares.length ? [...liveShares, ...liveShares] : []),
+    [liveShares]
+  );
+  const isTickerLoading = marketLoading && !liveShares.length;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -211,22 +228,35 @@ export default function Header() {
   <div className="bg-linear-to-r from-[#004F64] via-[#026b83] to-[#014F63] py-2 mt-20 overflow-hidden fixed w-full z-40">
         <div
           className={`flex whitespace-nowrap text-white font-medium text-sm ${
-            isPaused ? "" : "animate-scroll"
+            isPaused || !tickerItems.length ? "" : "animate-scroll"
           }`}
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
-          {[...shares, ...shares].map((share, index) => (
-            <div key={index} className="flex items-center mx-6 sm:mx-8">
-              <span>{share.name}</span>
-              <span className="mx-2 text-gray-200">{share.price}</span>
-              <span
-                className={share.positive ? "text-green-300" : "text-red-300"}
-              >
-                {share.change}
-              </span>
+          {isTickerLoading && (
+            <div className="flex items-center mx-6 sm:mx-8 text-gray-100">
+              Loading live market data...
             </div>
-          ))}
+          )}
+
+          {!isTickerLoading &&
+            tickerItems.map((share, index) => (
+              <div key={`${share.name}-${index}`} className="flex items-center mx-6 sm:mx-8">
+                <span>{share.name}</span>
+                <span className="mx-2 text-gray-200">{share.price}</span>
+                <span
+                  className={share.positive ? "text-green-300" : "text-red-300"}
+                >
+                  {share.change}
+                </span>
+              </div>
+            ))}
+
+          {!isTickerLoading && !tickerItems.length && (
+            <div className="flex items-center mx-6 sm:mx-8 text-yellow-200">
+              {marketError ? "Live market data is unavailable right now." : "No market trades recorded today."}
+            </div>
+          )}
         </div>
       </div>
 
