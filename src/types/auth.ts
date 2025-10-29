@@ -2,11 +2,14 @@ export interface SignupData {
   firstName: string;
   lastName: string;
   email: string;
+  phoneCountryCode: string;
   phone: string;
   password: string;
+  confirmPassword: string;
   idNumber: string;
   dateOfBirth: string;
-  address: string;
+  country: string;
+  city: string;
   occupation: string;
   investmentExperience: string;
 }

@@ -1,31 +1,51 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-// Update the import path to match your actual Prisma client location
 import { prisma } from "@/lib/prisma";
 import { sendOTPEmail } from "@/utils/mailer";
+import { signupSchema, SignupPayload } from "@/lib/validations/signupValidation";
+import { Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
-import { validateSignupFields } from "@/validation/auth/signupValidation";
+
+const defaultNotificationPreferences: Prisma.JsonObject = {
+  email: true,
+  sms: false,
+  push: false,
+};
 
 export async function POST(req: Request) {
   try {
     const data = await req.json();
+    const parsed = signupSchema.safeParse(data);
+
+    if (!parsed.success) {
+      const issues = parsed.error.issues.map((issue) => ({
+        field: issue.path.join("."),
+        message: issue.message,
+      }));
+
+      return NextResponse.json(
+        {
+          error: issues[0]?.message ?? "Invalid signup data",
+          errors: issues,
+        },
+        { status: 400 }
+      );
+    }
+
+    const validated: SignupPayload = parsed.data;
     const {
       firstName,
       lastName,
       email,
+      phoneCountryCode,
       phone,
       password,
       idNumber,
       dateOfBirth,
-      address,
+      country,
+      city,
       occupation,
       investmentExperience,
-    } = data;
-
-    const validation = validateSignupFields(data);
-    if (!validation.valid) {
-      return NextResponse.json({ error: validation.error }, { status: 400 });
-    }
+    } = validated;
 
     let existingUser;
     try {
@@ -46,26 +66,30 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Password hashing failed" }, { status: 500 });
     }
 
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  const otpExpiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
-    let user;
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+    let createdUser: { id: string } | null = null;
     try {
-      user = await prisma.user.create({
+      createdUser = await prisma.user.create({
         data: {
           firstName,
           lastName,
           email,
+          phoneCountryCode,
           phone,
           password: hashed,
           idNumber,
           dateOfBirth: new Date(dateOfBirth),
-          address,
+          country,
+          city,
           occupation,
           investmentExperience,
           role: "CLIENT",
           otp,
           otpExpiresAt,
+          notificationPreferences: defaultNotificationPreferences,
         },
+        select: { id: true },
       });
     } catch (createErr) {
       console.error("Database error creating user:", createErr);
@@ -79,7 +103,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Failed to send OTP email" }, { status: 500 });
     }
 
-    return NextResponse.json({ message: "OTP sent to email for verification" });
+    return NextResponse.json({
+      message: "OTP sent to email for verification",
+      userId: createdUser?.id,
+    });
   } catch (err) {
     console.error("Unexpected error in signup route:", err);
     return NextResponse.json({ error: "Signup failed" }, { status: 500 });

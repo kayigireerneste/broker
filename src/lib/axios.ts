@@ -2,7 +2,7 @@ import axios, { AxiosError } from 'axios';
 import { SignupData, AuthResponse, OTPData, LoginData } from '@/types/auth';
 
 const api = axios.create({
-  baseURL: '',  
+  baseURL: '/api',  
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -39,13 +39,20 @@ api.interceptors.response.use(
 
     return response.data;
   },
-  (error: AxiosError<{ error?: string; message?: string }>) => {
+  (error: AxiosError<{ error?: string; message?: string; errors?: Array<{ field?: string; message: string }> }>) => {
     if (error.response) {
-      const message = 
-        error.response.data?.message ||
-        error.response.data?.error ||
-        `Server error: ${error.response.status}`;
-      return Promise.reject(new Error(message));
+      const data = error.response.data;
+      const message =
+        data?.message || data?.error || `Server error: ${error.response.status}`;
+      const enrichedError = new Error(message) as Error & {
+        status?: number;
+        fieldErrors?: Array<{ field?: string; message: string }>;
+      };
+      enrichedError.status = error.response.status;
+      if (Array.isArray(data?.errors)) {
+        enrichedError.fieldErrors = data.errors;
+      }
+      return Promise.reject(enrichedError);
     } else if (error.request) {
       return Promise.reject(new Error('No response from server. Please check your connection.'));
     } else {

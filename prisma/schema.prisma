@@ -19,13 +19,16 @@ model User {
   firstName             String
   lastName              String
   email                 String   @unique
+  phoneCountryCode      String
   phone                 String
   password              String
   idNumber              String
   dateOfBirth           DateTime
-  address               String
+  country               String
+  city                  String
   occupation            String
   investmentExperience  String
+  notificationPreferences Json?
   role                  Role     @default(CLIENT)
   isVerified            Boolean  @default(false)
   otp                   String?

@@ -29,7 +29,6 @@ export default function LoginPage() {
       const validatedData = loginSchema.parse(formData);
       const data = await axiosInstance.post("/api/auth/login", validatedData);
 
-      // Log the response for debugging
       console.log("Login response:", data);
 
       if (!data || typeof data !== "object") {
@@ -48,7 +47,6 @@ export default function LoginPage() {
         throw new Error(apiError || "Missing token or user data in response");
       }
 
-      // Store auth data
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
       document.cookie = `token=${token}; path=/`;
@@ -66,15 +64,12 @@ export default function LoginPage() {
       console.error("Login error:", error);
 
       if (error instanceof z.ZodError) {
-        // Handle validation errors
         const firstError = error.issues[0];
         toast.error(firstError.message || "Please check your input");
       } else if (isAxiosError(error)) {
-        // Handle API errors
         const errorMessage = error.response?.data?.error || error.message;
         toast.error(errorMessage || "Login failed. Please try again.");
       } else {
-        // Handle other errors
         const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
         toast.error(errorMessage);
         console.error("Login error:", error);
@@ -98,6 +93,14 @@ export default function LoginPage() {
       </div>
 
       <div className="relative w-full max-w-md animate-fadeInUp">
+        <div className="mb-2 text-center">
+            <Link
+              href="/"
+              className="text-white/80 hover:text-white transition-colors"
+            >
+              ← Back to Home
+            </Link>
+        </div>
         <Card className="p-8">
           <div className="text-center mb-8">
             <div className="w-16 h-16 gradient-primary rounded-full flex items-center justify-center mx-auto mb-4">
@@ -156,9 +159,9 @@ export default function LoginPage() {
                 />
                 <span className="ml-2 text-sm text-gray-600">Remember me</span>
               </label>
-              <a href="#" className="text-sm text-[#004F64] hover:underline">
+              <Link href="#" className="text-sm text-[#004F64] hover:underline">
                 Forgot password?
-              </a>
+              </Link>
             </div>
 
             <motion.button
@@ -181,22 +184,15 @@ export default function LoginPage() {
           <div className="mt-6 text-center">
             <p className="text-gray-600">
               Don&apos;t have an account?{" "}
-              <a
+              <Link
                 href="/auth/signup"
                 className="text-[#004F64] font-semibold hover:underline"
               >
                 Sign up
-              </a>
+              </Link>
             </p>
           </div>
         </Card>
-
-          <Link
-            href="/"
-            className="text-white/80 hover:text-white transition-colors"
-          >
-            ← Back to Home
-          </Link>
         </div>
       </div>
   );
