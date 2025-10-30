@@ -166,13 +166,13 @@ export default function Header() {
 
             {/* Sign In */}
             {showPrimaryCta && (
-              <Link
+                <Link
                 className="hidden sm:flex bg-linear-to-r from-[#2d94b0] to-[#004f64] transition text-white px-4 sm:px-5 py-2 rounded-full font-medium text-sm items-center gap-2 shadow cursor-pointer"
                 href={primaryCtaHref}
-              >
-                <HiOutlineUser className="h-4 w-4" />
+                >
+                {primaryCtaLabel === "Sign in" && <HiOutlineUser className="h-4 w-4" />}
                 {primaryCtaLabel}
-              </Link>
+                </Link>
             )}
 
             {/* Mobile Menu Button */}
