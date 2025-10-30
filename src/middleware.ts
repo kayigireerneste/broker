@@ -1,19 +1,93 @@
 import { NextRequest, NextResponse } from "next/server";
+import { verifyToken } from "@/lib/auth";
 
-export default function middleware(request: NextRequest) {
-  const token = request.cookies.get("token");
-  const isAuthPage = request.nextUrl.pathname.startsWith("/auth");
-  const isDashboardPage = request.nextUrl.pathname.startsWith("/dashboard");
+type Role = "client" | "broker" | "admin" | "auditor";
 
-  if (isAuthPage && token) {
-    return NextResponse.redirect(new URL("/dashboard/client", request.url));
+const roleToDashboard: Record<Role, string> = {
+  client: "/dashboard/client",
+  broker: "/dashboard/broker",
+  admin: "/dashboard/admin",
+  auditor: "/dashboard/auditor",
+};
+
+const normalizeRole = (role?: unknown): Role | null => {
+  if (typeof role !== "string") return null;
+  const lower = role.toLowerCase();
+  if (lower === "client" || lower === "broker" || lower === "admin" || lower === "auditor") {
+    return lower;
+  }
+  return null;
+};
+
+const extractDashboardRole = (pathname: string): Role | null => {
+  const segments = pathname.split("/").filter(Boolean);
+  if (segments[0] !== "dashboard" || segments.length < 2) return null;
+  return normalizeRole(segments[1]);
+};
+
+export async function middleware(request: NextRequest) {
+  const tokenValue = request.cookies.get("token")?.value;
+  const { pathname } = request.nextUrl;
+  const isAuthPage = pathname.startsWith("/auth");
+  const openAuthPaths = new Set(["/auth/login", "/auth/signup"]);
+  const isOpenAuthPage = openAuthPaths.has(pathname);
+  const isDashboardPage = pathname.startsWith("/dashboard");
+
+  const redirectToLogin = () => {
+    const loginUrl = new URL("/auth/login", request.url);
+    const existingRedirect = request.nextUrl.searchParams.get("redirect");
+
+    if (existingRedirect) {
+      loginUrl.searchParams.set("redirect", existingRedirect);
+    } else {
+      loginUrl.searchParams.set("redirect", pathname);
+    }
+    const response = NextResponse.redirect(loginUrl);
+    response.cookies.delete("token");
+    return response;
+  };
+
+  if (!tokenValue) {
+    if (isDashboardPage) {
+      return redirectToLogin();
+    }
+    return NextResponse.next();
   }
 
-  if (isDashboardPage && !token) {
-    return NextResponse.redirect(new URL("/auth/login", request.url));
-  }
+  try {
+    const payload = await verifyToken<{ role?: string }>(tokenValue);
+    const userRole = normalizeRole(payload.role);
 
-  return NextResponse.next();
+    if (!userRole) {
+      if (isDashboardPage) {
+        return redirectToLogin();
+      }
+      const response = NextResponse.next();
+      response.cookies.delete("token");
+      return response;
+    }
+
+    if (isAuthPage && !isOpenAuthPage) {
+      return NextResponse.redirect(new URL(roleToDashboard[userRole], request.url));
+    }
+
+    if (isDashboardPage) {
+      const requestedRole = extractDashboardRole(pathname);
+      if (!requestedRole || requestedRole !== userRole) {
+        return NextResponse.redirect(new URL(roleToDashboard[userRole], request.url));
+      }
+    }
+
+    return NextResponse.next();
+  } catch (error) {
+    console.error("Middleware token verification failed:", error);
+    if (isDashboardPage) {
+      return redirectToLogin();
+    }
+    const response = NextResponse.next();
+    response.cookies.delete("token");
+    return response;
+  }
 }
 
 export const config = {

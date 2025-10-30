@@ -1,33 +1,63 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ChangeEvent, type FormEvent } from "react";
 import { motion } from "framer-motion";
 import Card from "@/components/ui/Card";
+import { InputField } from "@/components/ui/InputField";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { isAxiosError } from "axios";
 import axiosInstance from "@/lib/axios";
 import toast, { Toaster } from "react-hot-toast";
 import { Loader2 } from "lucide-react";
-import { loginSchema } from "@/lib/validations/loginValidation";
-import { z } from "zod";
+import { loginSchema, type LoginFormData } from "@/lib/validations/loginValidation";
 import { getDashboardPath } from "@/hooks/useAuth";
 
 export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<LoginFormData>({
     email: "",
     password: "",
   });
+  const [errors, setErrors] = useState<Partial<Record<keyof LoginFormData, string>>>({});
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const fieldSchemas = {
+    email: loginSchema.shape.email,
+    password: loginSchema.shape.password,
+  } as const;
+
+  const handleInputChange = (field: keyof LoginFormData) => (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFormData((prev) => ({ ...prev, [field]: value }));
+
+    const result = fieldSchemas[field].safeParse(value);
+    setErrors((prev) => ({
+      ...prev,
+      [field]: result.success ? undefined : result.error.issues[0]?.message,
+    }));
+  };
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
+    setErrors({});
 
     try {
-      const validatedData = loginSchema.parse(formData);
-      const data = await axiosInstance.post("/api/auth/login", validatedData);
+      const validationResult = loginSchema.safeParse(formData);
+      if (!validationResult.success) {
+        // use ZodError.flatten() to get fieldErrors in a typed-safe way
+        const fieldErrors = validationResult.error.flatten().fieldErrors;
+        setErrors({
+          email: fieldErrors.email?.[0],
+          password: fieldErrors.password?.[0],
+        });
+        toast.error(fieldErrors.email?.[0] || fieldErrors.password?.[0] || "Please check your input");
+        return;
+      }
+
+      const validatedData = validationResult.data;
+      const data = await axiosInstance.post("/auth/login", validatedData);
 
       console.log("Login response:", data);
 
@@ -62,17 +92,16 @@ export default function LoginPage() {
       router.push(dashboardHref);
     } catch (error) {
       console.error("Login error:", error);
+      const apiError = error as Error & { status?: number };
 
-      if (error instanceof z.ZodError) {
-        const firstError = error.issues[0];
-        toast.error(firstError.message || "Please check your input");
+      if (apiError && typeof apiError === "object" && "status" in apiError) {
+        toast.error(apiError.message || "Login failed. Please try again.");
       } else if (isAxiosError(error)) {
         const errorMessage = error.response?.data?.error || error.message;
         toast.error(errorMessage || "Login failed. Please try again.");
       } else {
         const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
         toast.error(errorMessage);
-        console.error("Login error:", error);
       }
     } finally {
       setLoading(false);
@@ -125,30 +154,27 @@ export default function LoginPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <motion.input
-              whileFocus={{ scale: 1.03 }}
-              transition={{ type: "spring", stiffness: 200 }}
+            <InputField
+              name="email"
+              label="Email Address"
               type="email"
               placeholder="Email Address"
               value={formData.email}
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
+              onChange={handleInputChange("email")}
               required
-              className="w-full rounded-full px-4 py-2 text-[#004B5B] bg-transparent outline-none border border-[#004B5B]/50 focus:border-[#004B5B]"
+              error={errors.email}
             />
 
-            <motion.input
-              whileFocus={{ scale: 1.03 }}
-              transition={{ type: "spring", stiffness: 200 }}
+            <InputField
+              name="password"
+              label="Password"
               type="password"
               placeholder="Password"
               value={formData.password}
-              onChange={(e) =>
-                setFormData({ ...formData, password: e.target.value })
-              }
+              onChange={handleInputChange("password")}
               required
-              className="w-full rounded-full px-4 py-2 text-[#004B5B] bg-transparent outline-none border border-[#004B5B]/50 focus:border-[#004B5B]"
+              showVisibilityToggle
+              error={errors.password}
             />
 
             <div className="flex items-center justify-between">

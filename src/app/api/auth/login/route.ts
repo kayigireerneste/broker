@@ -21,7 +21,7 @@ export async function POST(req: Request) {
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return NextResponse.json({ error: "Invalid credentials" }, { status: 400 });
 
-    const token = generateToken({ id: user.id, role: user.role });
+  const token = await generateToken({ id: user.id, role: user.role });
     return NextResponse.json({ 
       message: "Logged in successfully",
       token, 

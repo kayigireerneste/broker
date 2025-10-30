@@ -59,6 +59,7 @@ export const InputField: FC<InputFieldProps> = ({
           onChange={onChange}
           disabled={disabled}
           placeholder={placeholder}
+          required={required}
           className={inputClasses}
         />
         {isPasswordField && (

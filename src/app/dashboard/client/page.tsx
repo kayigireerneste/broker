@@ -6,7 +6,6 @@ import DashboardLayout from '@/components/ui/DashboardLayout';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { useAuth } from '@/hooks/useAuth';
-import { UserInfoCard } from '@/components/ui/UserInfoCard';
 
 export default function ClientDashboard() {
   const [selectedAction, setSelectedAction] = useState('');
@@ -38,7 +37,7 @@ export default function ClientDashboard() {
           <p className="text-sm text-gray-600">Here's your investment overview today.</p>
         </div>
 
-        <UserInfoCard name={displayName} email={email} role={dashboardRole} />
+        {/* <UserInfoCard name={displayName} email={email} role={dashboardRole} /> */}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="p-4">

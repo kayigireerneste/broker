@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import {
   FiBarChart2,
   FiBriefcase,
@@ -36,7 +37,16 @@ export default function DashboardLayout({
   userEmail,
 }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
+  const { user, loading, isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      const redirectSuffix = pathname ? `?redirect=${encodeURIComponent(pathname)}` : "";
+      router.replace(`/auth/login${redirectSuffix}`);
+    }
+  }, [loading, isAuthenticated, pathname, router]);
 
   const derivedRole = useMemo(() => {
     if (userRole) return userRole;
@@ -63,6 +73,18 @@ export default function DashboardLayout({
     if (userEmail) return userEmail;
     return user?.email ?? "";
   }, [userEmail, user?.email]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <span className="text-gray-600">Loading dashboard...</span>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   const getNavItems = () => {
     switch (derivedRole) {
