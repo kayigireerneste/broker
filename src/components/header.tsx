@@ -25,7 +25,7 @@ export default function Header() {
   const { data: marketSummary, loading: marketLoading, error: marketError } = useMarketSummary();
 
   const primaryCtaHref = isAuthenticated ? dashboardPath : "/auth/login";
-  const primaryCtaLabel = isAuthenticated ? "Dashboard" : "Sign in";
+  const primaryCtaLabel = isAuthenticated ? "Go Back to Dashboard" : "Sign in";
   const showPrimaryCta = !loading || isAuthenticated;
 
   const searchRef = useRef<HTMLInputElement>(null);
