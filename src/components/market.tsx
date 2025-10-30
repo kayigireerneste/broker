@@ -472,18 +472,6 @@ export default function MarketSummary(): JSX.Element {
           </>
         )}
       </div>
-
-      {error && (
-        <div className="mt-4 px-4 py-3 bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm rounded">
-          {error}
-        </div>
-      )}
-
-      {summary?.sourceUrl && (
-        <p className="mt-4 text-xs text-gray-500">
-          Source: <a className="underline" href={summary.sourceUrl} target="_blank" rel="noreferrer">Rwanda Stock Exchange</a>
-        </p>
-      )}
     </div>
   );
 }
