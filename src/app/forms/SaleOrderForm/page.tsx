@@ -1,6 +1,9 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, type ChangeEvent, type FormEvent } from "react";
+import Footer from "@/components/footer";
+import Header from "@/components/header";
 import { InputField } from "@/components/ui/InputField";
 
 type ClientField = "clientName" | "csdNumber" | "phone" | "email" | "address";
@@ -18,6 +21,7 @@ const initialRows: OrderRow[] = Array.from({ length: 6 }, () => ({
 }));
 
 export default function SaleOrderForm() {
+	const router = useRouter();
 	const [termsAccepted, setTermsAccepted] = useState(false);
 	const [clientFields, setClientFields] = useState<Record<ClientField, string>>({
 		clientName: "",
@@ -76,12 +80,22 @@ export default function SaleOrderForm() {
 		alert("Sale order captured! (This demo does not submit to an API.)");
 	};
 
-	return (
-		<div className="min-h-screen bg-slate-100 py-10 px-4">
-			<form
-				onSubmit={handleSubmit}
-				className="mx-auto w-full max-w-5xl space-y-6 text-slate-700"
-			>
+		return (
+			<div className="bg-slate-100 min-h-screen">
+						<Header />
+				<main className="px-4 pb-16 pt-32">
+							<button
+								type="button"
+								onClick={() => router.back()}
+								className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-[#015B70] transition hover:text-[#013b4a]"
+							>
+								<span aria-hidden="true">←</span>
+								Back
+							</button>
+					<form
+						onSubmit={handleSubmit}
+						className="mx-auto w-full max-w-5xl space-y-6 text-slate-700"
+					>
 				<section className="rounded-3xl bg-white p-8 shadow-lg">
 					<div className="flex flex-col gap-3">
 						<div className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-rose-600">
@@ -352,7 +366,9 @@ export default function SaleOrderForm() {
 						Submit Order
 					</button>
 				</div>
-			</form>
+						</form>
+					</main>
+					<Footer />
 		</div>
 	);
 }
