@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 
-export const companySelect = {
+export const companySelect: Prisma.CompanySelect = {
   id: true,
   name: true,
   ticker: true,
