@@ -1,5 +1,17 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Environment Variables
+
+Create a `.env.local` file at the project root and define the following secrets:
+
+```bash
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
+```
+
+These values come from your [Cloudinary dashboard](https://cloudinary.com/console). They enable secure uploads for passport photos and identification documents through the `/api/uploads/cloudinary` endpoint.
+
 ## Getting Started
 
 First, run the development server:
@@ -19,6 +31,13 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+
+## API documentation
+
+The Swagger definition lives in `public/swagger.json`. Next.js serves it at [`/swagger.json`](http://localhost:3000/swagger.json), and both [`/docs`](http://localhost:3000/docs) and [`/api/docs`](http://localhost:3000/api/docs) consume the same file for the interactive UI.
+
+To update the docs, edit `public/swagger.json` (or regenerate it from your tooling) and refresh the page—no build step required.
 
 ## Learn More
 

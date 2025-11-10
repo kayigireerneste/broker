@@ -1,0 +1,1405 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Broker API",
+    "version": "1.0.0",
+    "description": "This is the APIs documentation for Broker Platform"
+  },
+  "servers": [
+    { "url": "http://localhost:3000", "description": "Development server" },
+    { "url": "https://broker-six-navy.vercel.app/", "description": "Production server" }
+  ],
+  "tags": [
+    { "name": "Authentication", "description": "APIs for managing Authentication" },
+    { "name": "User", "description": "User CRUD operations" },
+    { "name": "Company", "description": "APIs for managing companies and share listings" },
+    { "name": "Order Forms", "description": "APIs for purchase and sale order forms" },
+    { "name": "Uploads", "description": "Endpoints for managing media uploads" }
+  ],
+  "paths": {
+    "/api/auth/signup": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "User Sign Up",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignupRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OTP sent to email for verification"
+          },
+          "400": {
+            "description": "Missing or invalid fields"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/api/auth/verify-otp": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Verify OTP for user email",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyOtpRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OTP verified successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "csdNumber": {
+                      "type": "string",
+                      "description": "Generated CSD number in the format YYYYMMDD {gender code} {country code}{serial}",
+                      "example": "20251105 1 RW01"
+                    }
+                  },
+                  "required": ["message", "csdNumber"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid OTP or email"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "User Login",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful, returns JWT token"
+          },
+          "400": {
+            "description": "Invalid credentials or OTP expired"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/api/auth/resend-otp": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Resend OTP to user's email",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResendOtpRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OTP resent to email"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/api/uploads/cloudinary": {
+      "post": {
+        "tags": ["Uploads"],
+        "summary": "Upload a file to Cloudinary",
+        "description": "Accepts multipart form data and relays the file to Cloudinary using the platform's credentials.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "File to upload. Limited to 10MB by the server."
+                  },
+                  "field": {
+                    "type": "string",
+                    "description": "Optional context describing the consumer field (e.g., passportPhoto, idDocument)."
+                  }
+                },
+                "required": ["file"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "File uploaded successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CloudinaryUploadResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "No file provided or invalid payload"
+          },
+          "413": {
+            "description": "File size exceeds server limit"
+          },
+          "500": {
+            "description": "Unexpected upload failure"
+          }
+        }
+      }
+    },
+    "/api/user": {
+      "get": {
+        "tags": ["User"],
+  "summary": "List users",
+  "description": "Requires SUPER_ADMIN, ADMIN, or AGENT role. Agents only see clients they created.",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "List of users",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserListResponse" }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized - missing or invalid token" },
+          "403": { "description": "Forbidden - insufficient role" },
+          "500": { "description": "Server error" }
+        }
+      },
+      "post": {
+        "tags": ["User"],
+  "summary": "Create a new user",
+  "description": "Requires SUPER_ADMIN, ADMIN, or AGENT role. Agents can only create client accounts. Accepts full signup payload plus optional administrative fields.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateUserRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserResponse" }
+              }
+            }
+          },
+          "400": { "description": "Invalid data" },
+          "401": { "description": "Unauthorized - missing or invalid token" },
+          "403": { "description": "Forbidden - insufficient role" },
+          "409": { "description": "Conflict - user with provided unique field already exists" },
+          "500": { "description": "Server error" }
+        }
+      }
+    },
+    "/api/user/{id}": {
+      "get": {
+        "tags": ["User"],
+  "summary": "Get user by ID",
+  "description": "Requires SUPER_ADMIN, ADMIN, or AGENT role. Agents can only access clients they created.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": {
+            "description": "User details",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserResponse" }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized - missing or invalid token" },
+          "403": { "description": "Forbidden - insufficient role" },
+          "404": { "description": "User not found" },
+          "500": { "description": "Server error" }
+        }
+      },
+      "patch": {
+        "tags": ["User"],
+  "summary": "Update user by ID",
+  "description": "Requires SUPER_ADMIN, ADMIN, or AGENT role. Agents can only modify clients they created. Accepts partial updates.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateUserRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserResponse" }
+              }
+            }
+          },
+          "400": { "description": "Invalid data" },
+          "401": { "description": "Unauthorized - missing or invalid token" },
+          "403": { "description": "Forbidden - insufficient role" },
+          "404": { "description": "User not found" },
+          "409": { "description": "Conflict - user with provided unique field already exists" },
+          "500": { "description": "Server error" }
+        }
+      },
+      "delete": {
+        "tags": ["User"],
+  "summary": "Delete user by ID",
+  "description": "Requires SUPER_ADMIN, ADMIN, or AGENT role. Agents can only remove clients they created.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": {
+            "description": "User deleted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MessageResponse" }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized - missing or invalid token" },
+          "403": { "description": "Forbidden - insufficient role" },
+          "404": { "description": "User not found" },
+          "500": { "description": "Server error" }
+        }
+      }
+    },
+    "/api/company": {
+      "get": {
+        "tags": ["Company"],
+        "summary": "List companies",
+        "description": "Returns companies created on the platform. Public endpoint; supports simple text filtering.",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" },
+            "description": "Optional query to filter by name, ticker, or sector"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of companies",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CompanyListResponse" }
+              }
+            }
+          },
+          "500": { "description": "Server error" }
+        }
+      },
+      "post": {
+        "tags": ["Company"],
+        "summary": "Create a new company",
+        "description": "Requires SUPER_ADMIN or COMPANY role. Company users become owners of the companies they create.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CompanyCreateRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Company created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CompanyResponse" }
+              }
+            }
+          },
+          "400": { "description": "Invalid company data" },
+          "401": { "description": "Unauthorized - missing or invalid token" },
+          "403": { "description": "Forbidden - insufficient role" },
+          "409": { "description": "Conflict - ticker already exists" },
+          "500": { "description": "Server error" }
+        }
+      }
+    },
+    "/api/company/{id}": {
+      "get": {
+        "tags": ["Company"],
+        "summary": "Get company by ID",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Company details",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CompanyResponse" }
+              }
+            }
+          },
+          "404": { "description": "Company not found" },
+          "500": { "description": "Server error" }
+        }
+      },
+      "patch": {
+        "tags": ["Company"],
+        "summary": "Update company by ID",
+        "description": "Requires SUPER_ADMIN or COMPANY role. Company users can only modify companies they created.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CompanyUpdateRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Company updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CompanyResponse" }
+              }
+            }
+          },
+          "400": { "description": "Invalid company data" },
+          "401": { "description": "Unauthorized - missing or invalid token" },
+          "403": { "description": "Forbidden - insufficient role or ownership" },
+          "404": { "description": "Company not found" },
+          "409": { "description": "Conflict - ticker already exists" },
+          "500": { "description": "Server error" }
+        }
+      },
+      "delete": {
+        "tags": ["Company"],
+        "summary": "Delete company by ID",
+        "description": "Requires SUPER_ADMIN or COMPANY role. Company users can only remove companies they created.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Company deleted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MessageResponse" }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized - missing or invalid token" },
+          "403": { "description": "Forbidden - insufficient role or ownership" },
+          "404": { "description": "Company not found" },
+          "500": { "description": "Server error" }
+        }
+      }
+    },
+    "/api/forms/PurchaseOrderForm": {
+      "get": {
+        "tags": ["Order Forms"],
+        "summary": "List purchase orders",
+        "responses": {
+          "200": {
+            "description": "Purchase orders retrieved",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PurchaseOrderListResponse" }
+              }
+            }
+          },
+          "500": { "description": "Server error" }
+        }
+      },
+      "post": {
+        "tags": ["Order Forms"],
+        "summary": "Create a purchase order",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PurchaseOrderRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Purchase order created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PurchaseOrderResponse" }
+              }
+            }
+          },
+          "400": { "description": "Validation error" },
+          "409": { "description": "Conflict - duplicate order" },
+          "500": { "description": "Server error" }
+        }
+      }
+    },
+    "/api/forms/PurchaseOrderForm/{id}": {
+      "get": {
+        "tags": ["Order Forms"],
+        "summary": "Get purchase order by ID",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Purchase order found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PurchaseOrderResponse" }
+              }
+            }
+          },
+          "404": { "description": "Purchase order not found" },
+          "500": { "description": "Server error" }
+        }
+      },
+      "patch": {
+        "tags": ["Order Forms"],
+        "summary": "Update purchase order",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PurchaseOrderUpdateRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Purchase order updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PurchaseOrderResponse" }
+              }
+            }
+          },
+          "400": { "description": "Validation error" },
+          "404": { "description": "Purchase order not found" },
+          "500": { "description": "Server error" }
+        }
+      },
+      "delete": {
+        "tags": ["Order Forms"],
+        "summary": "Delete purchase order",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Purchase order deleted" },
+          "404": { "description": "Purchase order not found" },
+          "500": { "description": "Server error" }
+        }
+      }
+    },
+    "/api/forms/SaleOrderForm": {
+      "get": {
+        "tags": ["Order Forms"],
+        "summary": "List sale orders",
+        "responses": {
+          "200": {
+            "description": "Sale orders retrieved",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SaleOrderListResponse" }
+              }
+            }
+          },
+          "500": { "description": "Server error" }
+        }
+      },
+      "post": {
+        "tags": ["Order Forms"],
+        "summary": "Create a sale order",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SaleOrderRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Sale order created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SaleOrderResponse" }
+              }
+            }
+          },
+          "400": { "description": "Validation error" },
+          "409": { "description": "Conflict - duplicate order" },
+          "500": { "description": "Server error" }
+        }
+      }
+    },
+    "/api/forms/SaleOrderForm/{id}": {
+      "get": {
+        "tags": ["Order Forms"],
+        "summary": "Get sale order by ID",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sale order found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SaleOrderResponse" }
+              }
+            }
+          },
+          "404": { "description": "Sale order not found" },
+          "500": { "description": "Server error" }
+        }
+      },
+      "patch": {
+        "tags": ["Order Forms"],
+        "summary": "Update sale order",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SaleOrderUpdateRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sale order updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SaleOrderResponse" }
+              }
+            }
+          },
+          "400": { "description": "Validation error" },
+          "404": { "description": "Sale order not found" },
+          "500": { "description": "Server error" }
+        }
+      },
+      "delete": {
+        "tags": ["Order Forms"],
+        "summary": "Delete sale order",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Sale order deleted" },
+          "404": { "description": "Sale order not found" },
+          "500": { "description": "Server error" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "SignupRequest": {
+        "type": "object",
+        "properties": {
+          "firstName": { "type": "string", "minLength": 3 },
+          "lastName": { "type": "string", "minLength": 3 },
+          "email": { "type": "string", "format": "email" },
+          "phoneCountryCode": { "type": "string", "pattern": "^\\+[0-9]{1,4}$" },
+          "phone": {
+            "type": "string",
+            "pattern": "^[0-9]{4,15}$",
+            "description": "Digits only; spaces are removed before validation."
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "description": "Must contain uppercase, lowercase, numeric, and special characters."
+          },
+          "confirmPassword": { "type": "string", "minLength": 8 },
+          "idNumber": { "type": "string", "minLength": 1 },
+          "csdNumber": { "type": "string", "description": "Optional Central Securities Depository number" },
+          "passportPhoto": {
+            "type": "string",
+            "description": "Secure URL returned by the Cloudinary upload endpoint for the user's passport photo"
+          },
+          "idDocument": {
+            "type": "string",
+            "description": "Secure URL returned by the Cloudinary upload endpoint for the user's identification document"
+          },
+          "dateOfBirth": { "type": "string", "format": "date" },
+          "gender": {
+            "type": "string",
+            "enum": ["male", "female"]
+          },
+          "country": { "type": "string", "minLength": 1 },
+          "city": { "type": "string", "minLength": 1 },
+          "occupation": { "type": "string", "minLength": 1 },
+          "investmentExperience": { "type": "string", "minLength": 1 }
+        },
+        "required": [
+          "firstName",
+          "lastName",
+          "email",
+          "phoneCountryCode",
+          "phone",
+          "password",
+          "confirmPassword",
+          "idNumber",
+          "passportPhoto",
+          "idDocument",
+          "dateOfBirth",
+          "gender",
+          "country",
+          "city",
+          "occupation",
+          "investmentExperience"
+        ]
+      },
+      "UserRole": {
+        "type": "string",
+        "enum": ["SUPER_ADMIN", "ADMIN", "AGENT", "COMPANY", "CLIENT"]
+      },
+      "CreateUserRequest": {
+        "allOf": [
+          { "$ref": "#/components/schemas/SignupRequest" },
+          {
+            "type": "object",
+            "properties": {
+              "notificationPreferences": {
+                "type": "object",
+                "additionalProperties": true
+              },
+              "role": { "$ref": "#/components/schemas/UserRole" },
+              "isVerified": { "type": "boolean" }
+            }
+          }
+        ]
+      },
+      "UpdateUserRequest": {
+        "type": "object",
+        "description": "At least one field must be provided. confirmPassword is required when password is supplied.",
+        "minProperties": 1,
+        "additionalProperties": false,
+        "properties": {
+          "firstName": { "type": "string", "minLength": 3 },
+          "lastName": { "type": "string", "minLength": 3 },
+          "email": { "type": "string", "format": "email" },
+          "phoneCountryCode": { "type": "string", "pattern": "^\\+[0-9]{1,4}$" },
+          "phone": {
+            "type": "string",
+            "pattern": "^[0-9]{4,15}$",
+            "description": "Digits only; spaces are removed before validation."
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "description": "Must contain uppercase, lowercase, numeric, and special characters."
+          },
+          "confirmPassword": { "type": "string", "minLength": 8 },
+          "idNumber": { "type": "string", "minLength": 1 },
+          "csdNumber": { "type": "string", "description": "Optional Central Securities Depository number" },
+          "passportPhoto": {
+            "type": "string",
+            "description": "Secure URL returned by the Cloudinary upload endpoint for the user's passport photo"
+          },
+          "idDocument": {
+            "type": "string",
+            "description": "Secure URL returned by the Cloudinary upload endpoint for the user's identification document"
+          },
+          "dateOfBirth": { "type": "string", "format": "date" },
+          "gender": {
+            "type": "string",
+            "enum": ["male", "female"]
+          },
+          "country": { "type": "string", "minLength": 1 },
+          "city": { "type": "string", "minLength": 1 },
+          "occupation": { "type": "string", "minLength": 1 },
+          "investmentExperience": { "type": "string", "minLength": 1 },
+          "notificationPreferences": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "role": { "$ref": "#/components/schemas/UserRole" },
+          "isVerified": { "type": "boolean" }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "firstName": { "type": "string" },
+          "lastName": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "phoneCountryCode": { "type": "string" },
+          "phone": { "type": "string" },
+          "idNumber": { "type": "string" },
+          "csdNumber": { "type": "string", "nullable": true },
+          "passportPhoto": {
+            "type": "string",
+            "description": "Secure Cloudinary URL for the passport photo"
+          },
+          "idDocument": {
+            "type": "string",
+            "description": "Secure Cloudinary URL for the identification document"
+          },
+          "dateOfBirth": { "type": "string", "format": "date-time" },
+          "gender": {
+            "type": "string",
+            "enum": ["male", "female"],
+            "nullable": true
+          },
+          "country": { "type": "string" },
+          "city": { "type": "string" },
+          "occupation": { "type": "string" },
+          "investmentExperience": { "type": "string" },
+          "notificationPreferences": {
+            "type": "object",
+            "additionalProperties": true,
+            "nullable": true
+          },
+          "role": { "$ref": "#/components/schemas/UserRole" },
+          "isVerified": { "type": "boolean" },
+          "createdBy": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": { "type": "string", "format": "uuid" },
+              "firstName": { "type": "string" },
+              "lastName": { "type": "string" },
+              "email": { "type": "string", "format": "email" },
+              "role": { "$ref": "#/components/schemas/UserRole" }
+            }
+          },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        },
+        "required": [
+          "id",
+          "firstName",
+          "lastName",
+          "email",
+          "phoneCountryCode",
+          "phone",
+          "idNumber",
+          "dateOfBirth",
+          "country",
+          "city",
+          "occupation",
+          "investmentExperience",
+          "passportPhoto",
+          "idDocument",
+          "role",
+          "isVerified",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "UserResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/User" }
+        },
+        "required": ["data"]
+      },
+      "UserListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/User" }
+          }
+        },
+        "required": ["data"]
+      },
+      "CompanyOwnerSummary": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "firstName": { "type": "string" },
+          "lastName": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "role": { "$ref": "#/components/schemas/UserRole" }
+        },
+        "required": ["id", "firstName", "lastName", "email", "role"]
+      },
+      "Company": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "ticker": {
+            "type": "string",
+            "nullable": true,
+            "description": "Uppercase ticker symbol"
+          },
+          "description": { "type": "string", "nullable": true },
+          "sector": { "type": "string", "nullable": true },
+          "sharePrice": {
+            "type": "string",
+            "nullable": true,
+            "description": "String representation of the company's share price"
+          },
+          "totalShares": { "type": "integer", "nullable": true },
+          "availableShares": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Available float of shares. Must not exceed totalShares when both are present."
+          },
+          "createdBy": {
+            "$ref": "#/components/schemas/CompanyOwnerSummary",
+            "nullable": true
+          },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "closingPrice": {
+            "type": "string",
+            "nullable": true,
+            "description": "End-of-day closing price from the latest market snapshot."
+          },
+          "previousClosingPrice": {
+            "type": "string",
+            "nullable": true,
+            "description": "Previous session closing price."
+          },
+          "priceChange": {
+            "type": "string",
+            "nullable": true,
+            "description": "Formatted price change (e.g. +0.65%)."
+          },
+          "tradedVolume": {
+            "type": "string",
+            "nullable": true,
+            "description": "Latest session traded volume. Represented as string to support large values."
+          },
+          "tradedValue": {
+            "type": "string",
+            "nullable": true,
+            "description": "Latest session traded value. Represented as string to preserve precision."
+          },
+          "snapshotDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Market snapshot reference timestamp."
+          },
+          "contract": {
+            "type": "string",
+            "nullable": true,
+            "description": "Optional contract or prospectus reference URL."
+          },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["id", "name", "createdAt", "updatedAt"]
+      },
+      "CompanyListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Company" }
+          }
+        },
+        "required": ["data"]
+      },
+      "CompanyResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/Company" }
+        },
+        "required": ["data"]
+      },
+      "CompanyCreateRequest": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "ticker": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 10,
+            "description": "Unique uppercase ticker symbol"
+          },
+          "description": { "type": "string", "nullable": true },
+          "sector": { "type": "string", "nullable": true },
+          "sharePrice": {
+            "type": "string",
+            "nullable": true,
+            "description": "Optional decimal share price. Provide as string to preserve precision."
+          },
+          "totalShares": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1
+          },
+          "availableShares": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0,
+            "description": "Must not exceed totalShares when both are provided"
+          },
+          "closingPrice": {
+            "type": "string",
+            "nullable": true,
+            "description": "End-of-day closing price from the latest market snapshot."
+          },
+          "previousClosingPrice": {
+            "type": "string",
+            "nullable": true,
+            "description": "Previous session closing price."
+          },
+          "priceChange": {
+            "type": "string",
+            "nullable": true,
+            "description": "Formatted price change (e.g. +0.65%)."
+          },
+          "tradedVolume": {
+            "type": "string",
+            "nullable": true,
+            "description": "Latest session traded volume. Represented as string to support large values."
+          },
+          "tradedValue": {
+            "type": "string",
+            "nullable": true,
+            "description": "Latest session traded value. Represented as string to preserve precision."
+          },
+          "snapshotDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Market snapshot reference timestamp."
+          },
+          "contract": {
+            "type": "string",
+            "nullable": true,
+            "description": "Optional contract or prospectus reference URL."
+          }
+        },
+        "required": ["name", "ticker"]
+      },
+      "CompanyUpdateRequest": {
+        "type": "object",
+        "description": "At least one field must be provided",
+        "minProperties": 1,
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "ticker": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 10
+          },
+          "description": { "type": "string", "nullable": true },
+          "sector": { "type": "string", "nullable": true },
+          "sharePrice": {
+            "type": "string",
+            "nullable": true,
+            "description": "Optional decimal share price. Provide as string to preserve precision."
+          },
+          "totalShares": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1
+          },
+          "availableShares": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0,
+            "description": "Must not exceed totalShares when both are provided"
+          },
+          "closingPrice": {
+            "type": "string",
+            "nullable": true
+          },
+          "previousClosingPrice": {
+            "type": "string",
+            "nullable": true
+          },
+          "priceChange": {
+            "type": "string",
+            "nullable": true
+          },
+          "tradedVolume": {
+            "type": "string",
+            "nullable": true
+          },
+          "tradedValue": {
+            "type": "string",
+            "nullable": true
+          },
+          "snapshotDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "contract": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "MessageResponse": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string" }
+        },
+        "required": ["message"]
+      },
+      "CloudinaryUploadResponse": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Secure URL for the uploaded asset"
+          },
+          "publicId": {
+            "type": "string",
+            "description": "Cloudinary public identifier"
+          },
+          "bytes": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Size of the uploaded file in bytes"
+          },
+          "format": {
+            "type": "string",
+            "description": "File format as determined by Cloudinary"
+          },
+          "resourceType": {
+            "type": "string",
+            "description": "Cloudinary resource type (image, raw, video, etc.)"
+          },
+          "folder": {
+            "type": "string",
+            "description": "Cloudinary folder that stores the asset"
+          }
+        },
+        "required": ["url", "publicId", "bytes", "format", "resourceType", "folder"]
+      },
+      "VerifyOtpRequest": {
+        "type": "object",
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "otp": { "type": "string", "pattern": "^\\d{6}$" }
+        },
+        "required": ["email", "otp"]
+      },
+      "LoginRequest": {
+        "type": "object",
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "password": { "type": "string", "minLength": 8 }
+        },
+        "required": ["email", "password"]
+      },
+      "ResendOtpRequest": {
+        "type": "object",
+        "properties": {
+          "email": { "type": "string", "format": "email" }
+        },
+        "required": ["email"]
+      },
+      "PurchaseOrderItem": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid", "nullable": true },
+          "security": { "type": "string" },
+          "quantity": { "type": "integer", "minimum": 1 },
+          "price": {
+            "type": "string",
+            "nullable": true,
+            "description": "Stored as a stringified decimal"
+          }
+        },
+        "required": ["security", "quantity"]
+      },
+      "SaleOrderItem": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid", "nullable": true },
+          "security": { "type": "string" },
+          "quantity": { "type": "integer", "minimum": 1 },
+          "price": {
+            "type": "string",
+            "nullable": true,
+            "description": "Stored as a stringified decimal"
+          }
+        },
+        "required": ["security", "quantity"]
+      },
+      "PurchaseOrderRequest": {
+        "type": "object",
+        "properties": {
+          "clientName": { "type": "string" },
+          "csdNumber": { "type": "string", "nullable": true },
+          "phone": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "address": { "type": "string" },
+          "bestMarketPrice": { "type": "boolean" },
+          "priceLimit": { "type": "boolean" },
+          "standingOrderNote": { "type": "string", "nullable": true },
+          "standingFrequency": {
+            "type": "string",
+            "nullable": true,
+            "description": "Standing order frequency code"
+          },
+          "additionalInstructions": { "type": "string", "nullable": true },
+          "termsAccepted": { "type": "boolean" },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "security": { "type": "string" },
+                "quantity": { "type": "integer", "minimum": 1 },
+                "price": { "type": "string", "nullable": true }
+              },
+              "required": ["security", "quantity"]
+            },
+            "minItems": 1
+          }
+        },
+        "required": [
+          "clientName",
+          "phone",
+          "email",
+          "address",
+          "termsAccepted",
+          "items"
+        ]
+      },
+      "PurchaseOrderUpdateRequest": {
+        "type": "object",
+        "minProperties": 1,
+        "additionalProperties": false,
+        "properties": {
+          "clientName": { "type": "string" },
+          "csdNumber": { "type": "string", "nullable": true },
+          "phone": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "address": { "type": "string" },
+          "bestMarketPrice": { "type": "boolean" },
+          "priceLimit": { "type": "boolean" },
+          "standingOrderNote": { "type": "string", "nullable": true },
+          "standingFrequency": {
+            "type": "string",
+            "nullable": true,
+            "description": "Standing order frequency code"
+          },
+          "additionalInstructions": { "type": "string", "nullable": true },
+          "termsAccepted": { "type": "boolean" },
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/PurchaseOrderItem" }
+          }
+        }
+      },
+      "SaleOrderRequest": {
+        "type": "object",
+        "properties": {
+          "clientName": { "type": "string" },
+          "csdNumber": { "type": "string", "nullable": true },
+          "phone": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "address": { "type": "string" },
+          "bestMarketPrice": { "type": "boolean" },
+          "priceLimit": { "type": "boolean" },
+          "withinTimeLimitNote": { "type": "string", "nullable": true },
+          "bankName": { "type": "string", "nullable": true },
+          "bankBranch": { "type": "string", "nullable": true },
+          "accountNumber": { "type": "string", "nullable": true },
+          "termsAccepted": { "type": "boolean" },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "security": { "type": "string" },
+                "quantity": { "type": "integer", "minimum": 1 },
+                "price": { "type": "string", "nullable": true }
+              },
+              "required": ["security", "quantity"]
+            },
+            "minItems": 1
+          }
+        },
+        "required": [
+          "clientName",
+          "phone",
+          "email",
+          "address",
+          "termsAccepted",
+          "items"
+        ]
+      },
+      "SaleOrderUpdateRequest": {
+        "type": "object",
+        "minProperties": 1,
+        "additionalProperties": false,
+        "properties": {
+          "clientName": { "type": "string" },
+          "csdNumber": { "type": "string", "nullable": true },
+          "phone": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "address": { "type": "string" },
+          "bestMarketPrice": { "type": "boolean" },
+          "priceLimit": { "type": "boolean" },
+          "withinTimeLimitNote": { "type": "string", "nullable": true },
+          "bankName": { "type": "string", "nullable": true },
+          "bankBranch": { "type": "string", "nullable": true },
+          "accountNumber": { "type": "string", "nullable": true },
+          "termsAccepted": { "type": "boolean" },
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/SaleOrderItem" }
+          }
+        }
+      },
+      "PurchaseOrder": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "clientName": { "type": "string" },
+          "csdNumber": { "type": "string", "nullable": true },
+          "phone": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "address": { "type": "string" },
+          "bestMarketPrice": { "type": "boolean" },
+          "priceLimit": { "type": "boolean" },
+          "standingOrderNote": { "type": "string", "nullable": true },
+          "standingFrequency": { "type": "string", "nullable": true },
+          "additionalInstructions": { "type": "string", "nullable": true },
+          "termsAccepted": { "type": "boolean" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/PurchaseOrderItem" }
+          }
+        }
+      },
+      "SaleOrder": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "clientName": { "type": "string" },
+          "csdNumber": { "type": "string", "nullable": true },
+          "phone": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "address": { "type": "string" },
+          "bestMarketPrice": { "type": "boolean" },
+          "priceLimit": { "type": "boolean" },
+          "withinTimeLimitNote": { "type": "string", "nullable": true },
+          "bankName": { "type": "string", "nullable": true },
+          "bankBranch": { "type": "string", "nullable": true },
+          "accountNumber": { "type": "string", "nullable": true },
+          "termsAccepted": { "type": "boolean" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/SaleOrderItem" }
+          }
+        }
+      },
+      "PurchaseOrderResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/PurchaseOrder" }
+        },
+        "required": ["data"]
+      },
+      "SaleOrderResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/SaleOrder" }
+        },
+        "required": ["data"]
+      },
+      "PurchaseOrderListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/PurchaseOrder" }
+          }
+        },
+        "required": ["data"]
+      },
+      "SaleOrderListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/SaleOrder" }
+          }
+        },
+        "required": ["data"]
+      }
+    }
+  }
+}

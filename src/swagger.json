@@ -1,0 +1,762 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Broker Auth API",
+    "version": "1.0.0",
+    "description": "API documentation for authentication endpoints."
+  },
+  "paths": {
+    "/api/auth/signup": {
+      "post": {
+        "summary": "Sign up a new user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignupRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OTP sent to email for verification"
+          },
+          "400": {
+            "description": "Missing or invalid fields"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/api/auth/verify-otp": {
+      "post": {
+        "summary": "Verify OTP for user email",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyOtpRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OTP verified successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "csdNumber": {
+                      "type": "string",
+                      "description": "Generated CSD number in the format YYYYMMDD {gender code} {country code}{serial}",
+                      "example": "20251105 1 RW01"
+                    }
+                  },
+                  "required": ["message", "csdNumber"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid OTP or email"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "summary": "Login with email and password",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful, returns JWT token"
+          },
+          "400": {
+            "description": "Invalid credentials or OTP expired"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/api/auth/resend-otp": {
+      "post": {
+        "summary": "Resend OTP to user's email",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResendOtpRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OTP resent to email"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/api/uploads/cloudinary": {
+      "post": {
+        "summary": "Upload a file to Cloudinary",
+        "description": "Accepts multipart form data and forwards it to Cloudinary using server credentials.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "File to upload. Limited to 10MB by the server."
+                  },
+                  "field": {
+                    "type": "string",
+                    "description": "Optional context describing the consumer field (e.g., passportPhoto, idDocument)."
+                  }
+                },
+                "required": ["file"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "File uploaded successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CloudinaryUploadResponse" }
+              }
+            }
+          },
+          "400": { "description": "No file provided or invalid payload" },
+          "413": { "description": "File size exceeds server limit" },
+          "500": { "description": "Unexpected upload failure" }
+        }
+      }
+    },
+    "/api/user": {
+      "get": {
+        "summary": "Get all users",
+        "responses": {
+          "200": { "description": "List of users" },
+          "500": { "description": "Server error" }
+        }
+      },
+      "post": {
+        "summary": "Create a new user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SignupRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "User created" },
+          "400": { "description": "Invalid data" },
+          "500": { "description": "Server error" }
+        }
+      }
+    },
+    "/api/user/{id}": {
+      "get": {
+        "summary": "Get user by ID",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "User found" },
+          "404": { "description": "User not found" },
+          "500": { "description": "Server error" }
+        }
+      },
+      "put": {
+        "summary": "Update user by ID",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SignupRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "User updated" },
+          "400": { "description": "Invalid data" },
+          "404": { "description": "User not found" },
+          "500": { "description": "Server error" }
+        }
+      },
+      "delete": {
+        "summary": "Delete user by ID",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "User deleted" },
+          "404": { "description": "User not found" },
+          "500": { "description": "Server error" }
+        }
+      }
+    },
+    "/api/forms/PurchaseOrderForm": {
+      "get": {
+        "summary": "List purchase orders",
+        "responses": {
+          "200": {
+            "description": "Purchase orders retrieved",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PurchaseOrderListResponse" }
+              }
+            }
+          },
+          "500": { "description": "Server error" }
+        }
+      },
+      "post": {
+        "summary": "Create a purchase order",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PurchaseOrderRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Purchase order created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PurchaseOrderResponse" }
+              }
+            }
+          },
+          "400": { "description": "Validation error" },
+          "500": { "description": "Server error" }
+        }
+      }
+    },
+    "/api/forms/PurchaseOrderForm/{id}": {
+      "get": {
+        "summary": "Get purchase order by ID",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Purchase order found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PurchaseOrderResponse" }
+              }
+            }
+          },
+          "404": { "description": "Purchase order not found" },
+          "500": { "description": "Server error" }
+        }
+      },
+      "patch": {
+        "summary": "Update purchase order",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PurchaseOrderUpdateRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Purchase order updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PurchaseOrderResponse" }
+              }
+            }
+          },
+          "400": { "description": "Validation error" },
+          "404": { "description": "Purchase order not found" },
+          "500": { "description": "Server error" }
+        }
+      },
+      "delete": {
+        "summary": "Delete purchase order",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Purchase order deleted" },
+          "404": { "description": "Purchase order not found" },
+          "500": { "description": "Server error" }
+        }
+      }
+    },
+    "/api/forms/SaleOrderForm": {
+      "get": {
+        "summary": "List sale orders",
+        "responses": {
+          "200": {
+            "description": "Sale orders retrieved",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SaleOrderListResponse" }
+              }
+            }
+          },
+          "500": { "description": "Server error" }
+        }
+      },
+      "post": {
+        "summary": "Create a sale order",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SaleOrderRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Sale order created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SaleOrderResponse" }
+              }
+            }
+          },
+          "400": { "description": "Validation error" },
+          "500": { "description": "Server error" }
+        }
+      }
+    },
+    "/api/forms/SaleOrderForm/{id}": {
+      "get": {
+        "summary": "Get sale order by ID",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sale order found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SaleOrderResponse" }
+              }
+            }
+          },
+          "404": { "description": "Sale order not found" },
+          "500": { "description": "Server error" }
+        }
+      },
+      "patch": {
+        "summary": "Update sale order",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SaleOrderUpdateRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sale order updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SaleOrderResponse" }
+              }
+            }
+          },
+          "400": { "description": "Validation error" },
+          "404": { "description": "Sale order not found" },
+          "500": { "description": "Server error" }
+        }
+      },
+      "delete": {
+        "summary": "Delete sale order",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Sale order deleted" },
+          "404": { "description": "Sale order not found" },
+          "500": { "description": "Server error" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "SignupRequest": {
+        "type": "object",
+        "properties": {
+          "firstName": { "type": "string", "maxLength": 15 },
+          "lastName": { "type": "string", "maxLength": 15 },
+          "email": { "type": "string", "format": "email" },
+          "phoneCountryCode": { "type": "string", "pattern": "^\\+[0-9]{1,4}$" },
+          "phone": { "type": "string", "pattern": "^\\d{4,15}$" },
+          "password": { "type": "string", "minLength": 8 },
+          "confirmPassword": { "type": "string", "minLength": 8 },
+          "idNumber": { "type": "string", "pattern": "^\\d{1,16}$" },
+          "passportPhoto": {
+            "type": "string",
+            "description": "Secure URL returned by the Cloudinary upload endpoint for the user's passport photo"
+          },
+          "idDocument": {
+            "type": "string",
+            "description": "Secure URL returned by the Cloudinary upload endpoint for the user's identification document"
+          },
+          "dateOfBirth": { "type": "string", "format": "date" },
+          "gender": {
+            "type": "string",
+            "enum": ["male", "female"]
+          },
+          "country": { "type": "string" },
+          "city": { "type": "string" },
+          "occupation": { "type": "string" },
+          "investmentExperience": { "type": "string" }
+        },
+        "required": [
+          "firstName",
+          "lastName",
+          "email",
+          "phoneCountryCode",
+          "phone",
+          "password",
+          "confirmPassword",
+          "idNumber",
+          "passportPhoto",
+          "idDocument",
+          "dateOfBirth",
+          "gender",
+          "country",
+          "city",
+          "occupation",
+          "investmentExperience"
+        ]
+      },
+      "VerifyOtpRequest": {
+        "type": "object",
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "otp": { "type": "string", "pattern": "^\\d{6}$" }
+        },
+        "required": ["email", "otp"]
+      },
+      "LoginRequest": {
+        "type": "object",
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "password": { "type": "string", "minLength": 8 }
+        },
+        "required": ["email", "password"]
+      },
+      "ResendOtpRequest": {
+        "type": "object",
+        "properties": {
+          "email": { "type": "string", "format": "email" }
+        },
+        "required": ["email"]
+      },
+      "CloudinaryUploadResponse": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Secure URL for the uploaded asset"
+          },
+          "publicId": {
+            "type": "string",
+            "description": "Cloudinary public identifier"
+          },
+          "bytes": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Size of the uploaded file in bytes"
+          },
+          "format": {
+            "type": "string",
+            "description": "File format as determined by Cloudinary"
+          },
+          "resourceType": {
+            "type": "string",
+            "description": "Cloudinary resource type (image, raw, video, etc.)"
+          },
+          "folder": {
+            "type": "string",
+            "description": "Cloudinary folder that stores the asset"
+          }
+        },
+        "required": ["url", "publicId", "bytes", "format", "resourceType", "folder"]
+      },
+      "PurchaseOrderItem": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "security": { "type": "string" },
+          "quantity": { "type": "integer" },
+          "price": { "type": "string", "nullable": true }
+        },
+        "required": ["security", "quantity"],
+        "additionalProperties": false
+      },
+      "PurchaseOrderRequest": {
+        "type": "object",
+        "properties": {
+          "clientName": { "type": "string" },
+          "csdNumber": { "type": "string", "nullable": true },
+          "phone": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "address": { "type": "string" },
+          "bestMarketPrice": { "type": "boolean" },
+          "priceLimit": { "type": "boolean" },
+          "standingOrderNote": { "type": "string", "nullable": true },
+          "standingFrequency": {
+            "type": "string",
+            "nullable": true,
+            "description": "Standing order frequency code"
+          },
+          "additionalInstructions": { "type": "string", "nullable": true },
+          "termsAccepted": { "type": "boolean" },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "security": { "type": "string" },
+                "quantity": { "type": "integer" },
+                "price": { "type": "string", "nullable": true }
+              },
+              "required": ["security", "quantity"]
+            },
+            "minItems": 1
+          }
+        },
+        "required": [
+          "clientName",
+          "phone",
+          "email",
+          "address",
+          "termsAccepted",
+          "items"
+        ]
+      },
+      "PurchaseOrderUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "clientName": { "type": "string" },
+          "csdNumber": { "type": "string", "nullable": true },
+          "phone": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "address": { "type": "string" },
+          "bestMarketPrice": { "type": "boolean" },
+          "priceLimit": { "type": "boolean" },
+          "standingOrderNote": { "type": "string", "nullable": true },
+          "standingFrequency": {
+            "type": "string",
+            "nullable": true,
+            "description": "Standing order frequency code"
+          },
+          "additionalInstructions": { "type": "string", "nullable": true },
+          "termsAccepted": { "type": "boolean" },
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/PurchaseOrderItem" }
+          }
+        },
+        "additionalProperties": false
+      },
+      "PurchaseOrder": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "clientName": { "type": "string" },
+          "csdNumber": { "type": "string", "nullable": true },
+          "phone": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "address": { "type": "string" },
+          "bestMarketPrice": { "type": "boolean" },
+          "priceLimit": { "type": "boolean" },
+          "standingOrderNote": { "type": "string", "nullable": true },
+          "standingFrequency": { "type": "string", "nullable": true },
+          "additionalInstructions": { "type": "string", "nullable": true },
+          "termsAccepted": { "type": "boolean" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/PurchaseOrderItem" }
+          }
+        }
+      },
+      "PurchaseOrderResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/PurchaseOrder" },
+          "error": { "type": "string", "nullable": true }
+        }
+      },
+      "PurchaseOrderListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/PurchaseOrder" }
+          }
+        }
+      },
+      "SaleOrderItem": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "security": { "type": "string" },
+          "quantity": { "type": "integer" },
+          "price": { "type": "string", "nullable": true }
+        },
+        "required": ["security", "quantity"],
+        "additionalProperties": false
+      },
+      "SaleOrderRequest": {
+        "type": "object",
+        "properties": {
+          "clientName": { "type": "string" },
+          "csdNumber": { "type": "string", "nullable": true },
+          "phone": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "address": { "type": "string" },
+          "bestMarketPrice": { "type": "boolean" },
+          "priceLimit": { "type": "boolean" },
+          "withinTimeLimitNote": { "type": "string", "nullable": true },
+          "bankName": { "type": "string", "nullable": true },
+          "bankBranch": { "type": "string", "nullable": true },
+          "accountNumber": { "type": "string", "nullable": true },
+          "termsAccepted": { "type": "boolean" },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "security": { "type": "string" },
+                "quantity": { "type": "integer" },
+                "price": { "type": "string", "nullable": true }
+              },
+              "required": ["security", "quantity"]
+            },
+            "minItems": 1
+          }
+        },
+        "required": [
+          "clientName",
+          "phone",
+          "email",
+          "address",
+          "termsAccepted",
+          "items"
+        ]
+      },
+      "SaleOrderUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "clientName": { "type": "string" },
+          "csdNumber": { "type": "string", "nullable": true },
+          "phone": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "address": { "type": "string" },
+          "bestMarketPrice": { "type": "boolean" },
+          "priceLimit": { "type": "boolean" },
+          "withinTimeLimitNote": { "type": "string", "nullable": true },
+          "bankName": { "type": "string", "nullable": true },
+          "bankBranch": { "type": "string", "nullable": true },
+          "accountNumber": { "type": "string", "nullable": true },
+          "termsAccepted": { "type": "boolean" },
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/SaleOrderItem" }
+          }
+        },
+        "additionalProperties": false
+      },
+      "SaleOrder": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "clientName": { "type": "string" },
+          "csdNumber": { "type": "string", "nullable": true },
+          "phone": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "address": { "type": "string" },
+          "bestMarketPrice": { "type": "boolean" },
+          "priceLimit": { "type": "boolean" },
+          "withinTimeLimitNote": { "type": "string", "nullable": true },
+          "bankName": { "type": "string", "nullable": true },
+          "bankBranch": { "type": "string", "nullable": true },
+          "accountNumber": { "type": "string", "nullable": true },
+          "termsAccepted": { "type": "boolean" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/SaleOrderItem" }
+          }
+        }
+      },
+      "SaleOrderResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "$ref": "#/components/schemas/SaleOrder" },
+          "error": { "type": "string", "nullable": true }
+        }
+      },
+      "SaleOrderListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/SaleOrder" }
+          }
+        }
+      }
+    }
+  }
+}
