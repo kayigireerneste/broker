@@ -2,14 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-export type AuthRole = "CLIENT" | "AGENT" | "ADMIN" | "SUPER_ADMIN" | "COMPANY";
+export type AuthRole = "CLIENT" | "TELLER" | "ADMIN" | "SUPER_ADMIN" | "COMPANY";
 
 export interface AuthUser {
   id: string;
   email: string;
   role: AuthRole;
-  firstName?: string | null;
-  lastName?: string | null;
+  fullName?: string | null;
   [key: string]: unknown;
 }
 
@@ -21,7 +20,7 @@ interface AuthState {
 
 const DASHBOARD_PATHS: Record<AuthRole, string> = {
   CLIENT: "/dashboard/client",
-  AGENT: "/dashboard/agent",
+  TELLER: "/dashboard/teller",
   ADMIN: "/dashboard/admin",
   SUPER_ADMIN: "/dashboard/super-admin",
   COMPANY: "/dashboard/company",
@@ -30,7 +29,7 @@ const DASHBOARD_PATHS: Record<AuthRole, string> = {
 const normalizeRole = (role?: string | null): AuthRole | null => {
   if (!role) return null;
   const upper = role.toUpperCase().replace("-", "_");
-  if (["CLIENT", "AGENT", "ADMIN", "SUPER_ADMIN", "COMPANY"].includes(upper)) {
+  if (["CLIENT", "TELLER", "ADMIN", "SUPER_ADMIN", "COMPANY"].includes(upper)) {
     return upper as AuthRole;
   }
   return null;

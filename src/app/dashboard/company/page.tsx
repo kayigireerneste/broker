@@ -23,9 +23,7 @@ export default function CompanyDashboard() {
     email: string;
     dashboardRole: "company";
   } => {
-    const first = (user?.firstName as string | undefined) ?? "";
-    const last = (user?.lastName as string | undefined) ?? "";
-    const fullName = `${first} ${last}`.trim();
+    const fullName = (user?.fullName as string | undefined)?.trim() ?? "";
     const fallbackName = user?.email ? user.email.split("@")[0] : "Issuer";
 
     return {
@@ -33,7 +31,7 @@ export default function CompanyDashboard() {
       email: user?.email ?? "Not provided",
       dashboardRole: "company",
     };
-  }, [user?.email, user?.firstName, user?.lastName]);
+  }, [user?.email, user?.fullName]);
 
   const portfolioHighlights = [
     {

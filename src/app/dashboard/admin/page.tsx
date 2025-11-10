@@ -26,19 +26,17 @@ export default function AdminDashboard() {
   const { displayName, email, dashboardRole } = useMemo((): {
     displayName: string;
     email: string;
-    dashboardRole: "client" | "agent" | "admin" | "super-admin" | "company";
+  dashboardRole: "client" | "teller" | "admin" | "super-admin" | "company";
   } => {
-    const first = (user?.firstName as string | undefined) ?? "";
-    const last = (user?.lastName as string | undefined) ?? "";
-    const fullName = `${first} ${last}`.trim();
+    const fullName = (user?.fullName as string | undefined)?.trim() ?? "";
     const fallbackName = user?.email ? user.email.split("@")[0] : "Admin";
     const role = user?.role?.toString().toUpperCase() ?? "ADMIN";
     const normalizedRole = (() => {
       switch (role) {
         case "CLIENT":
           return "client";
-        case "AGENT":
-          return "agent";
+        case "TELLER":
+          return "teller";
         case "SUPER_ADMIN":
           return "super-admin";
         case "COMPANY":
@@ -53,15 +51,15 @@ export default function AdminDashboard() {
       email: user?.email ?? "Not provided",
       dashboardRole: normalizedRole,
     };
-  }, [user?.email, user?.firstName, user?.lastName, user?.role]);
+  }, [user?.email, user?.fullName, user?.role]);
 
   return (
         <DashboardLayout userRole={dashboardRole} userName={displayName} userEmail={email}>
           <div className="space-y-6">
             <div className="animate-fadeInUp">
               <h1 className="text-2xl font-bold text-gray-500">Admin Dashboard</h1>
-              <p className="text-base text-gray-400">
-                Manage clients, agents, and oversee platform operations.
+                <p className="text-base text-gray-400">
+                Manage clients, tellers, and oversee platform operations.
               </p>
             </div>
 
@@ -77,7 +75,7 @@ export default function AdminDashboard() {
                   color: "bg-gradient-to-r from-[#004B5B] to-[#006B7D]",
                 },
                 {
-                  title: "Active Agents",
+                  title: "Active Tellers",
                   value: "8",
                   change: "All operational",
                   icon: <FiBriefcase className="w-6 h-6 text-blue-400" />,
@@ -226,7 +224,7 @@ export default function AdminDashboard() {
                   <div className="space-y-3">
                     {[
                       { label: "Approve KYC", icon: <FiUserCheck /> },
-                      { label: "Add Agent", icon: <FiBriefcase /> },
+                      { label: "Add Teller", icon: <FiBriefcase /> },
                       { label: "Generate Report", icon: <FiFileText /> },
                       { label: "System Settings", icon: <FiSettings /> },
                     ].map((btn, i) => (

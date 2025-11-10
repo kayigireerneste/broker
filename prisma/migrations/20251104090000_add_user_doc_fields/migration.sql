@@ -1,4 +1,4 @@
--- Add document fields and agent-client relationship tracking to User
+-- Add document fields and teller-client relationship tracking to User
 ALTER TABLE "User"
     ADD COLUMN "csdNumber" TEXT,
     ADD COLUMN "passportPhoto" TEXT,

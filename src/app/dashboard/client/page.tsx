@@ -12,17 +12,17 @@ export default function ClientDashboard() {
   const { user } = useAuth();
 
   const { displayName, email, dashboardRole } = useMemo(() => {
-    const first = (user?.firstName as string | undefined) ?? '';
-    const last = (user?.lastName as string | undefined) ?? '';
-    const fullName = `${first} ${last}`.trim();
+    const fullName = (user?.fullName as string | undefined)?.trim() ?? '';
     const fallbackName = user?.email ? user.email.split('@')[0] : 'Client';
     const role = user?.role?.toLowerCase();
+    const dashboardRole =
+      role === 'client' || role === 'teller' || role === 'admin' ? (role as 'client' | 'teller' | 'admin') : 'client';
     return {
       displayName: fullName || fallbackName,
       email: user?.email ?? 'Not provided',
-  dashboardRole: (role === 'client' || role === 'agent' || role === 'admin' ? role : 'client') as "client" | "agent" | "admin",
+      dashboardRole,
     };
-  }, [user?.email, user?.firstName, user?.lastName, user?.role]);
+  }, [user?.email, user?.fullName, user?.role]);
 
   const handleAction = (action: string) => {
     setSelectedAction(action);

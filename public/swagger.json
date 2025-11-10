@@ -194,7 +194,7 @@
       "get": {
         "tags": ["User"],
   "summary": "List users",
-  "description": "Requires SUPER_ADMIN, ADMIN, or AGENT role. Agents only see clients they created.",
+  "description": "Requires SUPER_ADMIN, ADMIN, or TELLER role. Tellers only see clients they created.",
         "security": [{ "bearerAuth": [] }],
         "responses": {
           "200": {
@@ -213,7 +213,7 @@
       "post": {
         "tags": ["User"],
   "summary": "Create a new user",
-  "description": "Requires SUPER_ADMIN, ADMIN, or AGENT role. Agents can only create client accounts. Accepts full signup payload plus optional administrative fields.",
+  "description": "Requires SUPER_ADMIN, ADMIN, or TELLER role. Tellers can only create client accounts. Accepts full signup payload plus optional administrative fields.",
         "security": [{ "bearerAuth": [] }],
         "requestBody": {
           "required": true,
@@ -244,7 +244,7 @@
       "get": {
         "tags": ["User"],
   "summary": "Get user by ID",
-  "description": "Requires SUPER_ADMIN, ADMIN, or AGENT role. Agents can only access clients they created.",
+  "description": "Requires SUPER_ADMIN, ADMIN, or TELLER role. Tellers can only access clients they created.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
         "responses": {
@@ -265,7 +265,7 @@
       "patch": {
         "tags": ["User"],
   "summary": "Update user by ID",
-  "description": "Requires SUPER_ADMIN, ADMIN, or AGENT role. Agents can only modify clients they created. Accepts partial updates.",
+  "description": "Requires SUPER_ADMIN, ADMIN, or TELLER role. Tellers can only modify clients they created. Accepts partial updates.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
         "requestBody": {
@@ -296,7 +296,7 @@
       "delete": {
         "tags": ["User"],
   "summary": "Delete user by ID",
-  "description": "Requires SUPER_ADMIN, ADMIN, or AGENT role. Agents can only remove clients they created.",
+  "description": "Requires SUPER_ADMIN, ADMIN, or TELLER role. Tellers can only remove clients they created.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
         "responses": {
@@ -723,7 +723,7 @@
       },
       "UserRole": {
         "type": "string",
-        "enum": ["SUPER_ADMIN", "ADMIN", "AGENT", "COMPANY", "CLIENT"]
+        "enum": ["SUPER_ADMIN", "ADMIN", "TELLER", "COMPANY", "CLIENT"]
       },
       "CreateUserRequest": {
         "allOf": [

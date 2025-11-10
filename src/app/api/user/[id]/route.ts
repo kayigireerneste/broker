@@ -15,13 +15,13 @@ import {
 	validateDateOfBirth,
 	validatePasswordConfirmation,
 	validatePhoneNumber,
+	validateProfileDetails,
 } from "@/lib/validations/signupValidation";
 import { ensureCsdNumberAssignment } from "@/lib/csdNumber";
 
 const userSelect = {
 	id: true,
-	firstName: true,
-	lastName: true,
+	fullName: true,
 	email: true,
 	phoneCountryCode: true,
 	phone: true,
@@ -41,8 +41,7 @@ const userSelect = {
 	createdBy: {
 		select: {
 			id: true,
-			firstName: true,
-			lastName: true,
+			fullName: true,
 			email: true,
 			role: true,
 		},
@@ -113,6 +112,8 @@ const updateUserSchema = baseSignupSchema
 				);
 			}
 		}
+
+		validateProfileDetails(data, ctx);
 	});
 
 function handleError(error: unknown, fallbackMessage: string) {
@@ -152,28 +153,26 @@ type RouteParams = Promise<{ id: string }>;
 
 type UserResponse = {
 	id: string;
-	firstName: string;
-	lastName: string;
+	fullName: string;
 	email: string;
 	phoneCountryCode: string;
 	phone: string;
-	idNumber: string;
+	idNumber: string | null;
 	csdNumber: string | null;
 	passportPhoto: string | null;
 	idDocument: string | null;
-	dateOfBirth: Date;
+	dateOfBirth: Date | null;
 	gender: string;
 	country: string;
 	city: string;
-	occupation: string;
-	investmentExperience: string;
+	occupation: string | null;
+	investmentExperience: string | null;
 	notificationPreferences: Prisma.JsonValue | null;
 	role: Role;
 	isVerified: boolean;
 	createdBy: {
 		id: string;
-		firstName: string;
-		lastName: string;
+		fullName: string;
 		email: string;
 		role: Role;
 	} | null;
@@ -195,9 +194,9 @@ export async function GET(request: Request, context: { params: RouteParams }) {
 			return NextResponse.json({ error: "User not found" }, { status: 404 });
 		}
 
-		if (auth.role === Role.AGENT) {
+		if (auth.role === Role.TELLER) {
 			if (user.role !== Role.CLIENT) {
-				throw new ForbiddenError("Agents can only access their own clients");
+				throw new ForbiddenError("Tellers can only access their own clients");
 			}
 
 			const ownsClient = await prisma.user.count({
@@ -209,7 +208,7 @@ export async function GET(request: Request, context: { params: RouteParams }) {
 			});
 
 			if (!ownsClient) {
-				throw new ForbiddenError("Agents can only access their own clients");
+				throw new ForbiddenError("Tellers can only access their own clients");
 			}
 		}
 
@@ -233,9 +232,9 @@ export async function PATCH(request: Request, context: { params: RouteParams }) 
 			return NextResponse.json({ error: "User not found" }, { status: 404 });
 		}
 
-		if (auth.role === Role.AGENT) {
+		if (auth.role === Role.TELLER) {
 			if (existing.role !== Role.CLIENT) {
-				throw new ForbiddenError("Agents can only modify their own clients");
+				throw new ForbiddenError("Tellers can only modify their own clients");
 			}
 
 			const ownsClient = await prisma.user.count({
@@ -247,7 +246,7 @@ export async function PATCH(request: Request, context: { params: RouteParams }) 
 			});
 
 			if (!ownsClient) {
-				throw new ForbiddenError("Agents can only modify their own clients");
+				throw new ForbiddenError("Tellers can only modify their own clients");
 			}
 		}
 
@@ -256,14 +255,13 @@ export async function PATCH(request: Request, context: { params: RouteParams }) 
 		const { confirmPassword: _confirmPassword, ...rest } = parsed;
 		void _confirmPassword;
 
-		if (auth.role === Role.AGENT && rest.role && rest.role !== Role.CLIENT) {
-			throw new ForbiddenError("Agents cannot change client roles");
+		if (auth.role === Role.TELLER && rest.role && rest.role !== Role.CLIENT) {
+			throw new ForbiddenError("Tellers cannot change client roles");
 		}
 
 		const data: Record<string, unknown> = {};
 
-		if (rest.firstName !== undefined) data.firstName = rest.firstName.trim();
-		if (rest.lastName !== undefined) data.lastName = rest.lastName.trim();
+		if (rest.fullName !== undefined) data.fullName = rest.fullName.trim();
 		if (rest.email !== undefined) data.email = rest.email.trim().toLowerCase();
 		if (rest.idNumber !== undefined) data.idNumber = rest.idNumber.trim();
 		if (rest.passportPhoto !== undefined) data.passportPhoto = rest.passportPhoto.trim();
@@ -349,9 +347,9 @@ export async function DELETE(request: Request, context: { params: RouteParams })
 			return NextResponse.json({ error: "User not found" }, { status: 404 });
 		}
 
-		if (auth.role === Role.AGENT) {
+		if (auth.role === Role.TELLER) {
 			if (existing.role !== Role.CLIENT) {
-				throw new ForbiddenError("Agents can only remove their own clients");
+				throw new ForbiddenError("Tellers can only remove their own clients");
 			}
 
 			const ownsClient = await prisma.user.count({
@@ -363,7 +361,7 @@ export async function DELETE(request: Request, context: { params: RouteParams })
 			});
 
 			if (!ownsClient) {
-				throw new ForbiddenError("Agents can only remove their own clients");
+				throw new ForbiddenError("Tellers can only remove their own clients");
 			}
 		}
 

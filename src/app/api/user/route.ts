@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { Prisma, Role } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import {
@@ -9,13 +9,18 @@ import {
 	requireUserManagementRole,
 	USER_MANAGEMENT_ROLES,
 } from "@/utils/_helpers";
-import { signupSchema, type SignupPayload } from "@/lib/validations/signupValidation";
+import { userCreationSchema, type UserCreationPayload } from "@/lib/validations/signupValidation";
 import { ensureCsdNumberAssignment } from "@/lib/csdNumber";
+
+type RoleValue = (typeof USER_MANAGEMENT_ROLES)[number];
+
+const isPrismaKnownError = (error: unknown): error is { code: string } => {
+	return typeof error === "object" && error !== null && "code" in error && typeof (error as { code?: unknown }).code === "string";
+};
 
 const userSelect = {
 	id: true,
-	firstName: true,
-	lastName: true,
+	fullName: true,
 	email: true,
 	phoneCountryCode: true,
 	phone: true,
@@ -35,8 +40,7 @@ const userSelect = {
 	createdBy: {
 		select: {
 			id: true,
-			firstName: true,
-			lastName: true,
+			fullName: true,
 			email: true,
 			role: true,
 		},
@@ -47,38 +51,39 @@ const userSelect = {
 	updatedAt: true,
 } as const;
 
+const ALL_ROLES = [...USER_MANAGEMENT_ROLES] as [RoleValue, ...RoleValue[]];
+const MANAGEMENT_ROLES = ["SUPER_ADMIN", "ADMIN", "TELLER"] as const;
+
 const adminCreateExtrasSchema = z.object({
 	notificationPreferences: z.any().optional(),
-	role: z.nativeEnum(Role).optional(),
+	role: z.enum(ALL_ROLES).optional(),
 	isVerified: z.boolean().optional(),
 });
 
 type UserResponse = {
 	id: string;
-	firstName: string;
-	lastName: string;
+	fullName: string;
 	email: string;
 	phoneCountryCode: string;
 	phone: string;
-	idNumber: string;
+	idNumber: string | null;
 	csdNumber: string | null;
 	passportPhoto: string | null;
 	idDocument: string | null;
-	dateOfBirth: Date;
+	dateOfBirth: Date | null;
 	gender: string;
 	country: string;
 	city: string;
-	occupation: string;
-	investmentExperience: string;
-	notificationPreferences: Prisma.JsonValue | null;
-	role: Role;
+	occupation: string | null;
+	investmentExperience: string | null;
+	notificationPreferences: unknown;
+	role: RoleValue;
 	isVerified: boolean;
 	createdBy: {
 		id: string;
-		firstName: string;
-		lastName: string;
+		fullName: string;
 		email: string;
-		role: Role;
+		role: RoleValue;
 	} | null;
 	createdAt: Date;
 	updatedAt: Date;
@@ -104,7 +109,7 @@ function handleError(error: unknown, fallbackMessage: string) {
 		);
 	}
 
-	if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+	if (isPrismaKnownError(error) && error.code === "P2002") {
 		return NextResponse.json({ error: "A user with the provided unique field already exists" }, { status: 409 });
 	}
 
@@ -114,17 +119,17 @@ function handleError(error: unknown, fallbackMessage: string) {
 
 export async function GET(request: Request) {
 	try {
-		const auth = await requireUserManagementRole(request);
-		const where: Prisma.UserWhereInput | undefined =
-			auth.role === Role.AGENT
-				? ({
-					      role: Role.CLIENT,
-					      createdById: auth.id,
-				      } as unknown as Prisma.UserWhereInput)
+		const auth = await requireUserManagementRole(request, MANAGEMENT_ROLES);
+		const where =
+			auth.role === "TELLER"
+				? {
+					role: "CLIENT",
+					createdById: auth.id,
+				  }
 				: undefined;
 		const users = (await prisma.user.findMany({
-			where,
-			select: userSelect as unknown as Prisma.UserSelect,
+			where: where as never,
+			select: userSelect as never,
 			orderBy: { createdAt: "desc" },
 		})) as unknown as UserResponse[];
 		return NextResponse.json({ data: users });
@@ -135,10 +140,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
 	try {
-		const auth = await requireUserManagementRole(request);
-		if (!USER_MANAGEMENT_ROLES.includes(auth.role)) {
-			throw new ForbiddenError();
-		}
+		const auth = await requireUserManagementRole(request, MANAGEMENT_ROLES);
 
 		const body = await request.json();
 		const payloadForValidation = {
@@ -146,43 +148,70 @@ export async function POST(request: Request) {
 			confirmPassword: body?.confirmPassword ?? body?.password,
 		};
 
-		const parsedBase: SignupPayload = signupSchema.parse(payloadForValidation);
+		const parsedBase: UserCreationPayload = userCreationSchema.parse(payloadForValidation);
 		const parsedExtras = adminCreateExtrasSchema.parse(body);
 
-		if (auth.role === Role.AGENT && parsedExtras.role && parsedExtras.role !== Role.CLIENT) {
-			throw new ForbiddenError("Agents can only create client accounts");
-		}
+		if (auth.role === "TELLER" && parsedExtras.role && parsedExtras.role !== "CLIENT") {
+ 			throw new ForbiddenError("Tellers can only create client accounts");
+ 		}
 
-		const { password, dateOfBirth, passportPhoto, idDocument, gender, ...rest } = parsedBase;
+		const {
+			fullName,
+			email,
+			phoneCountryCode,
+			phone,
+			password,
+			confirmPassword,
+			idNumber,
+			passportPhoto,
+			idDocument,
+			dateOfBirth,
+			gender,
+			country,
+			city,
+			occupation,
+			investmentExperience,
+		} = parsedBase;
+		void confirmPassword;
 		const hashedPassword = await bcrypt.hash(password, 10);
 		const now = new Date();
 		const targetIsVerified = parsedExtras.isVerified ?? true;
 
-		const createData: Record<string, unknown> = {
-			...rest,
+		const createData = {
+			fullName,
+			email,
+			phoneCountryCode,
+			phone,
 			gender: gender.trim().toLowerCase(),
 			password: hashedPassword,
-			dateOfBirth: new Date(dateOfBirth),
+			country,
+			city,
 			csdNumber: null,
-			passportPhoto,
-			idDocument,
-			notificationPreferences: parsedExtras.notificationPreferences ?? undefined,
-			role: parsedExtras.role ?? Role.CLIENT,
+			role: parsedExtras.role ?? "CLIENT",
 			isVerified: targetIsVerified,
 			otp: null,
 			otpExpiresAt: null,
+			...(parsedExtras.notificationPreferences !== undefined
+				? { notificationPreferences: parsedExtras.notificationPreferences }
+				: {}),
+			...(idNumber ? { idNumber } : {}),
+			...(passportPhoto ? { passportPhoto } : {}),
+			...(idDocument ? { idDocument } : {}),
+			...(occupation ? { occupation } : {}),
+			...(investmentExperience ? { investmentExperience } : {}),
+			...(dateOfBirth ? { dateOfBirth: new Date(dateOfBirth) } : {}),
 			createdBy:
-				auth.role === Role.AGENT
+				auth.role === "TELLER"
 					? {
-					      connect: { id: auth.id },
-				      }
+						connect: { id: auth.id },
+					  }
 					: undefined,
 		};
 
-		const newUser = (await prisma.$transaction(async (tx) => {
+		const newUser = (await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
 			const created = (await tx.user.create({
-				data: createData as Prisma.UserCreateInput,
-				select: userSelect as unknown as Prisma.UserSelect,
+				data: createData as never,
+				select: userSelect as never,
 			})) as unknown as UserResponse;
 
 			if (!targetIsVerified) {
@@ -202,7 +231,7 @@ export async function POST(request: Request) {
 
 			return (await tx.user.findUnique({
 				where: { id: created.id },
-				select: userSelect as unknown as Prisma.UserSelect,
+				select: userSelect as never,
 			})) as unknown as UserResponse;
 		})) as unknown as UserResponse;
 

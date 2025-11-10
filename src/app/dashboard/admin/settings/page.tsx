@@ -128,8 +128,8 @@ export default function AdminSettingsPage() {
         <div className="mt-4 grid gap-4 md:grid-cols-3">
           {[
             { name: "Administrator", desc: "Full access to system controls." },
-            { name: "Agent manager", desc: "Manage agents & approvals." },
-            { name: "Agent", desc: "Execute trades and support clients." },
+            { name: "Teller manager", desc: "Manage tellers & approvals." },
+            { name: "Teller", desc: "Execute trades and support clients." },
           ].map((role) => (
             <div key={role.name} className="rounded-2xl border border-slate-200 p-4">
               <p className="text-sm font-semibold text-slate-800">{role.name}</p>

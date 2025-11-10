@@ -1,11 +1,14 @@
 import { verifyToken } from "@/lib/auth";
-import { Role } from "@prisma/client";
 
-export const USER_MANAGEMENT_ROLES: readonly Role[] = [
-  Role.SUPER_ADMIN,
-  Role.ADMIN,
-  Role.AGENT,
-];
+export const USER_MANAGEMENT_ROLES = [
+  "SUPER_ADMIN",
+  "ADMIN",
+  "TELLER",
+  "COMPANY",
+  "CLIENT",
+] as const;
+
+export type Role = (typeof USER_MANAGEMENT_ROLES)[number];
 
 export class UnauthorizedError extends Error {
   status = 401;

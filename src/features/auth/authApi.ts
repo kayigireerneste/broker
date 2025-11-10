@@ -1,22 +1,15 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 interface SignupRequest {
-  firstName: string;
-  lastName: string;
+  fullName: string;
   email: string;
   phoneCountryCode: string;
   phone: string;
   password: string;
   confirmPassword: string;
-  idNumber: string;
-  passportPhoto: string;
-  idDocument: string;
-  dateOfBirth: string;
   gender: string;
   country: string;
   city: string;
-  occupation: string;
-  investmentExperience: string;
 }
 
 interface SignupResponse {
@@ -24,6 +17,7 @@ interface SignupResponse {
   user: {
     id: string;
     email: string;
+    fullName: string;
     role: string;
   };
 }
@@ -39,6 +33,7 @@ interface LoginResponse {
   user: {
     id: string;
     email: string;
+    fullName: string;
     role: string;
   };
 }

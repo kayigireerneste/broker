@@ -41,7 +41,8 @@ export async function POST(req: Request) {
       );
     });
 
-    await sendVerificationSuccessEmail(user.email, csdNumber, { firstName: user.firstName });
+  // send greeting using the user's fullName (schema now uses fullName)
+  await sendVerificationSuccessEmail(user.email, csdNumber, { firstName: (user as any).fullName });
 
     return NextResponse.json({ message: "Email verified successfully", csdNumber });
   } catch (err) {

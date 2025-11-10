@@ -10,38 +10,38 @@ import { InputField } from "@/components/ui/InputField";
 import { FileUploadField } from "@/components/ui/FileUploadField";
 import { z } from "zod";
 import {
-  signupSchema,
-  type SignupFormData,
+  userCreationSchema,
   baseSignupSchema,
   validateDateOfBirth,
   validatePhoneNumber,
   validatePasswordConfirmation,
   GENDER_VALUES,
+  validateProfileDetails,
+  type UserCreationPayload,
 } from "@/lib/validations/signupValidation";
 import api, { authApi } from "@/lib/axios";
 
-type ApiUserRole = "ADMIN" | "AGENT" | "CLIENT";
+type ApiUserRole = "ADMIN" | "TELLER" | "CLIENT";
 
 interface ApiUser {
   id: string;
-  firstName: string;
-  lastName: string;
+  fullName: string;
   email: string;
   phoneCountryCode: string;
   phone: string;
-  idNumber: string;
-  passportPhoto: string;
-  idDocument: string;
-  dateOfBirth: string;
+  idNumber?: string | null;
+  passportPhoto?: string | null;
+  idDocument?: string | null;
+  dateOfBirth?: string | null;
   gender: string;
   country: string;
   city: string;
-  occupation: string;
-  investmentExperience: string;
+  occupation?: string | null;
+  investmentExperience?: string | null;
   notificationPreferences: Record<string, unknown> | null;
   role: ApiUserRole;
   isVerified: boolean;
-  csdNumber?: string;
+  csdNumber?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -52,14 +52,13 @@ interface UserRow {
   id: string;
   name: string;
   email: string;
-  role: "Admin" | "Agent" | "Client";
+  role: "Admin" | "Teller" | "Client";
   status: UserStatus;
   raw: ApiUser;
 }
 
 interface EditFormState {
-  firstName: string;
-  lastName: string;
+  fullName: string;
   email: string;
   phoneCountryCode: string;
   phone: string;
@@ -79,7 +78,9 @@ interface EditFormState {
 
 type NotificationPreferences = Record<string, boolean>;
 
-const roleEnum = z.enum(["ADMIN", "AGENT", "CLIENT"]);
+const roleEnum = z.enum(["ADMIN", "TELLER", "CLIENT"]);
+
+type AdminSignupFormData = z.input<typeof baseSignupSchema>;
 
 const COUNTRY_CODES: Array<{ value: string; label: string }> = [
   { value: "+250", label: "Rwanda (+250)" },
@@ -166,23 +167,24 @@ const updateUserSchema = baseSignupSchema
         );
       }
     }
+
+    validateProfileDetails(data, ctx);
   });
 
-const createInitialForm = (): SignupFormData => ({
-  firstName: "",
-  lastName: "",
+const createInitialForm = (): AdminSignupFormData => ({
+  fullName: "",
   email: "",
   phoneCountryCode: "+250",
   phone: "",
   password: "",
   confirmPassword: "",
+  gender: "male",
+  country: "",
+  city: "",
   idNumber: "",
   passportPhoto: "",
   idDocument: "",
   dateOfBirth: "",
-  gender: "male",
-  country: "",
-  city: "",
   occupation: "",
   investmentExperience: "",
 });
@@ -219,9 +221,9 @@ export default function AdminUsersPage() {
   const [editError, setEditError] = useState<string | null>(null);
   const [editErrors, setEditErrors] = useState<Partial<Record<keyof EditFormState, string>>>({});
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [createForm, setCreateForm] = useState<SignupFormData>(createInitialForm());
+  const [createForm, setCreateForm] = useState<AdminSignupFormData>(createInitialForm());
   const [createExtras, setCreateExtras] = useState<CreateExtras>(createInitialExtras());
-  const [createErrors, setCreateErrors] = useState<Partial<Record<keyof SignupFormData, string>>>({});
+  const [createErrors, setCreateErrors] = useState<Partial<Record<keyof AdminSignupFormData, string>>>({});
   const [createError, setCreateError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [flashMessage, setFlashMessage] = useState<{ type: "success" | "error"; message: string } | null>(null);
@@ -272,7 +274,7 @@ export default function AdminUsersPage() {
   const userRows = useMemo<UserRow[]>(() => {
     return users.map((user) => ({
       id: user.id,
-      name: `${user.firstName} ${user.lastName}`.trim(),
+      name: user.fullName?.trim() || user.email,
       email: user.email,
       role: roleLabel(user.role),
       status: user.isVerified ? "Active" : "Inactive",
@@ -365,8 +367,7 @@ export default function AdminUsersPage() {
     }, {} as Record<string, boolean>);
 
     return {
-      firstName: raw.firstName ?? "",
-      lastName: raw.lastName ?? "",
+      fullName: raw.fullName ?? "",
       email: raw.email ?? "",
       phoneCountryCode: raw.phoneCountryCode ?? "",
       phone: raw.phone ?? "",
@@ -450,7 +451,7 @@ export default function AdminUsersPage() {
     setEditError(null);
   };
 
-  const handleCreateInputChange = (field: keyof SignupFormData) =>
+  const handleCreateInputChange = (field: keyof AdminSignupFormData) =>
     (event: ChangeEvent<HTMLInputElement>) => {
       const value = event.target.value;
       setCreateForm((prev) => ({ ...prev, [field]: value }));
@@ -472,7 +473,7 @@ export default function AdminUsersPage() {
     setCreateError(null);
   };
 
-  const handleCreateSelectChange = (field: keyof SignupFormData) =>
+  const handleCreateSelectChange = (field: keyof AdminSignupFormData) =>
     (event: ChangeEvent<HTMLSelectElement>) => {
       const value = event.target.value;
       setCreateForm((prev) => ({ ...prev, [field]: value }));
@@ -577,14 +578,14 @@ export default function AdminUsersPage() {
 
     setCreateError(null);
 
-    const validation = signupSchema.safeParse(createForm);
+  const validation = userCreationSchema.safeParse(createForm);
     if (!validation.success) {
       const flattened = validation.error.flatten();
       const fieldErrors = Object.entries(flattened.fieldErrors).reduce<
-        Partial<Record<keyof SignupFormData, string>>
+        Partial<Record<keyof AdminSignupFormData, string>>
       >((acc, [key, messages]) => {
         if (messages && messages[0]) {
-          acc[key as keyof SignupFormData] = messages[0];
+          acc[key as keyof AdminSignupFormData] = messages[0];
         }
         return acc;
       }, {});
@@ -594,16 +595,10 @@ export default function AdminUsersPage() {
       return;
     }
 
-    const normalized = validation.data;
-
-    const sanitizedPhoneCountryCode = createForm.phoneCountryCode.trim();
-    const sanitizedPhone = createForm.phone.replace(/\s+/g, "").replace(/^\+/, "");
+  const normalized: UserCreationPayload = validation.data;
 
     const payload: Record<string, unknown> = {
       ...normalized,
-      phoneCountryCode: sanitizedPhoneCountryCode,
-      phone: sanitizedPhone,
-      confirmPassword: createForm.confirmPassword,
     };
 
     if (Object.keys(createExtras.notificationPreferences).length > 0) {
@@ -659,10 +654,10 @@ export default function AdminUsersPage() {
 
       if (Array.isArray(enrichedError.fieldErrors)) {
         const fieldErrors = enrichedError.fieldErrors.reduce<
-          Partial<Record<keyof SignupFormData, string>>
+          Partial<Record<keyof AdminSignupFormData, string>>
         >((acc, issue) => {
           if (issue.field) {
-            acc[issue.field as keyof SignupFormData] = issue.message;
+            acc[issue.field as keyof AdminSignupFormData] = issue.message;
           }
           return acc;
         }, {});
@@ -692,8 +687,7 @@ export default function AdminUsersPage() {
       }
     };
 
-    compareAndSet("firstName", (value) => String(value ?? "").trim());
-    compareAndSet("lastName", (value) => String(value ?? "").trim());
+  compareAndSet("fullName", (value) => String(value ?? "").trim());
     compareAndSet("email", (value) => String(value ?? "").trim());
     compareAndSet("idNumber", (value) => String(value ?? "").trim());
     compareAndSet("country", (value) => String(value ?? "").trim());
@@ -755,7 +749,7 @@ export default function AdminUsersPage() {
         if (!prev || prev.id !== updatedUser.id) return prev;
         return {
           id: updatedUser.id,
-          name: `${updatedUser.firstName} ${updatedUser.lastName}`.trim(),
+          name: updatedUser.fullName?.trim() || updatedUser.email,
           email: updatedUser.email,
           role: roleLabel(updatedUser.role),
           status: updatedUser.isVerified ? "Active" : "Inactive",
@@ -843,7 +837,7 @@ export default function AdminUsersPage() {
             >
               <option value="All">All Roles</option>
               <option value="Admin">Admin</option>
-              <option value="Agent">Agent</option>
+              <option value="Teller">Teller</option>
               <option value="Client">Client</option>
             </select>
 
@@ -1032,25 +1026,15 @@ export default function AdminUsersPage() {
                 <div className="mt-6 flex-1 overflow-y-auto pr-2">
                   <form className="grid gap-4 md:grid-cols-2" onSubmit={handleCreateSubmit}>
                     <InputField
-                      name="firstName"
-                      label="First name"
+                      name="fullName"
+                      label="Full name"
                       type="text"
-                      value={createForm.firstName}
-                      onChange={handleCreateInputChange("firstName")}
-                      placeholder="Enter first name"
+                      value={createForm.fullName ?? ""}
+                      onChange={handleCreateInputChange("fullName")}
+                      placeholder="Enter full name"
                       disabled={creating}
-                      error={createErrors.firstName}
-                    />
-
-                    <InputField
-                      name="lastName"
-                      label="Last name"
-                      type="text"
-                      value={createForm.lastName}
-                      onChange={handleCreateInputChange("lastName")}
-                      placeholder="Enter last name"
-                      disabled={creating}
-                      error={createErrors.lastName}
+                      error={createErrors.fullName}
+                      required
                     />
 
                     <InputField
@@ -1068,7 +1052,7 @@ export default function AdminUsersPage() {
                       name="idNumber"
                       label="ID number"
                       type="text"
-                      value={createForm.idNumber}
+                      value={createForm.idNumber ?? ""}
                       onChange={handleCreateInputChange("idNumber")}
                       placeholder="Enter ID number"
                       disabled={creating}
@@ -1078,25 +1062,23 @@ export default function AdminUsersPage() {
                     <FileUploadField
                       name="passportPhoto"
                       label="Passport photo"
-                      value={createForm.passportPhoto}
+                      value={createForm.passportPhoto ?? ""}
                       onChange={handleCreateFileUpload("passportPhoto")}
                       accept="image/*"
                       disabled={creating}
                       error={createErrors.passportPhoto}
                       helperText="Upload a clear passport-style photo (image up to 10MB)"
-                      required
                     />
 
                     <FileUploadField
                       name="idDocument"
                       label="Identification document"
-                      value={createForm.idDocument}
+                      value={createForm.idDocument ?? ""}
                       onChange={handleCreateFileUpload("idDocument")}
                       accept="image/*,application/pdf"
                       disabled={creating}
                       error={createErrors.idDocument}
                       helperText="Upload the ID document (image or PDF up to 10MB)"
-                      required
                     />
 
                     <div className="space-y-2">
@@ -1126,7 +1108,7 @@ export default function AdminUsersPage() {
                       name="phone"
                       label="Phone number"
                       type="text"
-                      value={createForm.phone}
+                      value={createForm.phone ?? ""}
                       onChange={handleCreateInputChange("phone")}
                       placeholder="Enter phone number"
                       disabled={creating}
@@ -1137,7 +1119,7 @@ export default function AdminUsersPage() {
                       name="dateOfBirth"
                       label="Date of birth"
                       type="date"
-                      value={createForm.dateOfBirth}
+                      value={createForm.dateOfBirth ?? ""}
                       onChange={handleCreateInputChange("dateOfBirth")}
                       disabled={creating}
                       error={createErrors.dateOfBirth}
@@ -1147,7 +1129,7 @@ export default function AdminUsersPage() {
                       name="country"
                       label="Country"
                       type="text"
-                      value={createForm.country}
+                      value={createForm.country ?? ""}
                       onChange={handleCreateInputChange("country")}
                       placeholder="Enter country"
                       disabled={creating}
@@ -1185,7 +1167,7 @@ export default function AdminUsersPage() {
                       name="city"
                       label="City"
                       type="text"
-                      value={createForm.city}
+                      value={createForm.city ?? ""}
                       onChange={handleCreateInputChange("city")}
                       placeholder="Enter city"
                       disabled={creating}
@@ -1196,7 +1178,7 @@ export default function AdminUsersPage() {
                       name="occupation"
                       label="Occupation"
                       type="text"
-                      value={createForm.occupation}
+                      value={createForm.occupation ?? ""}
                       onChange={handleCreateInputChange("occupation")}
                       placeholder="Enter occupation"
                       disabled={creating}
@@ -1210,7 +1192,7 @@ export default function AdminUsersPage() {
                       <select
                         id="create-investmentExperience"
                         name="investmentExperience"
-                        value={createForm.investmentExperience}
+                        value={createForm.investmentExperience ?? ""}
                         onChange={handleCreateSelectChange("investmentExperience")}
                         disabled={creating}
                         className={`w-full rounded-full px-4 py-2 text-[#004B5B] bg-transparent outline-none border transition-all ${
@@ -1267,7 +1249,7 @@ export default function AdminUsersPage() {
                         className="w-full rounded-full border border-[#004B5B]/50 bg-transparent px-4 py-2 text-sm text-[#004B5B] outline-none transition-all focus:border-[#004B5B]"
                       >
                         <option value="ADMIN">Admin</option>
-                        <option value="AGENT">Agent</option>
+                        <option value="TELLER">Teller</option>
                         <option value="CLIENT">Client</option>
                       </select>
                     </div>
@@ -1354,25 +1336,14 @@ export default function AdminUsersPage() {
                     }}
                   >
                   <InputField
-                    name="firstName"
-                    label="First name"
+                    name="fullName"
+                    label="Full name"
                     type="text"
-                    value={editForm.firstName}
-                    onChange={handleEditTextChange("firstName")}
-                    placeholder="Enter first name"
+                    value={editForm.fullName}
+                    onChange={handleEditTextChange("fullName")}
+                    placeholder="Enter full name"
                     disabled={savingEdit}
-                    error={editErrors.firstName}
-                  />
-
-                  <InputField
-                    name="lastName"
-                    label="Last name"
-                    type="text"
-                    value={editForm.lastName}
-                    onChange={handleEditTextChange("lastName")}
-                    placeholder="Enter last name"
-                    disabled={savingEdit}
-                    error={editErrors.lastName}
+                    error={editErrors.fullName}
                   />
 
                   <InputField
@@ -1390,7 +1361,7 @@ export default function AdminUsersPage() {
                     name="idNumber"
                     label="ID number"
                     type="text"
-                    value={editForm.idNumber}
+                    value={editForm.idNumber ?? ""}
                     onChange={handleEditTextChange("idNumber")}
                     placeholder="Enter ID number"
                     disabled={savingEdit}
@@ -1400,25 +1371,23 @@ export default function AdminUsersPage() {
                   <FileUploadField
                     name="passportPhoto"
                     label="Passport photo"
-                    value={editForm.passportPhoto}
+                    value={editForm.passportPhoto ?? ""}
                     onChange={handleEditFileUpload("passportPhoto")}
                     accept="image/*"
                     disabled={savingEdit}
                     error={editErrors.passportPhoto}
                     helperText="Upload a clear passport-style photo (image up to 10MB)"
-                    required
                   />
 
                   <FileUploadField
                     name="idDocument"
                     label="Identification document"
-                    value={editForm.idDocument}
+                    value={editForm.idDocument ?? ""}
                     onChange={handleEditFileUpload("idDocument")}
                     accept="image/*,application/pdf"
                     disabled={savingEdit}
                     error={editErrors.idDocument}
                     helperText="Upload the ID document (image or PDF up to 10MB)"
-                    required
                   />
 
                   <div className="space-y-2">
@@ -1448,7 +1417,7 @@ export default function AdminUsersPage() {
                     name="phone"
                     label="Phone number"
                     type="text"
-                    value={editForm.phone}
+                    value={editForm.phone ?? ""}
                     onChange={handleEditTextChange("phone")}
                     placeholder="Enter phone number"
                     disabled={savingEdit}
@@ -1459,7 +1428,7 @@ export default function AdminUsersPage() {
                     name="dateOfBirth"
                     label="Date of birth"
                     type="date"
-                    value={editForm.dateOfBirth}
+                    value={editForm.dateOfBirth ?? ""}
                     onChange={handleEditTextChange("dateOfBirth")}
                     disabled={savingEdit}
                     error={editErrors.dateOfBirth}
@@ -1469,7 +1438,7 @@ export default function AdminUsersPage() {
                     name="country"
                     label="Country"
                     type="text"
-                    value={editForm.country}
+                    value={editForm.country ?? ""}
                     onChange={handleEditTextChange("country")}
                     placeholder="Enter country"
                     disabled={savingEdit}
@@ -1507,7 +1476,7 @@ export default function AdminUsersPage() {
                     name="city"
                     label="City"
                     type="text"
-                    value={editForm.city}
+                    value={editForm.city ?? ""}
                     onChange={handleEditTextChange("city")}
                     placeholder="Enter city"
                     disabled={savingEdit}
@@ -1518,7 +1487,7 @@ export default function AdminUsersPage() {
                     name="occupation"
                     label="Occupation"
                     type="text"
-                    value={editForm.occupation}
+                    value={editForm.occupation ?? ""}
                     onChange={handleEditTextChange("occupation")}
                     placeholder="Enter occupation"
                     disabled={savingEdit}
@@ -1565,7 +1534,7 @@ export default function AdminUsersPage() {
                       className="w-full rounded-full border border-[#004B5B]/50 bg-transparent px-4 py-2 text-sm text-[#004B5B] outline-none transition-all focus:border-[#004B5B]"
                     >
                       <option value="ADMIN">Admin</option>
-                      <option value="AGENT">Agent</option>
+                      <option value="TELLER">Teller</option>
                       <option value="CLIENT">Client</option>
                     </select>
                     {editErrors.role && <p className="text-sm text-red-600">{editErrors.role}</p>}
@@ -1665,7 +1634,7 @@ export default function AdminUsersPage() {
                       <Shield className="h-4 w-4" /> Identity
                     </h3>
                     <ul className="space-y-1 text-sm text-gray-700">
-                      <li><span className="font-medium">Name:</span> {viewUser.raw.firstName} {viewUser.raw.lastName}</li>
+                      <li><span className="font-medium">Name:</span> {viewUser.raw.fullName}</li>
                       <li className="flex items-center gap-2"><Mail className="h-4 w-4 text-gray-400" /> {viewUser.raw.email}</li>
                       <li className="flex items-center gap-2"><Calendar className="h-4 w-4 text-gray-400" /> {formatDate(viewUser.raw.dateOfBirth)}</li>
                       <li><span className="font-medium">ID Number:</span> {viewUser.raw.idNumber || "—"}</li>

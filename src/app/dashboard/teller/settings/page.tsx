@@ -12,7 +12,7 @@ const navItems: SettingsLayoutNavItem[] = [
   {
     id: "firm-profile",
     label: "Firm profile",
-    description: "Showcase your agency information",
+    description: "Showcase your teller firm information",
     icon: <Briefcase className="h-4 w-4" aria-hidden="true" />,
   },
   {
@@ -35,20 +35,18 @@ const navItems: SettingsLayoutNavItem[] = [
   },
 ];
 
-export default function AgentSettingsPage() {
+export default function TellerSettingsPage() {
   const { user } = useAuth();
   const [activeSection, setActiveSection] = useState<string>(navItems[0]?.id ?? "firm-profile");
 
   const firmName = useMemo<string>(() => {
-    const fallback = (user?.company as string) || "Your agency";
-    const first = (user?.firstName as string | undefined) ?? "";
-    const last = (user?.lastName as string | undefined) ?? "";
-    const full = `${first} ${last}`.trim();
+    const fallback = (user?.company as string) || "Your firm";
+    const full = (user?.fullName as string | undefined)?.trim();
     return full ? `${full} Capital` : fallback;
-  }, [user?.company, user?.firstName, user?.lastName]);
+  }, [user?.company, user?.fullName]);
 
   type FirmProfileForm = {
-    agencyName: string;
+    firmName: string;
     website: string;
     primaryContact: string;
     supportEmail: string;
@@ -56,7 +54,7 @@ export default function AgentSettingsPage() {
   };
 
   const [firmProfile, setFirmProfile] = useState<FirmProfileForm>({
-    agencyName: firmName,
+    firmName: firmName,
     website: "",
     primaryContact: "",
     supportEmail: "",
@@ -64,67 +62,27 @@ export default function AgentSettingsPage() {
   });
 
   useEffect(() => {
-    setFirmProfile((prev) => ({ ...prev, agencyName: firmName }));
+    setFirmProfile((prev) => ({ ...prev, firmName }));
   }, [firmName]);
 
   const renderFirmProfile = () => (
     <Card className="p-6" hover={false}>
       <h2 className="text-xl font-semibold text-[#004B5B]">Firm profile</h2>
-      <p className="mt-1 text-sm text-slate-500">
-        Update how prospects and regulators see your agency on the platform.
-      </p>
+      <p className="mt-1 text-sm text-slate-500">Update how prospects and regulators see your firm on the platform.</p>
       <div className="mt-6 grid gap-5 md:grid-cols-2">
         <InputField
-          name="agencyName"
-          label="Agency name"
+          name="firmName"
+          label="Firm name"
           type="text"
-          placeholder="Agency name"
-          value={firmProfile.agencyName}
-          onChange={(event) =>
-            setFirmProfile((prev) => ({ ...prev, agencyName: event.target.value }))
-          }
+          placeholder="Firm name"
+          value={firmProfile.firmName}
+          onChange={(event) => setFirmProfile((prev) => ({ ...prev, firmName: event.target.value }))}
         />
-        <InputField
-          name="website"
-          label="Website"
-          type="url"
-          placeholder="https://"
-          value={firmProfile.website}
-          onChange={(event) =>
-            setFirmProfile((prev) => ({ ...prev, website: event.target.value }))
-          }
-        />
-        <InputField
-          name="primaryContact"
-          label="Primary contact"
-          type="text"
-          placeholder="Contact name"
-          value={firmProfile.primaryContact}
-          onChange={(event) =>
-            setFirmProfile((prev) => ({ ...prev, primaryContact: event.target.value }))
-          }
-        />
-        <InputField
-          name="supportEmail"
-          label="Support email"
-          type="email"
-          placeholder="support@example.com"
-          value={firmProfile.supportEmail}
-          onChange={(event) =>
-            setFirmProfile((prev) => ({ ...prev, supportEmail: event.target.value }))
-          }
-        />
+        <InputField name="website" label="Website" type="url" placeholder="https://" value={firmProfile.website} onChange={(event) => setFirmProfile((prev) => ({ ...prev, website: event.target.value }))} />
+        <InputField name="primaryContact" label="Primary contact" type="text" placeholder="Contact name" value={firmProfile.primaryContact} onChange={(event) => setFirmProfile((prev) => ({ ...prev, primaryContact: event.target.value }))} />
+        <InputField name="supportEmail" label="Support email" type="email" placeholder="support@example.com" value={firmProfile.supportEmail} onChange={(event) => setFirmProfile((prev) => ({ ...prev, supportEmail: event.target.value }))} />
         <div className="md:col-span-2">
-          <InputField
-            name="officeLocation"
-            label="Office location"
-            type="text"
-            placeholder="City, Country"
-            value={firmProfile.officeLocation}
-            onChange={(event) =>
-              setFirmProfile((prev) => ({ ...prev, officeLocation: event.target.value }))
-            }
-          />
+          <InputField name="officeLocation" label="Office location" type="text" placeholder="City, Country" value={firmProfile.officeLocation} onChange={(event) => setFirmProfile((prev) => ({ ...prev, officeLocation: event.target.value }))} />
         </div>
       </div>
       <div className="mt-6 flex justify-end gap-3">
@@ -138,9 +96,7 @@ export default function AgentSettingsPage() {
     <div className="space-y-6">
       <Card className="p-6" hover={false}>
         <h2 className="text-xl font-semibold text-[#004B5B]">Onboarding workflow</h2>
-        <p className="mt-1 text-sm text-slate-500">
-          Define the documents and approvals required before activating a client account.
-        </p>
+        <p className="mt-1 text-sm text-slate-500">Define the documents and approvals required before activating a client account.</p>
         <div className="mt-4 space-y-3">
           {[
             "KYC verification",
@@ -157,9 +113,7 @@ export default function AgentSettingsPage() {
       </Card>
       <Card className="p-6" hover={false}>
         <h2 className="text-xl font-semibold text-[#004B5B]">Client permissions</h2>
-        <p className="mt-1 text-sm text-slate-500">
-          Tailor who can trade independently or requires your approval first.
-        </p>
+        <p className="mt-1 text-sm text-slate-500">Tailor who can trade independently or requires your approval first.</p>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <div className="rounded-2xl border border-slate-200 p-4">
             <p className="text-sm font-semibold text-slate-700">Self-directed clients</p>
@@ -168,7 +122,7 @@ export default function AgentSettingsPage() {
           </div>
           <div className="rounded-2xl border border-slate-200 p-4">
             <p className="text-sm font-semibold text-slate-700">Advised clients</p>
-            <p className="mt-2 text-xs text-slate-500">Orders held until an agent approves the instruction.</p>
+            <p className="mt-2 text-xs text-slate-500">Orders held until a teller approves the instruction.</p>
             <Button size="sm" className="mt-3" variant="outline">Adjust workflow</Button>
           </div>
         </div>
@@ -179,9 +133,7 @@ export default function AgentSettingsPage() {
   const renderCompliance = () => (
     <Card className="p-6" hover={false}>
       <h2 className="text-xl font-semibold text-[#004B5B]">Compliance controls</h2>
-      <p className="mt-1 text-sm text-slate-500">
-        Ensure trading activity stays within legal and internal policy thresholds.
-      </p>
+      <p className="mt-1 text-sm text-slate-500">Ensure trading activity stays within legal and internal policy thresholds.</p>
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <div className="rounded-2xl border border-slate-200 p-4">
           <h3 className="text-sm font-semibold text-slate-800">Trade surveillance</h3>
@@ -213,16 +165,9 @@ export default function AgentSettingsPage() {
   const renderAlerts = () => (
     <Card className="p-6" hover={false}>
       <h2 className="text-xl font-semibold text-[#004B5B]">Trading & risk alerts</h2>
-      <p className="mt-1 text-sm text-slate-500">
-        Choose when our platform should notify you about market or account events.
-      </p>
+      <p className="mt-1 text-sm text-slate-500">Choose when our platform should notify you about market or account events.</p>
       <div className="mt-6 space-y-3 text-sm text-slate-600">
-        {[
-          "Large order execution",
-          "Margin utilisation above 70%",
-          "Client escalation required",
-          "Regulatory notice updates",
-        ].map((alert) => (
+        {["Large order execution", "Margin utilisation above 70%", "Client escalation required", "Regulatory notice updates"].map((alert) => (
           <label key={alert} className="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3">
             <span>{alert}</span>
             <input type="checkbox" className="h-4 w-4 rounded border-slate-300" defaultChecked />
@@ -249,8 +194,8 @@ export default function AgentSettingsPage() {
 
   return (
     <SettingsLayout
-      title="Agent settings"
-      description="Fine-tune how your agency operates across client onboarding, compliance, and real-time alerts."
+      title="Teller settings"
+      description="Fine-tune how your firm operates across client onboarding, compliance, and real-time alerts."
       navItems={navItems}
       activeItem={activeSection}
       onItemSelect={setActiveSection}

@@ -23,7 +23,7 @@ import {
 } from "react-icons/fi";
 import { useAuth } from "@/hooks/useAuth";
 
-type DashboardRole = "client" | "agent" | "admin" | "super-admin" | "company";
+type DashboardRole = "client" | "teller" | "admin" | "super-admin" | "company";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -38,8 +38,8 @@ const toDashboardRole = (role?: string | null): DashboardRole => {
   switch (normalized) {
     case "CLIENT":
       return "client";
-    case "AGENT":
-      return "agent";
+    case "TELLER":
+      return "teller";
     case "ADMIN":
       return "admin";
     case "SUPER_ADMIN":
@@ -76,15 +76,13 @@ export default function DashboardLayout({
 
   const derivedName = useMemo(() => {
     if (userName) return userName;
-    const first = (user?.firstName as string | undefined) ?? "";
-    const last = (user?.lastName as string | undefined) ?? "";
-    const fullName = `${first} ${last}`.trim();
+    const fullName = (user?.fullName as string | undefined)?.trim();
     if (fullName) return fullName;
     if (user?.email) {
       return user.email.split("@")[0];
     }
     return "User";
-  }, [userName, user?.firstName, user?.lastName, user?.email]);
+  }, [userName, user?.fullName, user?.email]);
 
   const derivedEmail = useMemo(() => {
     if (userEmail) return userEmail;
@@ -114,19 +112,19 @@ export default function DashboardLayout({
           { name: "History", icon: FiClipboard, href: "/dashboard/client/history" },
           { name: "Settings", icon: FiSettings, href: "/dashboard/client/settings" },
         ];
-      case "agent":
+      case "teller":
         return [
-          { name: "Dashboard", icon: FiBarChart2, href: "/dashboard/agent" },
-          { name: "Orders", icon: FiClipboard, href: "/dashboard/agent/orders" },
-          { name: "Executions", icon: FiZap, href: "/dashboard/agent/executions" },
-          { name: "Clients", icon: FiUsers, href: "/dashboard/agent/clients" },
-          { name: "Reports", icon: FiTrendingUp, href: "/dashboard/agent/reports" },
+          { name: "Dashboard", icon: FiBarChart2, href: "/dashboard/teller" },
+          { name: "Orders", icon: FiClipboard, href: "/dashboard/teller/orders" },
+          { name: "Executions", icon: FiZap, href: "/dashboard/teller/executions" },
+          { name: "Clients", icon: FiUsers, href: "/dashboard/teller/clients" },
+          { name: "Reports", icon: FiTrendingUp, href: "/dashboard/teller/reports" },
         ];
       case "admin":
         return [
           { name: "Dashboard", icon: FiBarChart2, href: "/dashboard/admin" },
           { name: "Users", icon: FiUsers, href: "/dashboard/admin/users" },
-          { name: "Agents", icon: FiHome, href: "/dashboard/admin/agents" },
+          { name: "Tellers", icon: FiHome, href: "/dashboard/admin/tellers" },
           { name: "Transactions", icon: FiDollarSign, href: "/dashboard/admin/transactions" },
           { name: "Reports", icon: FiTrendingUp, href: "/dashboard/admin/reports" },
           { name: "Settings", icon: FiSettings, href: "/dashboard/admin/settings" },

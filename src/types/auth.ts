@@ -1,20 +1,22 @@
 export interface SignupData {
-  firstName: string;
-  lastName: string;
+  fullName: string;
   email: string;
   phoneCountryCode: string;
   phone: string;
   password: string;
   confirmPassword: string;
-  idNumber: string;
-  passportPhoto: string;
-  idDocument: string;
-  dateOfBirth: string;
   gender: string;
   country: string;
   city: string;
-  occupation: string;
-  investmentExperience: string;
+}
+
+export interface ProfileDetailsData {
+  idNumber?: string;
+  passportPhoto?: string;
+  idDocument?: string;
+  dateOfBirth?: string;
+  occupation?: string;
+  investmentExperience?: string;
 }
 
 export interface AuthResponse {
@@ -24,7 +26,7 @@ export interface AuthResponse {
     id: string;
     role: string;
     email: string;
-    lastName: string;
+    fullName: string;
   };
 }
 

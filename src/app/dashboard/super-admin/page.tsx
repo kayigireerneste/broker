@@ -67,9 +67,7 @@ export default function SuperAdminDashboard() {
     email: string;
     dashboardRole: "super-admin";
   } => {
-    const first = (user?.firstName as string | undefined) ?? "";
-    const last = (user?.lastName as string | undefined) ?? "";
-    const fullName = `${first} ${last}`.trim();
+    const fullName = (user?.fullName as string | undefined)?.trim() ?? "";
     const fallbackName = user?.email ? user.email.split("@")[0] : "Super Admin";
 
     return {
@@ -77,7 +75,7 @@ export default function SuperAdminDashboard() {
       email: user?.email ?? "Not provided",
       dashboardRole: "super-admin",
     };
-  }, [user?.email, user?.firstName, user?.lastName]);
+  }, [user?.email, user?.fullName]);
 
   const summaryCards = [
     {

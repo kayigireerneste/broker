@@ -6,7 +6,7 @@
 */
 -- AlterEnum
 BEGIN;
-CREATE TYPE "Role_new" AS ENUM ('SUPER_ADMIN', 'ADMIN', 'AGENT', 'COMPANY', 'CLIENT');
+CREATE TYPE "Role_new" AS ENUM ('SUPER_ADMIN', 'ADMIN', 'TELLER', 'COMPANY', 'CLIENT');
 ALTER TABLE "public"."User" ALTER COLUMN "role" DROP DEFAULT;
 ALTER TABLE "User" ALTER COLUMN "role" TYPE "Role_new" USING ("role"::text::"Role_new");
 ALTER TYPE "Role" RENAME TO "Role_old";

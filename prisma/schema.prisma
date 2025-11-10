@@ -10,7 +10,7 @@ datasource db {
 enum Role {
   SUPER_ADMIN
   ADMIN
-  AGENT
+  TELLER
   COMPANY
   CLIENT
 }
@@ -24,22 +24,21 @@ enum StandingOrderFrequency {
 
 model User {
   id                    String   @id @default(uuid())
-  firstName             String
-  lastName              String
+  fullName              String
   email                 String   @unique
   phoneCountryCode      String
   phone                 String
   password              String
-  idNumber              String
+  idNumber              String?
   csdNumber             String?  @unique
-  passportPhoto         String
-  idDocument            String
-  dateOfBirth           DateTime
+  passportPhoto         String?
+  idDocument            String?
+  dateOfBirth           DateTime?
   gender                String   @default("male")
   country               String
   city                  String
-  occupation            String
-  investmentExperience  String
+  occupation            String?
+  investmentExperience  String?
   notificationPreferences Json?
   role                  Role     @default(CLIENT)
   isVerified            Boolean  @default(false)
@@ -49,8 +48,8 @@ model User {
   updatedAt             DateTime @updatedAt
   createdById           String?
 
-  createdBy             User?    @relation("AgentCreatedClients", fields: [createdById], references: [id], onDelete: SetNull)
-  createdClients        User[]   @relation("AgentCreatedClients")
+  createdBy             User?    @relation("TellerCreatedClients", fields: [createdById], references: [id], onDelete: SetNull)
+  createdClients        User[]   @relation("TellerCreatedClients")
   companies             Company[] @relation("UserCompanies")
 }
 

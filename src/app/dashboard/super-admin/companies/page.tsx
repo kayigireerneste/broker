@@ -33,7 +33,8 @@ export default function SuperAdminCompaniesPage() {
     setCompanies((prev) => [company, ...prev]);
   };
 
-  const displayName = (user?.firstName || user?.email?.split("@")[0]) ?? "Super Admin";
+  const emailName = user?.email ? user.email.split("@")[0] : "";
+  const displayName = (user?.fullName?.trim() || emailName || "Super Admin");
 
   return (
     <DashboardLayout userRole="super-admin" userName={displayName} userEmail={user?.email ?? ""}>

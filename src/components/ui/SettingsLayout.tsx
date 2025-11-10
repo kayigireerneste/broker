@@ -24,7 +24,7 @@ interface SettingsLayoutProps {
 	activeItem?: string;
 	onItemSelect?: (id: string) => void;
 	actions?: ReactNode;
-	userRole?: "client" | "agent" | "admin";
+	userRole?: "client" | "teller" | "admin";
 	userName?: string;
 	userEmail?: string;
 	onDeleteAccount?: () => void;
@@ -57,20 +57,16 @@ export default function SettingsLayout({
 	const derivedRole = useMemo(() => {
 		if (userRole) return userRole;
 		const role = typeof user?.role === "string" ? user.role.toLowerCase() : undefined;
-		return role === "client" || role === "agent" || role === "admin"
-			? role
-			: "client";
+		return role === "client" || role === "teller" || role === "admin" ? role : "client";
 	}, [userRole, user?.role]);
 
 	const derivedName = useMemo(() => {
 		if (userName) return userName;
-		const first = (user?.firstName as string | undefined) ?? "";
-		const last = (user?.lastName as string | undefined) ?? "";
-		const fullName = `${first} ${last}`.trim();
+		const fullName = (user?.fullName as string | undefined)?.trim();
 		if (fullName) return fullName;
 		if (user?.email) return user.email.split("@")[0];
 		return "User";
-	}, [userName, user?.firstName, user?.lastName, user?.email]);
+	}, [userName, user?.fullName, user?.email]);
 
 	const derivedEmail = useMemo(() => {
 		if (userEmail) return userEmail;

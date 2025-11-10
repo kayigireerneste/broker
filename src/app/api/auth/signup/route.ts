@@ -1,11 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { sendOTPEmail } from "@/utils/mailer";
 import { signupSchema, SignupPayload } from "@/lib/validations/signupValidation";
-import { Prisma } from "@prisma/client";
+import type { Role as PrismaRole } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 
-const defaultNotificationPreferences: Prisma.JsonObject = {
+const defaultNotificationPreferences = {
   email: true,
   sms: false,
   push: false,
@@ -33,22 +33,17 @@ export async function POST(req: Request) {
 
     const validated: SignupPayload = parsed.data;
     const {
-      firstName,
-      lastName,
+      fullName,
       email,
       phoneCountryCode,
       phone,
       password,
-      idNumber,
-      passportPhoto,
-      idDocument,
-      dateOfBirth,
+      confirmPassword,
       gender,
       country,
       city,
-      occupation,
-      investmentExperience,
     } = validated;
+    void confirmPassword;
 
     let existingUser;
     try {
@@ -73,30 +68,23 @@ export async function POST(req: Request) {
     const otpExpiresAt = new Date(Date.now() + 30 * 60 * 1000);
     let createdUser: { id: string } | null = null;
     try {
-      const createData: Record<string, unknown> = {
-        firstName,
-        lastName,
+      const createData = {
+        fullName,
         email,
         phoneCountryCode,
         phone,
         password: hashed,
-        idNumber,
-        passportPhoto,
-        idDocument,
-        dateOfBirth: new Date(dateOfBirth),
-        gender,
+    gender,
         country,
         city,
-        occupation,
-        investmentExperience,
-        role: "CLIENT",
+  role: "CLIENT" as PrismaRole,
         otp,
         otpExpiresAt,
         notificationPreferences: defaultNotificationPreferences,
       };
 
       createdUser = await prisma.user.create({
-        data: createData as Prisma.UserCreateInput,
+        data: createData,
         select: { id: true },
       });
     } catch (createErr) {

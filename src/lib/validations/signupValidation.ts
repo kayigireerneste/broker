@@ -41,11 +41,14 @@ const validateFileReference = (
 };
 export const GENDER_VALUES = ["male", "female"] as const;
 
-export const baseSignupSchema = z.object({
-  firstName: z.string().trim().min(MIN_NAME_LENGTH, "First name must be at least 3 characters"),
-  lastName: z.string().trim().min(MIN_NAME_LENGTH, "Last name must be at least 3 characters"),
+const signupFormSchema = z.object({
+  fullName: z.string().trim().min(MIN_NAME_LENGTH, "Full name must be at least 3 characters"),
   email: z.string().trim().min(1, "Email is required").email("Invalid email format"),
-  phoneCountryCode: z.string().trim().min(1, "Phone country code is required").regex(/^\+[0-9]{1,4}$/, "Invalid country calling code"),
+  phoneCountryCode: z
+    .string()
+    .trim()
+    .min(1, "Phone country code is required")
+    .regex(/^\+[0-9]{1,4}$/, "Invalid country calling code"),
   phone: z.string().trim().min(4, "Phone number must contain digits"),
   password: z
     .string()
@@ -55,16 +58,6 @@ export const baseSignupSchema = z.object({
     .regex(/[0-9]/, "Password must contain at least one number")
     .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
   confirmPassword: z.string().min(1, "Please confirm your password"),
-  idNumber: z.string().trim().min(1, "ID number is required"),
-  passportPhoto: z
-    .string()
-    .trim()
-    .min(1, "Passport photo is required"),
-  idDocument: z
-    .string()
-    .trim()
-    .min(1, "Identification document is required"),
-  dateOfBirth: z.string().trim().min(1, "Date of birth is required"),
   gender: z
     .string()
     .trim()
@@ -74,11 +67,92 @@ export const baseSignupSchema = z.object({
     }),
   country: z.string().trim().min(1, "Country is required"),
   city: z.string().trim().min(1, "City is required"),
-  occupation: z.string().trim().min(1, "Occupation is required"),
-  investmentExperience: z.string().trim().min(1, "Investment experience is required"),
 });
 
-export type SignupFormData = z.input<typeof baseSignupSchema>;
+const profileDetailsBaseSchema = z.object({
+  idNumber: z.string().trim().optional(),
+  passportPhoto: z.string().trim().optional(),
+  idDocument: z.string().trim().optional(),
+  dateOfBirth: z.string().trim().optional(),
+  occupation: z.string().trim().optional(),
+  investmentExperience: z.string().trim().optional(),
+});
+
+export const profileDetailsSchema = profileDetailsBaseSchema;
+
+export const validateProfileDetails = (
+  data: z.infer<typeof profileDetailsBaseSchema>,
+  ctx: z.RefinementCtx
+) => {
+  if (data.dateOfBirth) {
+    validateDateOfBirth({ dateOfBirth: data.dateOfBirth }, ctx);
+  }
+
+  const passportPhoto = data.passportPhoto?.trim();
+  if (passportPhoto) {
+    validateFileReference(
+      passportPhoto,
+      IMAGE_EXTENSIONS,
+      "Passport photo must be an image file",
+      ctx,
+      "passportPhoto"
+    );
+  }
+
+  const idDocument = data.idDocument?.trim();
+  if (idDocument) {
+    validateFileReference(
+      idDocument,
+      DOCUMENT_EXTENSIONS,
+      "Identification document must be an image or PDF",
+      ctx,
+      "idDocument"
+    );
+  }
+};
+
+export const baseSignupSchema = signupFormSchema.merge(profileDetailsBaseSchema);
+
+export type SignupFormData = z.input<typeof signupFormSchema>;
+
+const toOptionalTrimmed = (value?: string | null) => {
+  const trimmed = value?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : undefined;
+};
+
+const normalizeEssentialFields = (data: z.infer<typeof signupFormSchema>) => {
+  const normalizedPhone = normalizePhone(data.phoneCountryCode, data.phone);
+  const phoneNumber = parsePhoneNumberFromString(normalizedPhone);
+  const normalizedGender = (data.gender?.trim().toLowerCase() as (typeof GENDER_VALUES)[number]) ?? "male";
+
+  return {
+    fullName: data.fullName.trim(),
+    email: data.email.trim().toLowerCase(),
+    phoneCountryCode: data.phoneCountryCode.trim(),
+    phone: phoneNumber ? phoneNumber.number : normalizedPhone,
+    password: data.password,
+    confirmPassword: data.confirmPassword,
+    gender: normalizedGender ?? "male",
+    country: data.country.trim(),
+    city: data.city.trim(),
+  };
+};
+
+const normalizeProfileDetails = (data: z.infer<typeof profileDetailsBaseSchema>) => {
+  const normalizedDob = data.dateOfBirth ? new Date(data.dateOfBirth) : null;
+
+  return {
+    idNumber: toOptionalTrimmed(data.idNumber),
+    passportPhoto: toOptionalTrimmed(data.passportPhoto),
+    idDocument: toOptionalTrimmed(data.idDocument),
+    dateOfBirth:
+      normalizedDob && !Number.isNaN(normalizedDob.getTime())
+        ? normalizedDob.toISOString()
+        : undefined,
+    occupation: toOptionalTrimmed(data.occupation),
+    investmentExperience: toOptionalTrimmed(data.investmentExperience),
+  };
+};
 
 export const normalizePhone = (code: string, phone: string) => `${code}${phone}`.replace(/\s+/g, "");
 
@@ -95,8 +169,13 @@ export const validatePasswordConfirmation = <T extends { password: string; confi
   }
 };
 
-export const validateDateOfBirth = <T extends { dateOfBirth: string }>(data: T, ctx: z.RefinementCtx) => {
-  const rawDob = new Date(data.dateOfBirth);
+export const validateDateOfBirth = <T extends { dateOfBirth?: string | null }>(data: T, ctx: z.RefinementCtx) => {
+  const rawValue = data.dateOfBirth?.trim();
+  if (!rawValue) {
+    return;
+  }
+
+  const rawDob = new Date(rawValue);
   if (Number.isNaN(rawDob.getTime())) {
     ctx.addIssue({
       path: ["dateOfBirth"],
@@ -138,73 +217,44 @@ export const validatePhoneNumber = <T extends { phoneCountryCode: string; phone:
 };
 
 export const personalInfoSchema = baseSignupSchema
-  .pick({ firstName: true, lastName: true, email: true, phoneCountryCode: true, phone: true })
+  .pick({ fullName: true, email: true, phoneCountryCode: true, phone: true })
   .superRefine((data, ctx) => {
     validatePhoneNumber(data, ctx);
   });
 
 export const securityInfoSchema = baseSignupSchema
-  .pick({ password: true, confirmPassword: true, idNumber: true, dateOfBirth: true })
+  .pick({ password: true, confirmPassword: true })
   .superRefine((data, ctx) => {
     validatePasswordConfirmation(data, ctx);
-    validateDateOfBirth(data, ctx);
   });
 
 export const otherInfoSchema = baseSignupSchema.pick({
   country: true,
   city: true,
   gender: true,
-  occupation: true,
-  investmentExperience: true,
 });
 
-export const signupSchema = baseSignupSchema
+export const signupSchema = signupFormSchema
   .superRefine((data, ctx) => {
     validatePasswordConfirmation(data, ctx);
-    validateDateOfBirth(data, ctx);
     validatePhoneNumber(data, ctx);
+  })
+  .transform((data) => normalizeEssentialFields(data));
 
-    validateFileReference(
-      data.passportPhoto,
-      IMAGE_EXTENSIONS,
-      "Passport photo must be an image file",
-      ctx,
-      "passportPhoto"
-    );
-
-    validateFileReference(
-      data.idDocument,
-      DOCUMENT_EXTENSIONS,
-      "Identification document must be an image or PDF",
-      ctx,
-      "idDocument"
-    );
+export const userCreationSchema = baseSignupSchema
+  .superRefine((data, ctx) => {
+    validatePasswordConfirmation(data, ctx);
+    validatePhoneNumber(data, ctx);
+    validateProfileDetails(data, ctx);
   })
   .transform((data) => {
-    const { passportPhoto, idDocument, confirmPassword, ...rest } = data;
-    void confirmPassword;
-
-    const normalizedPhone = normalizePhone(data.phoneCountryCode, data.phone);
-    const phoneNumber = parsePhoneNumberFromString(normalizedPhone);
-    const normalizedDob = new Date(data.dateOfBirth);
-    const normalizedGender = (rest.gender?.trim().toLowerCase() as (typeof GENDER_VALUES)[number]) ?? "male";
-
+    const essentials = normalizeEssentialFields(data);
+    const profile = normalizeProfileDetails(data);
     return {
-      ...rest,
-      firstName: rest.firstName.trim(),
-      lastName: rest.lastName.trim(),
-      email: rest.email.trim().toLowerCase(),
-      phoneCountryCode: rest.phoneCountryCode.trim(),
-      phone: phoneNumber ? phoneNumber.number : normalizedPhone,
-      dateOfBirth: normalizedDob.toISOString(),
-      country: rest.country.trim(),
-      city: rest.city.trim(),
-      occupation: rest.occupation.trim(),
-      investmentExperience: rest.investmentExperience.trim(),
-      gender: normalizedGender ?? "male",
-      passportPhoto: passportPhoto.trim(),
-      idDocument: idDocument.trim(),
+      ...essentials,
+      ...profile,
     };
   });
 
 export type SignupPayload = z.infer<typeof signupSchema>;
+export type UserCreationPayload = z.infer<typeof userCreationSchema>;
