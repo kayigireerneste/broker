@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ChangeEvent, type FormEvent } from "react";
+import { useState, type ChangeEvent, type FormEvent, Suspense } from "react";
 import { motion } from "framer-motion";
 import Card from "@/components/ui/Card";
 import { InputField } from "@/components/ui/InputField";
@@ -13,7 +13,7 @@ import { Loader2 } from "lucide-react";
 import { loginSchema, type LoginFormData } from "@/lib/validations/loginValidation";
 import { getDashboardPath } from "@/hooks/useAuth";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
@@ -230,5 +230,17 @@ export default function LoginPage() {
         </Card>
         </div>
       </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen gradient-primary flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-white animate-spin" />
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }
