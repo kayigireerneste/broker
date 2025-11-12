@@ -101,7 +101,7 @@ export default function SuperAdminSettingsPage() {
   const renderPlatform = () => (
     <Card className="p-6" hover={false}>
       <h2 className="text-xl font-semibold text-[#004B5B]">Platform wide defaults</h2>
-      <p className="mt-1 text-sm text-slate-500">Set the baseline configuration all entities inherit unless overridden.</p>
+      <p className="mt-1 text-base text-slate-600">Set the baseline configuration all entities inherit unless overridden.</p>
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <InputField
           name="primaryContact"
@@ -138,8 +138,8 @@ export default function SuperAdminSettingsPage() {
   const renderSecurity = () => (
     <Card className="p-6" hover={false}>
       <h2 className="text-xl font-semibold text-[#004B5B]">Security posture</h2>
-      <p className="mt-1 text-sm text-slate-500">Apply consistent controls across all dashboards and service accounts.</p>
-      <div className="mt-6 space-y-4 text-sm text-slate-600">
+      <p className="mt-1 text-base text-slate-600">Apply consistent controls across all dashboards and service accounts.</p>
+      <div className="mt-6 space-y-4 text-base text-slate-600">
         <label className="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3">
           <span>Enforce multi-factor authentication</span>
           <input
@@ -159,11 +159,11 @@ export default function SuperAdminSettingsPage() {
           />
         </label>
         <div className="rounded-2xl border border-slate-200 px-4 py-3">
-          <span className="block text-sm font-medium text-slate-700">Session timeout (minutes)</span>
+          <span className="block text-base font-medium text-slate-700">Session timeout (minutes)</span>
           <input
             type="number"
             min={5}
-            className="mt-2 w-32 rounded-full border border-slate-200 px-4 py-2 text-sm text-slate-700 focus:border-[#004B5B] focus:outline-none"
+            className="mt-2 w-32 rounded-full border border-slate-200 px-4 py-2 text-base text-slate-700 focus:border-[#004B5B] focus:outline-none"
             value={securityForm.sessionTimeout}
             onChange={handleSessionTimeoutChange}
           />
@@ -175,7 +175,7 @@ export default function SuperAdminSettingsPage() {
   const renderMonitoring = () => (
     <Card className="p-6" hover={false}>
       <h2 className="text-xl font-semibold text-[#004B5B]">Monitoring & alerts</h2>
-      <p className="mt-1 text-sm text-slate-500">Track uptime and data objectives while keeping execs informed.</p>
+      <p className="mt-1 text-base text-slate-600">Track uptime and data objectives while keeping execs informed.</p>
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <InputField
           name="rpo"
@@ -198,7 +198,7 @@ export default function SuperAdminSettingsPage() {
           }
         />
       </div>
-      <div className="mt-6 space-y-3 text-sm text-slate-600">
+      <div className="mt-6 space-y-3 text-base text-slate-600">
         {Object.keys(monitoringForm.notifyChannels).map((channel) => (
           <label key={channel} className="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3">
             <span>{channel}</span>

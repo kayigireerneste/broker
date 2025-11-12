@@ -113,12 +113,12 @@ export function MarketCardGrid(): JSX.Element {
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">
             Explore live securities and trade opportunities
           </h1>
-          <p className="text-sm sm:text-base text-slate-600 max-w-2xl">
+          <p className="text-base text-slate-600 max-w-2xl leading-relaxed">
             We reimagined the daily snapshot from the exchange into actionable trading cards. Monitor the last
             close, intraday swings, and liquidity signals, then act instantly with Buy or Sell CTA buttons.
           </p>
           {data?.snapshotDate && (
-            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-slate-400">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-slate-400 pt-2">
               <FiActivity className="h-4 w-4" />
               Updated {data.snapshotDate}
             </div>
@@ -126,12 +126,12 @@ export function MarketCardGrid(): JSX.Element {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
-          <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-full px-4 py-2 shadow-sm">
-            <span className="text-xs font-semibold text-slate-500 uppercase">Sort by</span>
+          <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-full px-4 py-2.5 shadow-sm">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Sort by</span>
             <select
               value={sortKey}
               onChange={(event) => setSortKey(event.target.value as SortKey)}
-              className="bg-transparent border-none text-sm font-semibold text-slate-800 focus:outline-none"
+              className="bg-transparent border-none text-sm font-semibold text-slate-800 focus:outline-none cursor-pointer"
             >
               <option value="change">Change % (desc)</option>
               <option value="volume">Volume (desc)</option>
@@ -140,7 +140,7 @@ export function MarketCardGrid(): JSX.Element {
             </select>
           </div>
           {/* Placeholder view toggle for future extension */}
-          <div className="flex items-center gap-2 rounded-full bg-slate-900/90 px-3 py-2 text-xs uppercase text-white tracking-wider">
+          <div className="flex items-center gap-2 rounded-full bg-slate-900/90 px-4 py-2.5 text-xs uppercase text-white tracking-wider shadow-sm">
             <span className="font-semibold">Grid view</span>
           </div>
         </div>
@@ -171,7 +171,7 @@ export function MarketCardGrid(): JSX.Element {
 
       {!loading && error && (
         <div className="rounded-3xl border border-rose-200 bg-rose-50/80 px-6 py-8 text-rose-600 text-center">
-          <p className="font-semibold">{error}</p>
+          <p className="font-semibold text-base">{error}</p>
           <p className="text-sm text-rose-500 mt-2">
             Please refresh the page to attempt another fetch from the exchange.
           </p>
@@ -180,7 +180,7 @@ export function MarketCardGrid(): JSX.Element {
 
       {!loading && !error && !hasSnapshot && (
         <div className="rounded-3xl border border-slate-200 bg-white px-6 py-12 text-center text-slate-500">
-          There are no securities in today&apos;s snapshot yet. Check back soon for live opportunities.
+          <p className="text-base">There are no securities in today&apos;s snapshot yet. Check back soon for live opportunities.</p>
         </div>
       )}
 
@@ -198,60 +198,60 @@ export function MarketCardGrid(): JSX.Element {
             return (
               <article
                 key={`${card.security}-${card.index}`}
-                className={`relative overflow-hidden rounded-3xl border backdrop-blur-md bg-linear-to-br ${card.tone.bg} ${card.tone.border} p-6 sm:p-7 flex flex-col gap-6 shadow-[0_25px_45px_-20px_rgba(15,23,42,0.25)] transition hover:-translate-y-1 hover:shadow-[0_35px_55px_-25px_rgba(15,23,42,0.35)]`}
+                className={`relative overflow-hidden rounded-3xl border backdrop-blur-md bg-linear-to-br ${card.tone.bg} ${card.tone.border} p-6 sm:p-7 flex flex-col gap-6 shadow-[0_25px_45px_-20px_rgba(15,23,42,0.25)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_35px_55px_-25px_rgba(15,23,42,0.35)]`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-3">
-                    <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${card.tone.badge} ${card.tone.badgeText}`}>
+                    <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${card.tone.badge} ${card.tone.badgeText}`}>
                       <TrendIcon className="h-4 w-4" />
                       {card.positive ? "Bullish" : card.negative ? "Bearish" : "Sideways"}
                     </span>
                     <h2 className="text-xl font-semibold text-slate-900 leading-tight">
                       {card.security || "Unnamed Security"}
                     </h2>
-                    <p className="text-sm text-slate-600 max-w-88">
+                    <p className="text-sm text-slate-600 max-w-xs leading-relaxed">
                       Quick pulse on liquidity and price action so you can decide whether to buy the dip or secure gains.
                     </p>
                   </div>
-                  <div className="relative h-16 w-16 rounded-2xl bg-slate-900/5 flex items-center justify-center border border-white/40 shadow-inner">
+                  <div className="relative h-16 w-16 shrink-0 rounded-2xl bg-slate-900/5 flex items-center justify-center border border-white/40 shadow-inner">
                     <span className={`${card.tone.highlight} text-lg font-bold`}>{card.closing || "—"}</span>
                   </div>
                 </div>
 
                 <dl className="grid grid-cols-2 gap-4 text-sm text-slate-600">
                   <div className="rounded-2xl border border-white/40 bg-white/60 backdrop-blur-sm px-4 py-3 shadow-sm">
-                    <dt className="text-xs uppercase tracking-wider text-slate-500">Closing</dt>
-                    <dd className="text-base font-semibold text-slate-900">{card.closing || "—"}</dd>
+                    <dt className="text-xs uppercase tracking-wider text-slate-500 font-medium">Closing</dt>
+                    <dd className="text-base font-semibold text-slate-900 mt-1">{card.closing || "—"}</dd>
                   </div>
                   <div className="rounded-2xl border border-white/40 bg-white/60 backdrop-blur-sm px-4 py-3 shadow-sm">
-                    <dt className="text-xs uppercase tracking-wider text-slate-500">Previous</dt>
-                    <dd className="text-base font-semibold text-slate-900">{card.previous || "—"}</dd>
+                    <dt className="text-xs uppercase tracking-wider text-slate-500 font-medium">Previous</dt>
+                    <dd className="text-base font-semibold text-slate-900 mt-1">{card.previous || "—"}</dd>
                   </div>
                   <div className="rounded-2xl border border-white/40 bg-white/60 backdrop-blur-sm px-4 py-3 shadow-sm">
-                    <dt className="text-xs uppercase tracking-wider text-slate-500">Volume</dt>
-                    <dd className="text-base font-semibold text-slate-900">{card.volume || "—"}</dd>
+                    <dt className="text-xs uppercase tracking-wider text-slate-500 font-medium">Volume</dt>
+                    <dd className="text-base font-semibold text-slate-900 mt-1">{card.volume || "—"}</dd>
                   </div>
                   <div className="rounded-2xl border border-white/40 bg-white/60 backdrop-blur-sm px-4 py-3 shadow-sm">
-                    <dt className="text-xs uppercase tracking-wider text-slate-500">Value</dt>
-                    <dd className="text-base font-semibold text-slate-900">{card.value || "—"}</dd>
+                    <dt className="text-xs uppercase tracking-wider text-slate-500 font-medium">Value</dt>
+                    <dd className="text-base font-semibold text-slate-900 mt-1">{card.value || "—"}</dd>
                   </div>
                 </dl>
 
                 <div className="flex items-center justify-between">
-                  <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${changeTone}`}>
+                  <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${changeTone}`}>
                     <TrendIcon className="h-4 w-4" />
                     {card.change || "0.00"}
                   </div>
                   <div className="flex gap-3">
                     <Link
                       href="/forms/PurchaseOrderForm"
-                      className="group inline-flex items-center justify-center rounded-full bg-emerald-500 px-5 py-2 text-xs font-semibold uppercase tracking-wide text-white shadow transition hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:ring-offset-2"
+                      className="group inline-flex items-center justify-center rounded-full bg-emerald-500 px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-white shadow-md transition-all hover:bg-emerald-600 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:ring-offset-2"
                     >
                       Buy
                     </Link>
                     <Link
                       href="/forms/SaleOrderForm"
-                      className="inline-flex items-center justify-center rounded-full border border-rose-300/70 px-5 py-2 text-xs font-semibold uppercase tracking-wide text-rose-500 transition hover:bg-rose-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-rose-300 focus:ring-offset-2"
+                      className="inline-flex items-center justify-center rounded-full border-2 border-rose-300/70 px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-rose-500 transition-all hover:bg-rose-500 hover:text-white hover:border-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:ring-offset-2"
                     >
                       Sell
                     </Link>

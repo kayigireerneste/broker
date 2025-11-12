@@ -110,7 +110,7 @@ export default function CompanySettingsPage() {
   const renderProfile = () => (
     <Card className="p-6" hover={false}>
       <h2 className="text-xl font-semibold text-[#004B5B]">Public profile</h2>
-      <p className="mt-1 text-sm text-slate-500">Update what stakeholders see on the market portal.</p>
+      <p className="mt-1 text-base text-slate-600">Update what stakeholders see on the market portal.</p>
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <InputField
           name="legalName"
@@ -139,7 +139,7 @@ export default function CompanySettingsPage() {
         <div className="md:col-span-2">
           <label className="text-sm font-medium text-slate-600">Short description</label>
           <textarea
-            className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 focus:border-[#004B5B] focus:outline-none"
+            className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-700 focus:border-[#004B5B] focus:outline-none"
             rows={4}
             placeholder="Tell investors about your business"
             value={profileForm.description}
@@ -157,7 +157,7 @@ export default function CompanySettingsPage() {
   const renderInvestorRelations = () => (
     <Card className="p-6" hover={false}>
       <h2 className="text-xl font-semibold text-[#004B5B]">Investor relations</h2>
-      <p className="mt-1 text-sm text-slate-500">Coordinate earnings releases, AGM notices, and investor support.</p>
+      <p className="mt-1 text-base text-slate-600">Coordinate earnings releases, AGM notices, and investor support.</p>
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <InputField
           name="primaryContact"
@@ -192,7 +192,7 @@ export default function CompanySettingsPage() {
           onChange={handleInvestorRelationsChange("disclosurePortal")}
         />
       </div>
-      <div className="mt-6 space-y-3 text-sm text-slate-600">
+      <div className="mt-6 space-y-3 text-base text-slate-600">
         {subscriptionItems.map((item) => (
           <label key={item} className="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3">
             <span>{item}</span>
@@ -211,7 +211,7 @@ export default function CompanySettingsPage() {
   const renderGovernance = () => (
     <Card className="p-6" hover={false}>
       <h2 className="text-xl font-semibold text-[#004B5B]">Governance & compliance</h2>
-      <p className="mt-1 text-sm text-slate-500">Outline approval workflows and designate your compliance contacts.</p>
+      <p className="mt-1 text-base text-slate-600">Outline approval workflows and designate your compliance contacts.</p>
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <InputField
           name="complianceLead"
@@ -249,7 +249,7 @@ export default function CompanySettingsPage() {
       <div className="mt-6 space-y-3">
         {["Financial statements", "Corporate governance report", "ESG updates"].map((item) => (
           <div key={item} className="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3">
-            <span className="text-sm text-slate-600">Require {item}</span>
+            <span className="text-base text-slate-600">Require {item}</span>
             <Button size="sm" variant="outline">Manage</Button>
           </div>
         ))}

@@ -127,7 +127,7 @@ export default function ClientDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-600">Portfolio Value</p>
-                <p className="text-xl font-bold text-gray-900">$24,580</p>
+                <p className="text-xl font-bold text-gray-900">Rwf 24,580</p>
                 <p className="text-xs text-green-600">+5.2%</p>
               </div>
               <div className="w-10 h-10 gradient-primary rounded-full flex items-center justify-center">
@@ -142,7 +142,7 @@ export default function ClientDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-600">Wallet Balance</p>
-                <p className="text-xl font-bold text-gray-900">$3,420</p>
+                <p className="text-xl font-bold text-gray-900">Rwf 3,420</p>
                 <p className="text-xs text-blue-600">Available</p>
               </div>
               <div className="w-10 h-10 gradient-primary rounded-full flex items-center justify-center">
@@ -157,7 +157,7 @@ export default function ClientDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-600">Today's P&L</p>
-                <p className="text-xl font-bold text-green-600">+$127</p>
+                <p className="text-xl font-bold text-green-600">+Rwf 127</p>
                 <p className="text-xs text-gray-600">+0.52%</p>
               </div>
               <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
@@ -189,11 +189,11 @@ export default function ClientDashboard() {
             <h3 className="text-sm font-semibold text-gray-900 mb-3">Market Updates</h3>
             <div className="space-y-2">
               {[
-                { name: 'BK Group', price: '$85.50', change: '+2.5%', positive: true },
-                { name: 'Equity Bank', price: '$42.30', change: '+1.8%', positive: true },
-                { name: 'MTN Rwanda', price: '$28.75', change: '-0.3%', positive: false },
-                { name: 'I&M Bank', price: '$156.20', change: '+3.1%', positive: true },
-                { name: 'KCB Group', price: '$67.80', change: '+0.9%', positive: true }
+                { name: 'BK Group', price: 'Rwf 85.50', change: '+2.5%', positive: true },
+                { name: 'Equity Bank', price: 'Rwf 42.30', change: '+1.8%', positive: true },
+                { name: 'MTN Rwanda', price: 'Rwf 28.75', change: '-0.3%', positive: false },
+                { name: 'I&M Bank', price: 'Rwf 156.20', change: '+3.1%', positive: true },
+                { name: 'KCB Group', price: 'Rwf 67.80', change: '+0.9%', positive: true }
               ].map((stock, index) => (
                 <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded text-xs">
                   <span className="font-medium">{stock.name}</span>
@@ -309,9 +309,9 @@ export default function ClientDashboard() {
                     </div>
                   </td>
                   <td className="py-2 px-3">150</td>
-                  <td className="py-2 px-3">$85.50</td>
-                  <td className="py-2 px-3">$12,825</td>
-                  <td className="py-2 px-3 text-green-600">+$325 (+2.6%)</td>
+                  <td className="py-2 px-3">Rwf 85.50</td>
+                  <td className="py-2 px-3">Rwf 12,825</td>
+                  <td className="py-2 px-3 text-green-600">+Rwf 325 (+2.6%)</td>
                 </tr>
                 <tr className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="py-2 px-3">
@@ -323,9 +323,9 @@ export default function ClientDashboard() {
                     </div>
                   </td>
                   <td className="py-2 px-3">75</td>
-                  <td className="py-2 px-3">$42.30</td>
-                  <td className="py-2 px-3">$3,172</td>
-                  <td className="py-2 px-3 text-green-600">+$127 (+4.2%)</td>
+                  <td className="py-2 px-3">Rwf 42.30</td>
+                  <td className="py-2 px-3">Rwf 3,172</td>
+                  <td className="py-2 px-3 text-green-600">+Rwf 127 (+4.2%)</td>
                 </tr>
                 <tr className="hover:bg-gray-50">
                   <td className="py-2 px-3">
@@ -337,9 +337,9 @@ export default function ClientDashboard() {
                     </div>
                   </td>
                   <td className="py-2 px-3">200</td>
-                  <td className="py-2 px-3">$28.75</td>
-                  <td className="py-2 px-3">$5,750</td>
-                  <td className="py-2 px-3 text-red-600">-$50 (-0.9%)</td>
+                  <td className="py-2 px-3">Rwf 28.75</td>
+                  <td className="py-2 px-3">Rwf 5,750</td>
+                  <td className="py-2 px-3 text-red-600">-Rwf 50 (-0.9%)</td>
                 </tr>
               </tbody>
             </table>

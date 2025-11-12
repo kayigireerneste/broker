@@ -603,14 +603,14 @@ export default function ClientSettingsPage() {
       <form className="flex flex-col gap-6" onSubmit={handleProfileSubmit}>
         <header>
           <h2 className="text-xl font-semibold text-[#004B5B]">Personal details</h2>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-base text-slate-600">
             Keep your contact information up to date and add any supporting documents required by our compliance team.
           </p>
         </header>
 
         {profileMessage && (
           <div
-            className={`rounded-md border px-4 py-3 text-sm ${
+            className={`rounded-md border px-4 py-3 text-base ${
               profileStatus === "success"
                 ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                 : "border-red-200 bg-red-50 text-red-700"
@@ -778,7 +778,7 @@ export default function ClientSettingsPage() {
           </div>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="md:grid-cols-2">
           <FileUploadField
             name="passportPhoto"
             label="Passport photo"
@@ -824,7 +824,7 @@ export default function ClientSettingsPage() {
     <div className="space-y-6">
       <Card className="p-6" hover={false}>
         <h2 className="text-xl font-semibold text-[#004B5B]">Login &amp; security</h2>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-base text-slate-600">
           Keep your email and password up to date so you never lose access to your account.
         </p>
 
@@ -867,7 +867,7 @@ export default function ClientSettingsPage() {
 
             {emailMessage && (
               <div
-                className={`rounded-md border px-4 py-3 text-sm ${
+                className={`rounded-md border px-4 py-3 text-base ${
                   emailStatus === "success"
                     ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                     : "border-red-200 bg-red-50 text-red-700"
@@ -926,7 +926,7 @@ export default function ClientSettingsPage() {
 
             {passwordMessage && (
               <div
-                className={`rounded-md border px-4 py-3 text-sm ${
+                className={`rounded-md border px-4 py-3 text-base ${
                   passwordStatus === "success"
                     ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                     : "border-red-200 bg-red-50 text-red-700"
@@ -953,10 +953,10 @@ export default function ClientSettingsPage() {
       </Card>
       <Card className="p-6" hover={false}>
         <h2 className="text-xl font-semibold text-[#004B5B]">Two-factor authentication</h2>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-base text-slate-600">
           Add an extra layer of protection by requiring a one-time code when signing in.
         </p>
-        <div className="mt-4 flex flex-col gap-3 text-sm text-slate-600">
+        <div className="mt-4 flex flex-col gap-3 text-base text-slate-600">
           <label className="flex items-center gap-3">
             <input type="checkbox" className="h-4 w-4 rounded border-slate-300" />
             Email verification codes
@@ -973,10 +973,10 @@ export default function ClientSettingsPage() {
   const renderNotifications = () => (
     <Card className="p-6" hover={false}>
       <h2 className="text-xl font-semibold text-[#004B5B]">Notification preferences</h2>
-      <p className="mt-1 text-sm text-slate-500">
+      <p className="mt-1 text-base text-slate-600">
         Decide how you want to receive alerts about portfolio activity.
       </p>
-      <div className="mt-6 space-y-4 text-sm text-slate-600">
+      <div className="mt-6 space-y-4 text-base text-slate-600">
         {[
           {
             title: "Trade confirmations",
@@ -995,7 +995,7 @@ export default function ClientSettingsPage() {
             <input type="checkbox" className="mt-1 h-4 w-4 rounded border-slate-300" />
             <span>
               <span className="block text-base font-medium text-slate-800">{item.title}</span>
-              <span className="text-sm text-slate-500">{item.body}</span>
+              <span className="text-base text-slate-600">{item.body}</span>
             </span>
           </label>
         ))}
@@ -1006,22 +1006,22 @@ export default function ClientSettingsPage() {
   const renderBilling = () => (
     <Card className="p-6" hover={false}>
       <h2 className="text-xl font-semibold text-[#004B5B]">Billing & funding</h2>
-      <p className="mt-1 text-sm text-slate-500">
+      <p className="mt-1 text-base text-slate-600">
         View and manage the cards and bank accounts you use to fund trades.
       </p>
-      <div className="mt-4 space-y-4 text-sm text-slate-600">
+      <div className="mt-4 space-y-4 text-base text-slate-600">
         <div className="rounded-2xl border border-slate-200 p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-base font-semibold text-slate-800">Visa •••• 2480</p>
-              <p className="text-xs text-slate-500">Primary funding method</p>
+              <p className="text-sm text-slate-500">Primary funding method</p>
             </div>
             <Button variant="outline" size="sm">Set default</Button>
           </div>
         </div>
         <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center">
           <p className="font-medium text-slate-700">Add a new payment method</p>
-          <p className="mt-1 text-xs text-slate-500">Securely connect cards or mobile money wallets.</p>
+          <p className="mt-1 text-sm text-slate-500">Securely connect cards or mobile money wallets.</p>
           <div className="mt-4 flex justify-center">
             <Button size="sm">Add method</Button>
           </div>

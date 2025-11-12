@@ -68,7 +68,7 @@ export default function TellerSettingsPage() {
   const renderFirmProfile = () => (
     <Card className="p-6" hover={false}>
       <h2 className="text-xl font-semibold text-[#004B5B]">Firm profile</h2>
-      <p className="mt-1 text-sm text-slate-500">Update how prospects and regulators see your firm on the platform.</p>
+      <p className="mt-1 text-base text-slate-600">Update how prospects and regulators see your firm on the platform.</p>
       <div className="mt-6 grid gap-5 md:grid-cols-2">
         <InputField
           name="firmName"
@@ -96,7 +96,7 @@ export default function TellerSettingsPage() {
     <div className="space-y-6">
       <Card className="p-6" hover={false}>
         <h2 className="text-xl font-semibold text-[#004B5B]">Onboarding workflow</h2>
-        <p className="mt-1 text-sm text-slate-500">Define the documents and approvals required before activating a client account.</p>
+        <p className="mt-1 text-base text-slate-600">Define the documents and approvals required before activating a client account.</p>
         <div className="mt-4 space-y-3">
           {[
             "KYC verification",
@@ -106,23 +106,23 @@ export default function TellerSettingsPage() {
           ].map((step) => (
             <label key={step} className="flex items-center gap-3 rounded-2xl border border-slate-200 p-3">
               <input type="checkbox" className="h-4 w-4 rounded border-slate-300" defaultChecked />
-              <span className="text-sm text-slate-600">{step}</span>
+              <span className="text-base text-slate-600">{step}</span>
             </label>
           ))}
         </div>
       </Card>
       <Card className="p-6" hover={false}>
         <h2 className="text-xl font-semibold text-[#004B5B]">Client permissions</h2>
-        <p className="mt-1 text-sm text-slate-500">Tailor who can trade independently or requires your approval first.</p>
+        <p className="mt-1 text-base text-slate-600">Tailor who can trade independently or requires your approval first.</p>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <div className="rounded-2xl border border-slate-200 p-4">
-            <p className="text-sm font-semibold text-slate-700">Self-directed clients</p>
-            <p className="mt-2 text-xs text-slate-500">Trading automatically up to assigned limits.</p>
+            <p className="text-base font-semibold text-slate-700">Self-directed clients</p>
+            <p className="mt-2 text-sm text-slate-500">Trading automatically up to assigned limits.</p>
             <Button size="sm" className="mt-3">Configure limits</Button>
           </div>
           <div className="rounded-2xl border border-slate-200 p-4">
-            <p className="text-sm font-semibold text-slate-700">Advised clients</p>
-            <p className="mt-2 text-xs text-slate-500">Orders held until a teller approves the instruction.</p>
+            <p className="text-base font-semibold text-slate-700">Advised clients</p>
+            <p className="mt-2 text-sm text-slate-500">Orders held until a teller approves the instruction.</p>
             <Button size="sm" className="mt-3" variant="outline">Adjust workflow</Button>
           </div>
         </div>
@@ -133,12 +133,12 @@ export default function TellerSettingsPage() {
   const renderCompliance = () => (
     <Card className="p-6" hover={false}>
       <h2 className="text-xl font-semibold text-[#004B5B]">Compliance controls</h2>
-      <p className="mt-1 text-sm text-slate-500">Ensure trading activity stays within legal and internal policy thresholds.</p>
+      <p className="mt-1 text-base text-slate-600">Ensure trading activity stays within legal and internal policy thresholds.</p>
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <div className="rounded-2xl border border-slate-200 p-4">
-          <h3 className="text-sm font-semibold text-slate-800">Trade surveillance</h3>
-          <p className="mt-1 text-xs text-slate-500">Flag trades that breach risk controls or concentration limits.</p>
-          <div className="mt-3 flex gap-2 text-xs text-slate-600">
+          <h3 className="text-base font-semibold text-slate-800">Trade surveillance</h3>
+          <p className="mt-1 text-sm text-slate-500">Flag trades that breach risk controls or concentration limits.</p>
+          <div className="mt-3 flex gap-2 text-sm text-slate-600">
             <label className="flex items-center gap-2">
               <input type="checkbox" className="h-4 w-4 rounded border-slate-300" />
               Insider watchlist
@@ -150,9 +150,9 @@ export default function TellerSettingsPage() {
           </div>
         </div>
         <div className="rounded-2xl border border-slate-200 p-4">
-          <h3 className="text-sm font-semibold text-slate-800">Reporting cadence</h3>
-          <p className="mt-1 text-xs text-slate-500">Automate regulatory filings and internal sign-offs.</p>
-          <select className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-[#004B5B] focus:outline-none">
+          <h3 className="text-base font-semibold text-slate-800">Reporting cadence</h3>
+          <p className="mt-1 text-sm text-slate-500">Automate regulatory filings and internal sign-offs.</p>
+          <select className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-2 text-base text-slate-700 focus:border-[#004B5B] focus:outline-none">
             <option>Weekly summary</option>
             <option>Monthly full report</option>
             <option>Quarterly audit pack</option>
@@ -165,8 +165,8 @@ export default function TellerSettingsPage() {
   const renderAlerts = () => (
     <Card className="p-6" hover={false}>
       <h2 className="text-xl font-semibold text-[#004B5B]">Trading & risk alerts</h2>
-      <p className="mt-1 text-sm text-slate-500">Choose when our platform should notify you about market or account events.</p>
-      <div className="mt-6 space-y-3 text-sm text-slate-600">
+      <p className="mt-1 text-base text-slate-600">Choose when our platform should notify you about market or account events.</p>
+      <div className="mt-6 space-y-3 text-base text-slate-600">
         {["Large order execution", "Margin utilisation above 70%", "Client escalation required", "Regulatory notice updates"].map((alert) => (
           <label key={alert} className="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3">
             <span>{alert}</span>

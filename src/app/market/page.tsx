@@ -16,13 +16,13 @@ export default function MarketPage(): JSX.Element {
       <Header />
       <section className="bg-linear-to-b from-[#026379] via-[#01677E] to-white text-white pt-32 pb-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center space-y-6">
-          <p className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1 text-xs uppercase tracking-[0.3em] text-white/80">
+          <p className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs uppercase tracking-[0.3em] text-white/90 font-medium">
             Market Desk
           </p>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold leading-tight">
             Every contract at a glance
           </h1>
-          <p className="text-sm sm:text-base text-white/80 max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg text-white/90 max-w-2xl mx-auto leading-relaxed">
             Navigate Rwanda&apos;s exchange like a pro. We blend real-time snapshots with immersive card design so you can
             scan sentiment, liquidity, and price action without leaving your desk.
           </p>

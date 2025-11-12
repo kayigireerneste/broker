@@ -67,7 +67,7 @@ export default function AdminSettingsPage() {
   const renderOrganization = () => (
     <Card className="p-6" hover={false}>
       <h2 className="text-xl font-semibold text-[#004B5B]">Platform identity</h2>
-      <p className="mt-1 text-sm text-slate-500">
+      <p className="mt-1 text-base text-slate-600">
         Shape how your organisation appears to every workspace and partner.
       </p>
       <div className="mt-6 grid gap-5 md:grid-cols-2">
@@ -122,7 +122,7 @@ export default function AdminSettingsPage() {
     <div className="space-y-6">
       <Card className="p-6" hover={false}>
         <h2 className="text-xl font-semibold text-[#004B5B]">Role templates</h2>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-base text-slate-600">
           Create predefined access levels so teams can start securely.
         </p>
         <div className="mt-4 grid gap-4 md:grid-cols-3">
@@ -132,8 +132,8 @@ export default function AdminSettingsPage() {
             { name: "Teller", desc: "Execute trades and support clients." },
           ].map((role) => (
             <div key={role.name} className="rounded-2xl border border-slate-200 p-4">
-              <p className="text-sm font-semibold text-slate-800">{role.name}</p>
-              <p className="mt-2 text-xs text-slate-500">{role.desc}</p>
+              <p className="text-base font-semibold text-slate-800">{role.name}</p>
+              <p className="mt-2 text-sm text-slate-500">{role.desc}</p>
               <Button size="sm" className="mt-4" variant="outline">
                 Edit permissions
               </Button>
@@ -143,17 +143,17 @@ export default function AdminSettingsPage() {
       </Card>
       <Card className="p-6" hover={false}>
         <h2 className="text-xl font-semibold text-[#004B5B]">Session security</h2>
-        <p className="mt-1 text-sm text-slate-500">Set policies for password rotation and device trust.</p>
+        <p className="mt-1 text-base text-slate-600">Set policies for password rotation and device trust.</p>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <div className="rounded-2xl border border-slate-200 p-4 text-sm text-slate-600">
+          <div className="rounded-2xl border border-slate-200 p-4 text-base text-slate-600">
             <p className="font-semibold text-slate-800">Password rotation</p>
-            <select className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-[#004B5B] focus:outline-none">
+            <select className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-base text-slate-700 focus:border-[#004B5B] focus:outline-none">
               <option>Every 90 days</option>
               <option>Every 180 days</option>
               <option>No enforced rotation</option>
             </select>
           </div>
-          <div className="rounded-2xl border border-slate-200 p-4 text-sm text-slate-600">
+          <div className="rounded-2xl border border-slate-200 p-4 text-base text-slate-600">
             <p className="font-semibold text-slate-800">Device trust</p>
             <label className="mt-2 flex items-center justify-between">
               <span>Require re-authentication every 30 days</span>
@@ -168,22 +168,22 @@ export default function AdminSettingsPage() {
   const renderBilling = () => (
     <Card className="p-6" hover={false}>
       <h2 className="text-xl font-semibold text-[#004B5B]">Plan & usage</h2>
-      <p className="mt-1 text-sm text-slate-500">Review current subscription status and invoice history.</p>
+      <p className="mt-1 text-base text-slate-600">Review current subscription status and invoice history.</p>
       <div className="mt-6 grid gap-4 md:grid-cols-3">
         <div className="rounded-2xl border border-slate-200 p-4">
-          <p className="text-sm font-semibold text-slate-700">Plan</p>
-          <p className="mt-1 text-base font-bold text-[#004B5B]">Enterprise</p>
-          <p className="text-xs text-slate-500">Unlimited dashboards & premium compliance tools.</p>
+          <p className="text-base font-semibold text-slate-700">Plan</p>
+          <p className="mt-1 text-lg font-bold text-[#004B5B]">Enterprise</p>
+          <p className="text-sm text-slate-500">Unlimited dashboards & premium compliance tools.</p>
         </div>
         <div className="rounded-2xl border border-slate-200 p-4">
-          <p className="text-sm font-semibold text-slate-700">Active users</p>
-          <p className="mt-1 text-base font-bold text-[#004B5B]">54 / 100</p>
-          <p className="text-xs text-slate-500">Upgrade to lift the seat limit.</p>
+          <p className="text-base font-semibold text-slate-700">Active users</p>
+          <p className="mt-1 text-lg font-bold text-[#004B5B]">54 / 100</p>
+          <p className="text-sm text-slate-500">Upgrade to lift the seat limit.</p>
         </div>
         <div className="rounded-2xl border border-slate-200 p-4">
-          <p className="text-sm font-semibold text-slate-700">Next invoice</p>
-          <p className="mt-1 text-base font-bold text-[#004B5B]">$1,240</p>
-          <p className="text-xs text-slate-500">Due 30 Nov 2025</p>
+          <p className="text-base font-semibold text-slate-700">Next invoice</p>
+          <p className="mt-1 text-lg font-bold text-[#004B5B]">Rwf 1,240</p>
+          <p className="text-sm text-slate-500">Due 30 Nov 2025</p>
         </div>
       </div>
       <div className="mt-6 flex justify-end gap-3">
@@ -196,7 +196,7 @@ export default function AdminSettingsPage() {
   const renderIntegrations = () => (
     <Card className="p-6" hover={false}>
       <h2 className="text-xl font-semibold text-[#004B5B]">Connected systems</h2>
-      <p className="mt-1 text-sm text-slate-500">Link CRMs, compliance tools, and data warehouses for a unified workflow.</p>
+      <p className="mt-1 text-base text-slate-600">Link CRMs, compliance tools, and data warehouses for a unified workflow.</p>
       <div className="mt-6 space-y-4">
         {[
           { name: "Salesforce", status: "Active", description: "Sync client lifecycle events." },
@@ -205,11 +205,11 @@ export default function AdminSettingsPage() {
         ].map((integration) => (
           <div key={integration.name} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 p-4">
             <div>
-              <p className="text-sm font-semibold text-slate-800">{integration.name}</p>
-              <p className="text-xs text-slate-500">{integration.description}</p>
+              <p className="text-base font-semibold text-slate-800">{integration.name}</p>
+              <p className="text-sm text-slate-500">{integration.description}</p>
             </div>
             <div className="flex items-center gap-3">
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">{integration.status}</span>
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-600">{integration.status}</span>
               <Button size="sm" variant="outline">Configure</Button>
             </div>
           </div>

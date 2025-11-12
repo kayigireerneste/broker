@@ -5,7 +5,6 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { useAuth } from "@/hooks/useAuth";
 import { useMemo } from "react";
-import { UserInfoCard } from "@/components/ui/UserInfoCard";
 import {
   FiUsers,
   FiBriefcase,
@@ -62,8 +61,6 @@ export default function AdminDashboard() {
                 Manage clients, tellers, and oversee platform operations.
               </p>
             </div>
-
-            <UserInfoCard name={displayName} email={email} role={dashboardRole} />
 
             <div className=" grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-slideInRight">
               {[

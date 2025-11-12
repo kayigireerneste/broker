@@ -75,7 +75,7 @@ export default function TellerDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Trade Volume</p>
-                <p className="text-2xl font-bold text-gray-900">$485K</p>
+                <p className="text-2xl font-bold text-gray-900">Rwf 485K</p>
                 <p className="text-sm text-blue-600">Today's volume</p>
               </div>
               <div className="w-12 h-12 gradient-primary rounded-full flex items-center justify-center">
@@ -133,7 +133,7 @@ export default function TellerDashboard() {
                         <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-sm">BUY BK Group</span>
                       </td>
                       <td className="py-3 px-4">50</td>
-                      <td className="py-3 px-4">$85.50</td>
+                      <td className="py-3 px-4">Rwf 85.50</td>
                       <td className="py-3 px-4">
                         <div className="flex space-x-2">
                           <Button size="sm" className="px-3 py-1">Execute</Button>
@@ -152,7 +152,7 @@ export default function TellerDashboard() {
                         <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-sm">SELL Equity Bank</span>
                       </td>
                       <td className="py-3 px-4">25</td>
-                      <td className="py-3 px-4">$42.30</td>
+                      <td className="py-3 px-4">Rwf 42.30</td>
                       <td className="py-3 px-4">
                         <div className="flex space-x-2">
                           <Button size="sm" className="px-3 py-1">Execute</Button>
@@ -171,7 +171,7 @@ export default function TellerDashboard() {
                         <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-sm">BUY MTN Rwanda</span>
                       </td>
                       <td className="py-3 px-4">100</td>
-                      <td className="py-3 px-4">$28.75</td>
+                      <td className="py-3 px-4">Rwf 28.75</td>
                       <td className="py-3 px-4">
                         <div className="flex space-x-2">
                           <Button size="sm" className="px-3 py-1">Execute</Button>

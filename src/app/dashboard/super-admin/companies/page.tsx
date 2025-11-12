@@ -582,7 +582,7 @@ export default function CompaniesPage() {
                 {viewCompany.contract ? (
                   <div>
                     <h4 className="mb-1 text-sm font-semibold text-gray-600">Contract</h4>
-                    <p className="break-words text-sm text-gray-500 leading-relaxed">{viewCompany.contract}</p>
+                    <p className="wrap-break-word text-sm text-gray-500 leading-relaxed">{viewCompany.contract}</p>
                   </div>
                 ) : null}
               </div>
