@@ -1,7 +1,7 @@
 /* eslint-disable react/no-unescaped-entities */
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import Link from 'next/link';
 import DashboardLayout from '@/components/ui/DashboardLayout';
 import Card from '@/components/ui/Card';
@@ -10,7 +10,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { AlertCircle } from 'lucide-react';
 
 export default function ClientDashboard() {
-  const [selectedAction, setSelectedAction] = useState('');
   const { user } = useAuth();
 
   const profileReminder = useMemo(() => {
@@ -81,11 +80,6 @@ export default function ClientDashboard() {
     };
   }, [user?.email, user?.fullName, user?.role]);
 
-  const handleAction = (action: string) => {
-    setSelectedAction(action);
-    console.log(`${action} clicked`);
-  };
-
   const formatTaskList = (tasks: string[]) => {
     if (tasks.length <= 1) return tasks[0] ?? '';
     const leading = tasks.slice(0, -1).join(', ');
@@ -123,65 +117,73 @@ export default function ClientDashboard() {
         {/* <UserInfoCard name={displayName} email={email} role={dashboardRole} /> */}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-600">Portfolio Value</p>
-                <p className="text-xl font-bold text-gray-900">Rwf 24,580</p>
-                <p className="text-xs text-green-600">+5.2%</p>
+          <Link href="/dashboard/client/investments">
+            <Card className="p-4 cursor-pointer hover:shadow-lg transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-600">Portfolio Value</p>
+                  <p className="text-xl font-bold text-gray-900">Rwf 24,580</p>
+                  <p className="text-xs text-green-600">+5.2%</p>
+                </div>
+                <div className="w-10 h-10 gradient-primary rounded-full flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                </div>
               </div>
-              <div className="w-10 h-10 gradient-primary rounded-full flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
-              </div>
-            </div>
-          </Card>
+            </Card>
+          </Link>
 
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-600">Wallet Balance</p>
-                <p className="text-xl font-bold text-gray-900">Rwf 3,420</p>
-                <p className="text-xs text-blue-600">Available</p>
+          <Link href="/dashboard/client/wallet">
+            <Card className="p-4 cursor-pointer hover:shadow-lg transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-600">Wallet Balance</p>
+                  <p className="text-xl font-bold text-gray-900">Rwf 3,420</p>
+                  <p className="text-xs text-blue-600">Available</p>
+                </div>
+                <div className="w-10 h-10 gradient-primary rounded-full flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  </svg>
+                </div>
               </div>
-              <div className="w-10 h-10 gradient-primary rounded-full flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                </svg>
-              </div>
-            </div>
-          </Card>
+            </Card>
+          </Link>
 
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-600">Today's P&L</p>
-                <p className="text-xl font-bold text-green-600">+Rwf 127</p>
-                <p className="text-xs text-gray-600">+0.52%</p>
+          <Link href="/dashboard/client/investments">
+            <Card className="p-4 cursor-pointer hover:shadow-lg transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-600">Today's P&L</p>
+                  <p className="text-xl font-bold text-green-600">+Rwf 127</p>
+                  <p className="text-xs text-gray-600">+0.52%</p>
+                </div>
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                  </svg>
+                </div>
               </div>
-              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11l5-5m0 0l5 5m-5-5v12" />
-                </svg>
-              </div>
-            </div>
-          </Card>
+            </Card>
+          </Link>
 
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-600">Active Orders</p>
-                <p className="text-xl font-bold text-gray-900">3</p>
-                <p className="text-xs text-orange-600">2 pending</p>
+          <Link href="/dashboard/client/history">
+            <Card className="p-4 cursor-pointer hover:shadow-lg transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-600">Active Orders</p>
+                  <p className="text-xl font-bold text-gray-900">3</p>
+                  <p className="text-xs text-orange-600">2 pending</p>
+                </div>
+                <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                  <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
               </div>
-              <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-              </div>
-            </div>
-          </Card>
+            </Card>
+          </Link>
         </div>
 
         <div className="grid lg:grid-cols-4 gap-4">
@@ -248,40 +250,39 @@ export default function ClientDashboard() {
           <Card className="p-4">
             <h3 className="text-sm font-semibold text-gray-900 mb-3">Quick Actions</h3>
             <div className="space-y-2">
-              <Button 
-                className="w-full text-xs py-2" 
-                variant="outline"
-                onClick={() => handleAction('Buy Shares')}
-              >
-                Buy Shares
-              </Button>
-              <Button 
-                className="w-full text-xs py-2" 
-                variant="outline"
-                onClick={() => handleAction('Sell Shares')}
-              >
-                Sell Shares
-              </Button>
-              <Button 
-                className="w-full text-xs py-2" 
-                variant="outline"
-                onClick={() => handleAction('Add Funds')}
-              >
-                Add Funds
-              </Button>
-              <Button 
-                className="w-full text-xs py-2" 
-                variant="outline"
-                onClick={() => handleAction('Withdraw')}
-              >
-                Withdraw
-              </Button>
+              <Link href="/dashboard/client/trade">
+                <Button 
+                  className="w-full text-xs py-2" 
+                  variant="outline"
+                >
+                  Buy Shares
+                </Button>
+              </Link>
+              <Link href="/dashboard/client/trade">
+                <Button 
+                  className="w-full text-xs py-2" 
+                  variant="outline"
+                >
+                  Sell Shares
+                </Button>
+              </Link>
+              <Link href="/dashboard/client/wallet">
+                <Button 
+                  className="w-full text-xs py-2" 
+                  variant="outline"
+                >
+                  Add Funds
+                </Button>
+              </Link>
+              <Link href="/dashboard/client/wallet">
+                <Button 
+                  className="w-full text-xs py-2" 
+                  variant="outline"
+                >
+                  Withdraw
+                </Button>
+              </Link>
             </div>
-            {selectedAction && (
-              <div className="mt-2 p-2 bg-blue-50 rounded text-xs text-blue-700">
-                {selectedAction} action triggered
-              </div>
-            )}
           </Card>
         </div>
 
