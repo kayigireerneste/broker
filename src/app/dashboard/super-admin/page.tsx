@@ -4,7 +4,6 @@ import { JSX, useEffect, useMemo, useState } from "react";
 import DashboardLayout from "@/components/ui/DashboardLayout";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
-import { UserInfoCard } from "@/components/ui/UserInfoCard";
 import { useAuth } from "@/hooks/useAuth";
 import { CompanyCreateForm, type CompanySummary } from "@/components/company/CompanyCreateForm";
 import {
@@ -172,8 +171,6 @@ export default function SuperAdminDashboard() {
           </p>
         </div>
 
-        <UserInfoCard name={displayName} email={email} role={dashboardRole} />
-
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-slideInRight">
           {summaryCards.map((card) => (
             <Card key={card.title} className="p-6 hover:shadow-lg transition-all">
@@ -267,7 +264,9 @@ export default function SuperAdminDashboard() {
                     >
                       <div>
                         <p className="text-sm font-semibold text-gray-700">{company.name}</p>
-                        <p className="text-xs uppercase tracking-wide text-[#004B5B]">{company.ticker ?? "—"}</p>
+                        {company.sector && (
+                          <p className="text-xs uppercase tracking-wide text-[#004B5B]">{company.sector}</p>
+                        )}
                         <p className="text-xs text-gray-400 mt-1">
                           Closing {company.closingPrice ?? "—"} · Change {company.priceChange ?? "—"}
                         </p>

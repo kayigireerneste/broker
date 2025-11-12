@@ -154,7 +154,97 @@ const normalizeProfileDetails = (data: z.infer<typeof profileDetailsBaseSchema>)
   };
 };
 
-export const normalizePhone = (code: string, phone: string) => `${code}${phone}`.replace(/\s+/g, "");
+type NormalizedPhoneResult = {
+  formatted: string;
+  digits: string;
+  nationalDigits: string;
+  isValid: boolean;
+};
+
+const buildNormalizedPhone = (code: string, phone: string): NormalizedPhoneResult => {
+  const trimmedCode = code?.trim() ?? "";
+  const trimmedPhone = phone?.trim() ?? "";
+
+  const codeDigits = trimmedCode.replace(/[^0-9]/g, "");
+
+  const fromInternationalInput = () => {
+    const parsed = parsePhoneNumberFromString(trimmedPhone);
+    if (parsed) {
+      return {
+        formatted: parsed.number,
+        digits: parsed.number.replace(/[^0-9]/g, ""),
+        nationalDigits: parsed.nationalNumber,
+        isValid: parsed.isValid(),
+      } satisfies NormalizedPhoneResult;
+    }
+
+    const digits = trimmedPhone.replace(/[^0-9]/g, "");
+    const nationalDigits = codeDigits && digits.startsWith(codeDigits)
+      ? digits.slice(codeDigits.length)
+      : digits;
+
+    return {
+      formatted: trimmedPhone,
+      digits,
+      nationalDigits,
+      isValid: false,
+    } satisfies NormalizedPhoneResult;
+  };
+
+  if (trimmedPhone.startsWith("+")) {
+    return fromInternationalInput();
+  }
+
+  let nationalDigits = trimmedPhone.replace(/[^0-9]/g, "");
+
+  if (codeDigits && nationalDigits.startsWith(codeDigits)) {
+    nationalDigits = nationalDigits.slice(codeDigits.length);
+  }
+
+  const makeCombined = (nsn: string) => {
+    const countrySection = codeDigits ? `+${codeDigits}` : "+";
+    return `${countrySection}${nsn}`;
+  };
+
+  const evaluate = (nsn: string): NormalizedPhoneResult => {
+    const combined = makeCombined(nsn);
+    const parsed = parsePhoneNumberFromString(combined);
+
+    if (parsed && parsed.isValid()) {
+      return {
+        formatted: parsed.number,
+        digits: parsed.number.replace(/[^0-9]/g, ""),
+        nationalDigits: parsed.nationalNumber,
+        isValid: true,
+      } satisfies NormalizedPhoneResult;
+    }
+
+    return {
+      formatted: combined,
+      digits: combined.replace(/[^0-9]/g, ""),
+      nationalDigits: nsn,
+      isValid: parsed?.isValid?.() ?? false,
+    } satisfies NormalizedPhoneResult;
+  };
+
+  const primary = evaluate(nationalDigits);
+  if (primary.isValid) {
+    return primary;
+  }
+
+  const strippedLeadingZeros = nationalDigits.replace(/^0+/, "");
+  if (strippedLeadingZeros && strippedLeadingZeros !== nationalDigits) {
+    const secondary = evaluate(strippedLeadingZeros);
+    if (secondary.isValid) {
+      return secondary;
+    }
+    return secondary;
+  }
+
+  return primary;
+};
+
+export const normalizePhone = (code: string, phone: string) => buildNormalizedPhone(code, phone).formatted;
 
 export const validatePasswordConfirmation = <T extends { password: string; confirmPassword: string }>(
   data: T,
@@ -205,15 +295,31 @@ export const validatePhoneNumber = <T extends { phoneCountryCode: string; phone:
   data: T,
   ctx: z.RefinementCtx
 ) => {
-  const combined = normalizePhone(data.phoneCountryCode, data.phone);
-  const phoneNumber = parsePhoneNumberFromString(combined);
-  if (!phoneNumber || !phoneNumber.isValid()) {
-    ctx.addIssue({
-      path: ["phone"],
-      code: z.ZodIssueCode.custom,
-      message: "Invalid phone number for the selected country code",
-    });
+  const normalized = buildNormalizedPhone(data.phoneCountryCode, data.phone);
+
+  if (normalized.isValid) {
+    return;
   }
+
+  const digitsLength = normalized.digits.length;
+  const nationalLength = normalized.nationalDigits.length;
+  const MIN_E164_LENGTH = 8;
+  const MAX_E164_LENGTH = 15;
+  const MIN_NATIONAL_LENGTH = 4;
+
+  if (
+    digitsLength >= MIN_E164_LENGTH &&
+    digitsLength <= MAX_E164_LENGTH &&
+    nationalLength >= MIN_NATIONAL_LENGTH
+  ) {
+    return;
+  }
+
+  ctx.addIssue({
+    path: ["phone"],
+    code: z.ZodIssueCode.custom,
+    message: "Invalid phone number for the selected country code",
+  });
 };
 
 export const personalInfoSchema = baseSignupSchema

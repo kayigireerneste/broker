@@ -11,6 +11,12 @@ export interface MarketDataRow {
 	value: string;
 }
 
+export interface MarketStatusInfo {
+	label: string;
+	normalized: "open" | "closed" | "suspended" | "unknown";
+	isOpen: boolean;
+}
+
 export interface MarketSummaryResponse {
 	snapshotDate: string;
 	dailySnapshot: MarketDataRow[];
@@ -40,6 +46,7 @@ export interface MarketSummaryResponse {
 		couponRate: string;
 		yieldTM: string;
 	}>;
+	marketStatus?: MarketStatusInfo;
 	sourceUrl?: string;
 	fetchedAt?: string;
 }
@@ -78,6 +85,7 @@ export function useMarketSummary(): UseMarketSummaryState {
 					highlightStats: payload.highlightStats ?? [],
 					exchangeRates: payload.exchangeRates ?? [],
 					bonds: payload.bonds ?? [],
+					marketStatus: payload.marketStatus,
 				});
 				setError(null);
 			} catch (err) {

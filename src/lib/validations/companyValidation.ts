@@ -4,7 +4,10 @@ const numericString = z
   .union([z.string(), z.number()])
   .transform((value) => {
     if (typeof value === "number") return value.toString();
-    return value.trim();
+    return value
+      .replace(/[\s,]/g, "")
+      .replace(/[^0-9.\-]/g, "")
+      .trim();
   })
   .refine((value) => value === "" || !Number.isNaN(Number(value)), {
     message: "Value must be a valid number",
@@ -32,24 +35,18 @@ const isoDateString = z
 const baseCompanySchema = z
   .object({
     name: z.string().trim().min(1, "Name is required"),
-    ticker: z
-      .string()
-      .trim()
-      .min(1, "Ticker is required")
-      .max(10, "Ticker must be 10 characters or fewer")
-      .transform((value) => value.toUpperCase()),
-    description: z.string().trim().max(2000).optional(),
+    description: z.string().trim().max(5000).optional(),
     sector: z.string().trim().max(255).optional(),
     sharePrice: numericString.optional(),
     totalShares: positiveInteger.optional(),
     availableShares: nonNegativeInteger.optional(),
     closingPrice: numericString.optional(),
     previousClosingPrice: numericString.optional(),
-    priceChange: z.string().trim().max(50).optional(),
+    priceChange: z.string().trim().max(100).optional(),
     tradedVolume: numericString.optional(),
     tradedValue: numericString.optional(),
     snapshotDate: isoDateString.optional(),
-    contract: z.string().trim().max(512).optional(),
+    contract: z.string().trim().max(5000).optional(),
   })
   .superRefine((value, ctx) => {
     if (

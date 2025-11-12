@@ -4,7 +4,6 @@ import { useMemo } from "react";
 import DashboardLayout from "@/components/ui/DashboardLayout";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
-import { UserInfoCard } from "@/components/ui/UserInfoCard";
 import { useAuth } from "@/hooks/useAuth";
 import {
   FiBriefcase,
@@ -94,8 +93,6 @@ export default function CompanyDashboard() {
             Track listings, monitor investor activity, and publish new share offers.
           </p>
         </div>
-
-        <UserInfoCard name={displayName} email={email} role={dashboardRole} />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-slideInRight">
           {portfolioHighlights.map((card) => (

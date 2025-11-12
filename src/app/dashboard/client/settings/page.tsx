@@ -1,18 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
 import SettingsLayout, { type SettingsLayoutNavItem } from "@/components/ui/SettingsLayout";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { InputField } from "@/components/ui/InputField";
 import { FileUploadField } from "@/components/ui/FileUploadField";
+import OTPModal from "@/components/ui/OTPModal";
 import { useAuth } from "@/hooks/useAuth";
 import api from "@/lib/axios";
 import {
-  profileDetailsSchema,
+  GENDER_VALUES,
   validateProfileDetails,
   validatePhoneNumber,
 } from "@/lib/validations/signupValidation";
+import { getData } from "country-list";
+import { CountryCode, getCountryCallingCode } from "libphonenumber-js";
 import { Bell, CreditCard, Lock, User, Loader2 } from "lucide-react";
 import { z } from "zod";
 
@@ -43,6 +46,13 @@ const navItems: SettingsLayoutNavItem[] = [
   },
 ];
 
+const GENDER_LABELS: Record<(typeof GENDER_VALUES)[number], string> = {
+  male: "Male",
+  female: "Female",
+};
+
+const GENDER_OPTIONS = GENDER_VALUES.map((value) => ({ value, label: GENDER_LABELS[value] }));
+
 const INVESTMENT_EXPERIENCE_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "", label: "Select experience level" },
   { value: "beginner", label: "Beginner (0-1 years)" },
@@ -50,34 +60,36 @@ const INVESTMENT_EXPERIENCE_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "experienced", label: "Experienced (5+ years)" },
 ];
 
-const profileSettingsSchema = profileDetailsSchema
-  .extend({
+const profileSettingsSchema = z
+  .object({
+    fullName: z
+      .string()
+      .trim()
+      .min(3, "Full name must be at least 3 characters"),
     phoneCountryCode: z
       .string()
       .trim()
-      .regex(/^\+[0-9]{1,4}$/u, "Invalid country calling code")
-      .optional()
-      .or(z.literal("")),
-    phone: z
-      .string()
-      .trim()
-      .min(4, "Phone number must contain digits")
-      .optional()
-      .or(z.literal("")),
+      .regex(/^\+[0-9]{1,4}$/u, "Invalid country calling code"),
+    phone: z.string().trim().min(4, "Phone number must contain digits"),
+    gender: z
+      .enum(GENDER_VALUES, {
+        message: "Please select a gender",
+      })
+      .default("male"),
+    country: z.string().trim().min(1, "Country is required"),
+    city: z.string().trim().min(1, "City is required"),
+    idNumber: z.string().trim().optional().or(z.literal("")),
+    dateOfBirth: z.string().trim().optional().or(z.literal("")),
+    occupation: z.string().trim().optional().or(z.literal("")),
+    investmentExperience: z.string().trim().optional().or(z.literal("")),
+    passportPhoto: z.string().trim().optional().or(z.literal("")),
+    idDocument: z.string().trim().optional().or(z.literal("")),
   })
   .superRefine((data, ctx) => {
-    const code = data.phoneCountryCode?.trim();
-    const phone = data.phone?.trim();
-
-    if ((code && !phone) || (!code && phone)) {
-      ctx.addIssue({
-        path: code && !phone ? ["phone"] : ["phoneCountryCode"],
-        code: z.ZodIssueCode.custom,
-        message: "Phone number and country code must be provided together",
-      });
-    } else if (code && phone) {
-      validatePhoneNumber({ phoneCountryCode: code, phone }, ctx);
-    }
+    validatePhoneNumber(
+      { phoneCountryCode: data.phoneCountryCode, phone: data.phone },
+      ctx
+    );
 
     validateProfileDetails(
       {
@@ -110,13 +122,19 @@ type UserProfile = {
   investmentExperience: string | null;
   passportPhoto: string | null;
   idDocument: string | null;
+  notificationPreferences: unknown | null;
+  isVerified: boolean;
 };
 
-type UserProfileResponse = { data: UserProfile };
+type UserProfileResponse = { data: UserProfile; requiresEmailVerification?: boolean };
 
 const createInitialProfileForm = (): ProfileFormState => ({
+  fullName: "",
   phoneCountryCode: "+250",
   phone: "",
+  gender: "male",
+  country: "Rwanda",
+  city: "",
   idNumber: "",
   dateOfBirth: "",
   occupation: "",
@@ -132,39 +150,113 @@ export default function ClientSettingsPage() {
   const [profileErrors, setProfileErrors] = useState<Partial<Record<keyof ProfileFormState, string>>>({});
   const [profileStatus, setProfileStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
+  const [emailForm, setEmailForm] = useState<{ email: string }>({ email: "" });
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [emailStatus, setEmailStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
+  const [emailMessage, setEmailMessage] = useState<string | null>(null);
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpEmail, setOtpEmail] = useState<string>("");
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
+  const [passwordStatus, setPasswordStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
+  const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
 
-  const displayUser = useMemo(() => {
-    const fullName = (user?.fullName as string | undefined)?.trim();
-    return {
-      name: fullName || user?.email?.split("@")[0] || "Client",
-      email: user?.email ?? "Not provided",
-    };
-  }, [user?.email, user?.fullName]);
+  const persistUser = useCallback(
+    (updated: UserProfile) => {
+      const storedUser = {
+        id: updated.id,
+        email: updated.email,
+        fullName: updated.fullName,
+        role: updated.role,
+        phoneCountryCode: updated.phoneCountryCode,
+        phone: updated.phone,
+        idNumber: updated.idNumber,
+        dateOfBirth: updated.dateOfBirth,
+        occupation: updated.occupation,
+        investmentExperience: updated.investmentExperience,
+        passportPhoto: updated.passportPhoto,
+        idDocument: updated.idDocument,
+        country: updated.country,
+        city: updated.city,
+        gender: updated.gender,
+        isVerified: updated.isVerified,
+        notificationPreferences: updated.notificationPreferences,
+      } as Record<string, unknown>;
+
+      try {
+        localStorage.setItem("user", JSON.stringify(storedUser));
+      } catch (storageError) {
+        console.warn("Failed to sync updated user in storage", storageError);
+      }
+
+      refreshAuth();
+    },
+    [refreshAuth]
+  );
+
+  const countryData = useMemo(() => {
+    return getData()
+      .map(({ name, code }) => {
+        try {
+          const dialCode = getCountryCallingCode(code as CountryCode);
+          return { name, code, dialCode: `+${dialCode}` };
+        } catch {
+          return { name, code, dialCode: "" };
+        }
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, []);
+
+  const phoneCountryOptions = useMemo(
+    () =>
+      countryData
+        .filter((item) => item.dialCode)
+        .map((item) => ({ value: item.dialCode, label: `${item.name} (${item.dialCode})` })),
+    [countryData]
+  );
+
+  const countryOptions = useMemo(
+    () => countryData.map((item) => ({ value: item.name, label: item.name })),
+    [countryData]
+  );
 
   useEffect(() => {
     const toStringOrEmpty = (value: unknown) => (typeof value === "string" ? value : "");
-    const toPhoneCode = (value: unknown) => (typeof value === "string" && value.startsWith("+") ? value : "");
+    const toPhoneCode = (value: unknown, fallback: string) =>
+      typeof value === "string" && value.startsWith("+") ? value : fallback;
     const toDateInput = (value: unknown) => {
       if (typeof value !== "string") return "";
       const parsed = new Date(value);
       if (Number.isNaN(parsed.getTime())) return value;
       return parsed.toISOString().slice(0, 10);
     };
+    const toGender = (value: unknown) => {
+      if (typeof value === "string") {
+        const lowered = value.toLowerCase();
+        if ((GENDER_VALUES as readonly string[]).includes(lowered)) {
+          return lowered as (typeof GENDER_VALUES)[number];
+        }
+      }
+      return "male" as (typeof GENDER_VALUES)[number];
+    };
 
     if (!user) {
       setProfileForm(createInitialProfileForm());
+      setEmailForm({ email: "" });
       return;
     }
 
     setProfileForm((prev) => ({
       ...prev,
-      phoneCountryCode: toPhoneCode((user as Record<string, unknown>).phoneCountryCode) || prev.phoneCountryCode || "",
+      fullName: toStringOrEmpty((user as Record<string, unknown>).fullName) || prev.fullName || "",
+      phoneCountryCode: toPhoneCode((user as Record<string, unknown>).phoneCountryCode, prev.phoneCountryCode || "+250"),
       phone: toStringOrEmpty((user as Record<string, unknown>).phone),
+      gender: toGender((user as Record<string, unknown>).gender),
+      country: toStringOrEmpty((user as Record<string, unknown>).country) || prev.country || "",
+      city: toStringOrEmpty((user as Record<string, unknown>).city),
       idNumber: toStringOrEmpty((user as Record<string, unknown>).idNumber),
       dateOfBirth: toDateInput((user as Record<string, unknown>).dateOfBirth),
       occupation: toStringOrEmpty((user as Record<string, unknown>).occupation),
@@ -172,7 +264,34 @@ export default function ClientSettingsPage() {
       passportPhoto: toStringOrEmpty((user as Record<string, unknown>).passportPhoto),
       idDocument: toStringOrEmpty((user as Record<string, unknown>).idDocument),
     }));
+
+    setEmailForm({ email: user.email ?? "" });
   }, [user]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const needsHydration = !user.fullName || !(user as Record<string, unknown>).phone || !(user as Record<string, unknown>).country;
+    if (!needsHydration) return;
+
+    let cancelled = false;
+
+    const hydrateProfile = async () => {
+      try {
+        const response = (await api.get(`/user/${user.id}`)) as UserProfileResponse;
+        if (cancelled || !response?.data) return;
+        persistUser(response.data);
+      } catch (error) {
+        console.error("Failed to hydrate user profile", error);
+      }
+    };
+
+    hydrateProfile();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, persistUser]);
 
   const handleProfileInputChange = (field: keyof ProfileFormState) =>
     (event: ChangeEvent<HTMLInputElement>) => {
@@ -240,91 +359,69 @@ export default function ClientSettingsPage() {
       return;
     }
 
-  setProfileErrors({});
+    setProfileErrors({});
 
-  const data = validation.data;
-    const trimOrUndefined = (value?: string | null) => {
+    const data = validation.data;
+    const payload: Record<string, unknown> = {
+      fullName: data.fullName.trim(),
+      gender: data.gender,
+      country: data.country.trim(),
+      city: data.city.trim(),
+      phoneCountryCode: data.phoneCountryCode.trim(),
+      phone: data.phone.trim(),
+    };
+
+    const trimOptional = (value?: string) => {
       const trimmed = value?.trim();
       return trimmed && trimmed.length > 0 ? trimmed : undefined;
     };
 
-    const payload: Record<string, unknown> = {};
-
-    const code = trimOrUndefined(data.phoneCountryCode ?? undefined);
-    const phone = trimOrUndefined(data.phone ?? undefined);
-
-    if (code && phone) {
-      payload.phoneCountryCode = code;
-      payload.phone = phone;
-    }
-
-    const optionalFields: Array<keyof ProfileFormState> = [
-      "idNumber",
-      "dateOfBirth",
-      "occupation",
-      "investmentExperience",
-      "passportPhoto",
-      "idDocument",
+    const optionalStrings: Array<[keyof ProfileFormState, string | undefined]> = [
+      ["idNumber", trimOptional(data.idNumber)],
+      ["occupation", trimOptional(data.occupation)],
+      ["investmentExperience", trimOptional(data.investmentExperience)],
+      ["passportPhoto", trimOptional(data.passportPhoto)],
+      ["idDocument", trimOptional(data.idDocument)],
     ];
 
-    optionalFields.forEach((field) => {
-      const value = trimOrUndefined(data[field] as string | undefined);
+    optionalStrings.forEach(([key, value]) => {
       if (value) {
-        payload[field] = value;
+        payload[key] = value;
       }
     });
 
-    if (Object.keys(payload).length === 0) {
-      setProfileStatus("error");
-      setProfileMessage("Nothing changed—update a field before saving.");
-      return;
+    const dob = trimOptional(data.dateOfBirth);
+    if (dob) {
+      const parsed = new Date(dob);
+      payload.dateOfBirth = Number.isNaN(parsed.getTime()) ? dob : parsed.toISOString();
     }
 
     setProfileStatus("saving");
 
     try {
-  const response = (await api.patch(`/user/${user.id}`, payload)) as UserProfileResponse;
-  const updated: UserProfile = response.data;
-
-      const safeDate = updated.dateOfBirth ? new Date(updated.dateOfBirth).toISOString().slice(0, 10) : "";
+      const response = (await api.patch(`/user/${user.id}`, payload)) as UserProfileResponse;
+      const updated: UserProfile = response.data;
 
       setProfileForm((prev) => ({
         ...prev,
-        phoneCountryCode: updated.phoneCountryCode ?? prev.phoneCountryCode ?? "",
-        phone: updated.phone ?? "",
+        fullName: updated.fullName ?? prev.fullName,
+        phoneCountryCode: updated.phoneCountryCode ?? prev.phoneCountryCode,
+        phone: updated.phone ?? prev.phone,
+        gender:
+          (updated.gender as (typeof GENDER_VALUES)[number]) ?? prev.gender,
+        country: updated.country ?? prev.country,
+        city: updated.city ?? prev.city,
         idNumber: updated.idNumber ?? "",
-        dateOfBirth: safeDate,
+        dateOfBirth: updated.dateOfBirth
+          ? new Date(updated.dateOfBirth).toISOString().slice(0, 10)
+          : "",
         occupation: updated.occupation ?? "",
         investmentExperience: updated.investmentExperience ?? "",
         passportPhoto: updated.passportPhoto ?? "",
         idDocument: updated.idDocument ?? "",
       }));
 
-      const storedUser = {
-        id: updated.id,
-        email: updated.email,
-        fullName: updated.fullName,
-        role: updated.role,
-        phoneCountryCode: updated.phoneCountryCode,
-        phone: updated.phone,
-        idNumber: updated.idNumber,
-        dateOfBirth: updated.dateOfBirth,
-        occupation: updated.occupation,
-        investmentExperience: updated.investmentExperience,
-        passportPhoto: updated.passportPhoto,
-        idDocument: updated.idDocument,
-        country: updated.country,
-        city: updated.city,
-        gender: updated.gender,
-      } as Record<string, unknown>;
-
-      try {
-        localStorage.setItem("user", JSON.stringify(storedUser));
-      } catch (storageError) {
-        console.warn("Failed to sync updated user in storage", storageError);
-      }
-
-      refreshAuth();
+      persistUser(updated);
 
       setProfileErrors({});
       setProfileStatus("success");
@@ -354,6 +451,153 @@ export default function ClientSettingsPage() {
     }
   };
 
+  const handleEmailSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!user?.id) return;
+
+    setEmailError(null);
+    setEmailMessage(null);
+    setEmailStatus("idle");
+
+    const emailValue = emailForm.email.trim().toLowerCase();
+    const emailValidation = z.string().trim().min(1, "Email is required").email("Invalid email format");
+    const result = emailValidation.safeParse(emailValue);
+
+    if (!result.success) {
+      setEmailError(result.error.issues[0]?.message ?? "Invalid email");
+      setEmailStatus("error");
+      return;
+    }
+
+    if (emailValue === (user.email ?? "").toLowerCase()) {
+      setEmailError("Enter a different email address to update");
+      setEmailStatus("error");
+      return;
+    }
+
+    setEmailStatus("saving");
+
+    try {
+      const response = (await api.patch(`/user/${user.id}`, {
+        email: emailValue,
+      })) as UserProfileResponse;
+
+      const updated = response.data;
+      setEmailForm({ email: updated.email });
+      persistUser(updated);
+
+      const requiresOtp = Boolean(response.requiresEmailVerification);
+      setEmailStatus("success");
+      setEmailMessage(
+        requiresOtp
+          ? "We sent a verification code to your new email. Enter it to finish updating your account."
+          : "Email updated successfully."
+      );
+
+      if (requiresOtp) {
+        setOtpEmail(updated.email);
+        setShowOtpModal(true);
+      }
+    } catch (err) {
+      const enrichedError = err as Error & {
+        fieldErrors?: Array<{ field?: string; message: string }>;
+      };
+
+      if (Array.isArray(enrichedError.fieldErrors) && enrichedError.fieldErrors.length) {
+        setEmailError(enrichedError.fieldErrors[0]?.message ?? "Please fix the highlighted field");
+      } else {
+        setEmailMessage(enrichedError.message || "Failed to update email.");
+      }
+      setEmailStatus("error");
+    }
+  };
+
+  const handlePasswordSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!user?.id) return;
+
+    setPasswordMessage(null);
+    setPasswordStatus("idle");
+
+    if (!passwordForm.newPassword || passwordForm.newPassword.length < 8) {
+      setPasswordStatus("error");
+      setPasswordMessage("New password must be at least 8 characters long.");
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordStatus("error");
+      setPasswordMessage("Passwords do not match.");
+      return;
+    }
+
+    setPasswordStatus("saving");
+
+    try {
+      const response = (await api.patch(`/user/${user.id}`, {
+        password: passwordForm.newPassword,
+        confirmPassword: passwordForm.confirmPassword,
+      })) as UserProfileResponse;
+
+      persistUser(response.data);
+
+      setPasswordStatus("success");
+      setPasswordMessage("Password updated successfully.");
+      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    } catch (err) {
+      const enrichedError = err as Error & {
+        fieldErrors?: Array<{ field?: string; message: string }>;
+      };
+
+      if (Array.isArray(enrichedError.fieldErrors) && enrichedError.fieldErrors.length) {
+        setPasswordMessage(enrichedError.fieldErrors[0]?.message ?? "Please fix the highlighted fields.");
+      } else {
+        setPasswordMessage(enrichedError.message || "Failed to update password.");
+      }
+      setPasswordStatus("error");
+    }
+  };
+
+  const handleOtpVerified = useCallback(async () => {
+    if (!user?.id) {
+      setShowOtpModal(false);
+      return;
+    }
+
+    try {
+      const response = (await api.get(`/user/${user.id}`)) as UserProfileResponse;
+      if (response?.data) {
+        const refreshed = response.data;
+        setProfileForm((prev) => ({
+          ...prev,
+          fullName: refreshed.fullName ?? prev.fullName,
+          phoneCountryCode: refreshed.phoneCountryCode ?? prev.phoneCountryCode,
+          phone: refreshed.phone ?? prev.phone,
+          gender:
+            (refreshed.gender as (typeof GENDER_VALUES)[number]) ?? prev.gender,
+          country: refreshed.country ?? prev.country,
+          city: refreshed.city ?? prev.city,
+          idNumber: refreshed.idNumber ?? "",
+          dateOfBirth: refreshed.dateOfBirth
+            ? new Date(refreshed.dateOfBirth).toISOString().slice(0, 10)
+            : "",
+          occupation: refreshed.occupation ?? "",
+          investmentExperience: refreshed.investmentExperience ?? "",
+          passportPhoto: refreshed.passportPhoto ?? "",
+          idDocument: refreshed.idDocument ?? "",
+        }));
+        setEmailForm({ email: refreshed.email });
+        persistUser(refreshed);
+        setEmailStatus("success");
+        setEmailMessage("Email verified successfully.");
+      }
+    } catch (error) {
+      console.error("Failed to refresh user after email verification", error);
+    } finally {
+      setShowOtpModal(false);
+    }
+  }, [user?.id, persistUser]);
+
   const renderProfile = () => (
     <Card className="p-6" hover={false}>
       <form className="flex flex-col gap-6" onSubmit={handleProfileSubmit}>
@@ -381,27 +625,62 @@ export default function ClientSettingsPage() {
             name="fullName"
             label="Full name"
             type="text"
-            value={displayUser.name}
-            onChange={() => {}}
-            disabled
+            placeholder="Enter your full name"
+            value={profileForm.fullName ?? ""}
+            onChange={handleProfileInputChange("fullName")}
+            error={profileErrors.fullName}
           />
-          <InputField
-            name="email"
-            label="Email address"
-            type="email"
-            value={displayUser.email}
-            onChange={() => {}}
-            disabled
-          />
-          <InputField
-            name="phoneCountryCode"
-            label="Country code"
-            type="text"
-            placeholder="+250"
-            value={profileForm.phoneCountryCode ?? ""}
-            onChange={handleProfileInputChange("phoneCountryCode")}
-            error={profileErrors.phoneCountryCode}
-          />
+          <div className="flex flex-col gap-2">
+            <label htmlFor="gender" className="text-sm font-medium text-[#004B5B]">
+              Gender
+            </label>
+            <select
+              id="gender"
+              name="gender"
+              value={profileForm.gender ?? "male"}
+              onChange={handleProfileSelectChange("gender")}
+              className={`w-full rounded-full px-4 py-2 text-[#004B5B] bg-transparent outline-none border transition-all ${
+                profileErrors.gender
+                  ? "border-red-500 focus:border-red-600 focus:ring-1 focus:ring-red-500"
+                  : "border-[#004B5B]/50 focus:border-[#004B5B] hover:border-[#004B5B]/80"
+              }`}
+            >
+              {GENDER_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value} className="text-[#004B5B]">
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            {profileErrors.gender && <p className="text-sm text-red-500 ml-2">{profileErrors.gender}</p>}
+          </div>
+          <div className="flex flex-col gap-2">
+            <label htmlFor="phoneCountryCode" className="text-sm font-medium text-[#004B5B]">
+              Phone country code
+            </label>
+            <select
+              id="phoneCountryCode"
+              name="phoneCountryCode"
+              value={profileForm.phoneCountryCode ?? ""}
+              onChange={handleProfileSelectChange("phoneCountryCode")}
+              className={`w-full rounded-full px-4 py-2 text-[#004B5B] bg-transparent outline-none border transition-all ${
+                profileErrors.phoneCountryCode
+                  ? "border-red-500 focus:border-red-600 focus:ring-1 focus:ring-red-500"
+                  : "border-[#004B5B]/50 focus:border-[#004B5B] hover:border-[#004B5B]/80"
+              }`}
+            >
+              <option value="" disabled className="text-slate-400">
+                Select code
+              </option>
+              {phoneCountryOptions.map((option) => (
+                <option key={option.value} value={option.value} className="text-[#004B5B]">
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            {profileErrors.phoneCountryCode && (
+              <p className="text-sm text-red-500 ml-2">{profileErrors.phoneCountryCode}</p>
+            )}
+          </div>
           <InputField
             name="phone"
             label="Phone number"
@@ -410,6 +689,41 @@ export default function ClientSettingsPage() {
             value={profileForm.phone ?? ""}
             onChange={handleProfileInputChange("phone")}
             error={profileErrors.phone}
+          />
+          <div className="flex flex-col gap-2">
+            <label htmlFor="country" className="text-sm font-medium text-[#004B5B]">
+              Country of residence
+            </label>
+            <select
+              id="country"
+              name="country"
+              value={profileForm.country ?? ""}
+              onChange={handleProfileSelectChange("country")}
+              className={`w-full rounded-full px-4 py-2 text-[#004B5B] bg-transparent outline-none border transition-all ${
+                profileErrors.country
+                  ? "border-red-500 focus:border-red-600 focus:ring-1 focus:ring-red-500"
+                  : "border-[#004B5B]/50 focus:border-[#004B5B] hover:border-[#004B5B]/80"
+              }`}
+            >
+              <option value="" disabled className="text-slate-400">
+                Select country
+              </option>
+              {countryOptions.map((option) => (
+                <option key={option.value} value={option.value} className="text-[#004B5B]">
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            {profileErrors.country && <p className="text-sm text-red-500 ml-2">{profileErrors.country}</p>}
+          </div>
+          <InputField
+            name="city"
+            label="City"
+            type="text"
+            placeholder="Enter your city"
+            value={profileForm.city ?? ""}
+            onChange={handleProfileInputChange("city")}
+            error={profileErrors.city}
           />
           <InputField
             name="idNumber"
@@ -509,47 +823,132 @@ export default function ClientSettingsPage() {
   const renderSecurity = () => (
     <div className="space-y-6">
       <Card className="p-6" hover={false}>
-        <h2 className="text-xl font-semibold text-[#004B5B]">Password</h2>
+        <h2 className="text-xl font-semibold text-[#004B5B]">Login &amp; security</h2>
         <p className="mt-1 text-sm text-slate-500">
-          Use a strong password that you don&apos;t use elsewhere to keep your account secure.
+          Keep your email and password up to date so you never lose access to your account.
         </p>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <InputField
-            name="currentPassword"
-            label="Current password"
-            type="password"
-            placeholder="••••••••"
-            value={passwordForm.currentPassword}
-            onChange={(event) =>
-              setPasswordForm((prev) => ({ ...prev, currentPassword: event.target.value }))
-            }
-            showVisibilityToggle
-          />
-          <InputField
-            name="newPassword"
-            label="New password"
-            type="password"
-            placeholder="Create a new password"
-            value={passwordForm.newPassword}
-            onChange={(event) =>
-              setPasswordForm((prev) => ({ ...prev, newPassword: event.target.value }))
-            }
-            showVisibilityToggle
-          />
-          <InputField
-            name="confirmPassword"
-            label="Confirm new password"
-            type="password"
-            placeholder="Repeat new password"
-            value={passwordForm.confirmPassword}
-            onChange={(event) =>
-              setPasswordForm((prev) => ({ ...prev, confirmPassword: event.target.value }))
-            }
-            showVisibilityToggle
-          />
-        </div>
-        <div className="mt-4 flex justify-end">
-          <Button>Change password</Button>
+
+        <div className="mt-6 space-y-8">
+          <form className="space-y-4" onSubmit={handleEmailSubmit}>
+            <div className="flex flex-col gap-4 md:flex-row md:items-end">
+              <div className="flex-1">
+                <InputField
+                  name="email"
+                  label="Email address"
+                  type="email"
+                  placeholder="Enter your new email"
+                  value={emailForm.email}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setEmailForm({ email: value });
+                    setEmailError(null);
+                    setEmailMessage(null);
+                    setEmailStatus("idle");
+                  }}
+                  error={emailError ?? undefined}
+                />
+              </div>
+              <Button
+                type="submit"
+                variant="outline"
+                disabled={emailStatus === "saving"}
+                className="md:min-w-44"
+              >
+                {emailStatus === "saving" ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Updating...
+                  </span>
+                ) : (
+                  "Update email"
+                )}
+              </Button>
+            </div>
+
+            {emailMessage && (
+              <div
+                className={`rounded-md border px-4 py-3 text-sm ${
+                  emailStatus === "success"
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : "border-red-200 bg-red-50 text-red-700"
+                }`}
+              >
+                {emailMessage}
+              </div>
+            )}
+          </form>
+
+          <form className="space-y-4" onSubmit={handlePasswordSubmit}>
+            <div className="grid gap-4 md:grid-cols-2">
+              <InputField
+                name="currentPassword"
+                label="Current password"
+                type="password"
+                placeholder="••••••••"
+                value={passwordForm.currentPassword}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setPasswordForm((prev) => ({ ...prev, currentPassword: value }));
+                  setPasswordStatus("idle");
+                  setPasswordMessage(null);
+                }}
+                showVisibilityToggle
+              />
+              <InputField
+                name="newPassword"
+                label="New password"
+                type="password"
+                placeholder="Create a new password"
+                value={passwordForm.newPassword}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setPasswordForm((prev) => ({ ...prev, newPassword: value }));
+                  setPasswordStatus("idle");
+                  setPasswordMessage(null);
+                }}
+                showVisibilityToggle
+              />
+              <InputField
+                name="confirmPassword"
+                label="Confirm new password"
+                type="password"
+                placeholder="Repeat new password"
+                value={passwordForm.confirmPassword}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setPasswordForm((prev) => ({ ...prev, confirmPassword: value }));
+                  setPasswordStatus("idle");
+                  setPasswordMessage(null);
+                }}
+                showVisibilityToggle
+              />
+            </div>
+
+            {passwordMessage && (
+              <div
+                className={`rounded-md border px-4 py-3 text-sm ${
+                  passwordStatus === "success"
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : "border-red-200 bg-red-50 text-red-700"
+                }`}
+              >
+                {passwordMessage}
+              </div>
+            )}
+
+            <div className="flex justify-end">
+              <Button type="submit" disabled={passwordStatus === "saving"} className="min-w-40">
+                {passwordStatus === "saving" ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Updating...
+                  </span>
+                ) : (
+                  "Change password"
+                )}
+              </Button>
+            </div>
+          </form>
         </div>
       </Card>
       <Card className="p-6" hover={false}>
@@ -647,15 +1046,28 @@ export default function ClientSettingsPage() {
   };
 
   return (
-    <SettingsLayout
-      title="Account settings"
-      description="Adjust your personal information, security options, and trading preferences."
-      navItems={navItems}
-      activeItem={activeSection}
-      onItemSelect={setActiveSection}
-      actions={<Button size="sm">Save all changes</Button>}
-    >
-      {renderContent()}
-    </SettingsLayout>
+    <>
+      <SettingsLayout
+        title="Account settings"
+        description="Adjust your personal information, security options, and trading preferences."
+        navItems={navItems}
+        activeItem={activeSection}
+        onItemSelect={setActiveSection}
+        actions={<Button size="sm">Save all changes</Button>}
+      >
+        {renderContent()}
+      </SettingsLayout>
+
+      <OTPModal
+        isOpen={showOtpModal}
+        onClose={() => setShowOtpModal(false)}
+        email={otpEmail || emailForm.email}
+        onVerified={async () => {
+          await handleOtpVerified();
+        }}
+        buildSuccessMessage={() => "Email verified successfully."}
+        successRedirect={null}
+      />
+    </>
   );
 }

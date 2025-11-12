@@ -4,6 +4,7 @@ import { Prisma, Role } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { parsePhoneNumberFromString } from "libphonenumber-js";
 import { z } from "zod";
+import { sendOTPEmail } from "@/utils/mailer";
 import {
 	ForbiddenError,
 	UnauthorizedError,
@@ -225,7 +226,7 @@ export async function PATCH(request: Request, context: { params: RouteParams }) 
 
 		const existing = await prisma.user.findUnique({
 			where: { id },
-			select: { id: true, role: true },
+			select: { id: true, role: true, email: true, isVerified: true },
 		});
 
 		if (!existing) {
@@ -259,10 +260,34 @@ export async function PATCH(request: Request, context: { params: RouteParams }) 
 			throw new ForbiddenError("Tellers cannot change client roles");
 		}
 
+		if (auth.role === Role.ADMIN) {
+			if (existing.role === Role.SUPER_ADMIN && rest.role !== undefined && rest.role !== existing.role) {
+				throw new ForbiddenError("Admins cannot change the role of a super admin");
+			}
+
+			if (rest.role === Role.SUPER_ADMIN && existing.role !== Role.SUPER_ADMIN) {
+				throw new ForbiddenError("Admins cannot assign the super admin role");
+			}
+		}
+
 		const data: Record<string, unknown> = {};
+		let emailChanged = false;
+		let generatedOtp: string | null = null;
+		let emailTarget: string | null = null;
 
 		if (rest.fullName !== undefined) data.fullName = rest.fullName.trim();
-		if (rest.email !== undefined) data.email = rest.email.trim().toLowerCase();
+		if (rest.email !== undefined) {
+			const normalizedEmail = rest.email.trim().toLowerCase();
+			emailChanged = normalizedEmail !== existing.email;
+			data.email = normalizedEmail;
+			if (emailChanged) {
+				generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+				emailTarget = normalizedEmail;
+				data.isVerified = false;
+				data.otp = generatedOtp;
+				data.otpExpiresAt = new Date(Date.now() + 30 * 60 * 1000);
+			}
+		}
 		if (rest.idNumber !== undefined) data.idNumber = rest.idNumber.trim();
 		if (rest.passportPhoto !== undefined) data.passportPhoto = rest.passportPhoto.trim();
 		if (rest.idDocument !== undefined) data.idDocument = rest.idDocument.trim();
@@ -327,7 +352,15 @@ export async function PATCH(request: Request, context: { params: RouteParams }) 
 			return result;
 		})) as unknown as UserResponse;
 
-		return NextResponse.json({ data: updatedUser });
+		if (emailChanged && emailTarget && generatedOtp) {
+			try {
+				await sendOTPEmail(emailTarget, generatedOtp);
+			} catch (error) {
+				console.error("Failed to send verification OTP after email change", error);
+			}
+		}
+
+		return NextResponse.json({ data: updatedUser, requiresEmailVerification: emailChanged });
 	} catch (error) {
 		return handleError(error, "Failed to update user");
 	}
@@ -363,6 +396,10 @@ export async function DELETE(request: Request, context: { params: RouteParams })
 			if (!ownsClient) {
 				throw new ForbiddenError("Tellers can only remove their own clients");
 			}
+		}
+
+		if (auth.role === Role.ADMIN && existing.role === Role.SUPER_ADMIN) {
+			throw new ForbiddenError("Admins cannot delete super admin accounts");
 		}
 
 		await prisma.user.delete({ where: { id } });

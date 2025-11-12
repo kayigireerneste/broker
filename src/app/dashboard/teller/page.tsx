@@ -6,7 +6,6 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { useAuth } from "@/hooks/useAuth";
 import { useMemo } from "react";
-import { UserInfoCard } from "@/components/ui/UserInfoCard";
 
 export default function TellerDashboard() {
   const { user } = useAuth();
@@ -39,8 +38,6 @@ export default function TellerDashboard() {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Teller Dashboard</h1>
           <p className="text-gray-600">Manage client mandates, monitor trades, and keep portfolios aligned.</p>
         </div>
-
-        <UserInfoCard name={displayName} email={email} role={dashboardRole} />
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-slideInRight">

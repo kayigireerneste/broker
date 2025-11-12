@@ -155,6 +155,10 @@ export async function POST(request: Request) {
  			throw new ForbiddenError("Tellers can only create client accounts");
  		}
 
+		if (auth.role === "ADMIN" && parsedExtras.role === "SUPER_ADMIN") {
+			throw new ForbiddenError("Admins cannot create super admin accounts");
+		}
+
 		const {
 			fullName,
 			email,

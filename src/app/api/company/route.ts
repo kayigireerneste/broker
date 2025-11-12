@@ -16,7 +16,6 @@ export async function GET(request: Request) {
       ? {
           OR: [
             { name: { contains: query, mode: "insensitive" } },
-            { ticker: { contains: query, mode: "insensitive" } },
             { sector: { contains: query, mode: "insensitive" } },
           ],
         }
@@ -52,7 +51,6 @@ export async function POST(request: Request) {
     const company = await prisma.company.create({
       data: {
         name: parsed.name,
-        ticker: parsed.ticker,
         description: parsed.description ?? null,
         sector: parsed.sector ?? null,
         sharePrice,
@@ -79,7 +77,7 @@ export async function POST(request: Request) {
     }
 
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-      return NextResponse.json({ error: "A company with the provided ticker already exists" }, { status: 409 });
+      return NextResponse.json({ error: "A company with these details already exists" }, { status: 409 });
     }
 
     if (error instanceof z.ZodError) {

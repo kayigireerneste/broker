@@ -2,14 +2,71 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import DashboardLayout from '@/components/ui/DashboardLayout';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { useAuth } from '@/hooks/useAuth';
+import { AlertCircle } from 'lucide-react';
 
 export default function ClientDashboard() {
   const [selectedAction, setSelectedAction] = useState('');
   const { user } = useAuth();
+
+  const profileReminder = useMemo(() => {
+    if (!user) {
+      return { needed: false, tasks: [] as string[] };
+    }
+
+    const record = user as Record<string, unknown>;
+    const isEmpty = (value: unknown) =>
+      value === null || value === undefined || (typeof value === 'string' && value.trim().length === 0);
+
+    const requirements = [
+      {
+        id: 'verify-email',
+        message: 'verify your email',
+        optional: false,
+        isComplete: () => record.isVerified !== false,
+      },
+      {
+        id: 'phone',
+        message: 'add a phone number',
+        optional: false,
+        isComplete: () => !isEmpty(record.phone) && !isEmpty(record.phoneCountryCode),
+      },
+      {
+        id: 'address',
+        message: 'confirm your address',
+        optional: false,
+        isComplete: () => !isEmpty(record.country) && !isEmpty(record.city),
+      },
+      {
+        id: 'id-document',
+        message: 'upload your ID document',
+        optional: true,
+        isComplete: () => !isEmpty(record.idDocument),
+      },
+      {
+        id: 'passport-photo',
+        message: 'add a passport photo',
+        optional: true,
+        isComplete: () => !isEmpty(record.passportPhoto),
+      },
+    ];
+
+    const missingEssentials = requirements.filter((item) => !item.optional && !item.isComplete());
+    const missingOptional = requirements.filter((item) => item.optional && !item.isComplete());
+
+    const tasks = missingEssentials.length > 0
+      ? [...missingEssentials, ...missingOptional].map((item) => item.message)
+      : [];
+
+    return {
+      needed: missingEssentials.length > 0,
+      tasks,
+    };
+  }, [user]);
 
   const { displayName, email, dashboardRole } = useMemo(() => {
     const fullName = (user?.fullName as string | undefined)?.trim() ?? '';
@@ -29,9 +86,35 @@ export default function ClientDashboard() {
     console.log(`${action} clicked`);
   };
 
+  const formatTaskList = (tasks: string[]) => {
+    if (tasks.length <= 1) return tasks[0] ?? '';
+    const leading = tasks.slice(0, -1).join(', ');
+    const last = tasks[tasks.length - 1];
+    return `${leading} and ${last}`;
+  };
+
   return (
     <DashboardLayout userRole={dashboardRole} userName={displayName} userEmail={email}>
       <div className="space-y-4">
+        {profileReminder.needed && (
+          <div className="flex flex-col gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="mt-0.5 h-5 w-5 text-amber-500" aria-hidden="true" />
+              <div>
+                <p className="font-semibold">Complete your profile</p>
+                <p className="text-amber-800">
+                  Finish setting up your account: {formatTaskList(profileReminder.tasks)}.
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/dashboard/client/settings"
+              className="inline-flex items-center justify-center rounded-full border border-[#004F64] px-5 py-2 text-sm font-semibold text-[#004F64] transition hover:bg-[#004F64] hover:text-white"
+            >
+              Update profile
+            </Link>
+          </div>
+        )}
         <div>
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Welcome back, {displayName}!</h1>
           <p className="text-sm text-gray-600">Here's your investment overview today.</p>

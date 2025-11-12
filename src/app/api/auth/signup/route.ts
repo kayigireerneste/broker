@@ -13,8 +13,8 @@ const defaultNotificationPreferences = {
 
 export async function POST(req: Request) {
   try {
-    const data = await req.json();
-    const parsed = signupSchema.safeParse(data);
+  const data = await req.json();
+  const parsed = signupSchema.safeParse(data);
 
     if (!parsed.success) {
       const issues = parsed.error.issues.map((issue) => ({

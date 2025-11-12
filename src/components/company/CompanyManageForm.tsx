@@ -11,6 +11,7 @@ interface CompanyManageFormProps {
   company: CompanySummary;
   authToken: string | null;
   onUpdated?: (company: CompanySummary) => void;
+  withCard?: boolean;
 }
 
 interface FormState {
@@ -25,10 +26,22 @@ interface FormState {
   tradedVolume: string;
   tradedValue: string;
   snapshotDate: string;
-  contract: string;
 }
 
-export function CompanyManageForm({ company, authToken, onUpdated }: CompanyManageFormProps) {
+const sanitizeIntegerInput = (value: string) =>
+  value
+    .replace(/[\s,]/g, "")
+    .replace(/[^0-9]/g, "")
+    .trim();
+
+const toIntegerOrUndefined = (value: string) => {
+  const normalized = sanitizeIntegerInput(value);
+  if (!normalized) return undefined;
+  const parsed = Number(normalized);
+  return Number.isNaN(parsed) ? undefined : parsed;
+};
+
+export function CompanyManageForm({ company, authToken, onUpdated, withCard = true }: CompanyManageFormProps) {
   const formatDateInput = (value: string | null) => {
     if (!value) return "";
     const date = new Date(value);
@@ -55,7 +68,6 @@ export function CompanyManageForm({ company, authToken, onUpdated }: CompanyMana
     tradedVolume: company.tradedVolume ?? "",
     tradedValue: company.tradedValue ?? "",
     snapshotDate: formatDateInput(company.snapshotDate),
-    contract: company.contract ?? "",
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -79,8 +91,8 @@ export function CompanyManageForm({ company, authToken, onUpdated }: CompanyMana
 
     const payload = {
       sharePrice: formState.sharePrice.trim() || undefined,
-      totalShares: formState.totalShares ? Number(formState.totalShares) : undefined,
-      availableShares: formState.availableShares ? Number(formState.availableShares) : undefined,
+      totalShares: toIntegerOrUndefined(formState.totalShares),
+      availableShares: toIntegerOrUndefined(formState.availableShares),
       description: formState.description.trim(),
       sector: formState.sector.trim(),
       closingPrice: formState.closingPrice.trim() || undefined,
@@ -89,7 +101,6 @@ export function CompanyManageForm({ company, authToken, onUpdated }: CompanyMana
       tradedVolume: formState.tradedVolume.trim() || undefined,
       tradedValue: formState.tradedValue.trim() || undefined,
       snapshotDate: toIsoDate(formState.snapshotDate) || undefined,
-      contract: formState.contract.trim() || undefined,
     };
 
     try {
@@ -105,7 +116,15 @@ export function CompanyManageForm({ company, authToken, onUpdated }: CompanyMana
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result?.error ?? "Failed to update company");
+        const detailedError = Array.isArray(result?.errors)
+          ? (result.errors as Array<{ path?: string; message?: string }>)
+              .map((issue) => {
+                const path = issue.path ? `${issue.path}: ` : "";
+                return `${path}${issue.message ?? "Invalid value"}`;
+              })
+              .join("\n")
+          : null;
+        throw new Error(detailedError || result?.error || "Failed to update company");
       }
 
       toast.success("Company details updated");
@@ -118,9 +137,8 @@ export function CompanyManageForm({ company, authToken, onUpdated }: CompanyMana
     }
   };
 
-  return (
-    <Card className="p-6">
-      <form className="space-y-4" onSubmit={handleSubmit}>
+  const formContent = (
+    <form className="space-y-4" onSubmit={handleSubmit}>
         <div className="grid md:grid-cols-2 gap-4">
           <InputField
             label="Share Price"
@@ -226,15 +244,6 @@ export function CompanyManageForm({ company, authToken, onUpdated }: CompanyMana
           />
         </div>
 
-        <InputField
-          label="Contract Reference"
-          name="contract"
-          value={formState.contract}
-          onChange={handleInputChange("contract")}
-          placeholder="e.g. https://example.com/contracts/acme.pdf"
-          type="text"
-        />
-
         <div className="flex items-center justify-end gap-3">
           <Button
             variant="outline"
@@ -253,7 +262,6 @@ export function CompanyManageForm({ company, authToken, onUpdated }: CompanyMana
                 tradedVolume: company.tradedVolume ?? "",
                 tradedValue: company.tradedValue ?? "",
                 snapshotDate: formatDateInput(company.snapshotDate),
-                contract: company.contract ?? "",
               })
             }
           >
@@ -262,8 +270,13 @@ export function CompanyManageForm({ company, authToken, onUpdated }: CompanyMana
           <Button type="submit" disabled={submitting}>
             {submitting ? "Saving..." : "Save changes"}
           </Button>
-        </div>
-      </form>
-    </Card>
+    </div>
+  </form>
   );
+
+  if (withCard) {
+    return <Card className="p-6">{formContent}</Card>;
+  }
+
+  return <div className="space-y-4">{formContent}</div>;
 }

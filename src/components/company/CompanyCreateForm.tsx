@@ -10,7 +10,6 @@ import toast from "react-hot-toast";
 export interface CompanySummary {
   id: string;
   name: string;
-  ticker: string | null;
   description: string | null;
   sector: string | null;
   sharePrice: string | null;
@@ -30,11 +29,11 @@ export interface CompanySummary {
 interface CompanyCreateFormProps {
   authToken: string | null;
   onCreated?: (company: CompanySummary) => void;
+  withCard?: boolean;
 }
 
 interface FormState {
   name: string;
-  ticker: string;
   description: string;
   sector: string;
   sharePrice: string;
@@ -49,9 +48,21 @@ interface FormState {
   contract: string;
 }
 
+const sanitizeIntegerInput = (value: string) =>
+  value
+    .replace(/[\s,]/g, "")
+    .replace(/[^0-9]/g, "")
+    .trim();
+
+const toIntegerOrUndefined = (value: string) => {
+  const normalized = sanitizeIntegerInput(value);
+  if (!normalized) return undefined;
+  const parsed = Number(normalized);
+  return Number.isNaN(parsed) ? undefined : parsed;
+};
+
 const INITIAL_STATE: FormState = {
   name: "",
-  ticker: "",
   description: "",
   sector: "",
   sharePrice: "",
@@ -66,7 +77,7 @@ const INITIAL_STATE: FormState = {
   contract: "",
 };
 
-export function CompanyCreateForm({ authToken, onCreated }: CompanyCreateFormProps) {
+export function CompanyCreateForm({ authToken, onCreated, withCard = true }: CompanyCreateFormProps) {
   const [formState, setFormState] = useState<FormState>(INITIAL_STATE);
   const [submitting, setSubmitting] = useState(false);
 
@@ -106,11 +117,6 @@ export function CompanyCreateForm({ authToken, onCreated }: CompanyCreateFormPro
       return;
     }
 
-    if (!formState.ticker.trim()) {
-      toast.error("Ticker is required");
-      return;
-    }
-
     setSubmitting(true);
 
     const toIsoDate = (value: string) => {
@@ -122,12 +128,11 @@ export function CompanyCreateForm({ authToken, onCreated }: CompanyCreateFormPro
 
     const payload = {
       name: formState.name.trim(),
-      ticker: formState.ticker.trim().toUpperCase(),
-      description: formState.description.trim() || null,
-      sector: formState.sector.trim() || null,
+      description: formState.description.trim() || undefined,
+      sector: formState.sector.trim() || undefined,
       sharePrice: formState.sharePrice.trim() || undefined,
-      totalShares: formState.totalShares ? Number(formState.totalShares) : undefined,
-      availableShares: formState.availableShares ? Number(formState.availableShares) : undefined,
+      totalShares: toIntegerOrUndefined(formState.totalShares),
+      availableShares: toIntegerOrUndefined(formState.availableShares),
       closingPrice: formState.closingPrice.trim() || undefined,
       previousClosingPrice: formState.previousClosingPrice.trim() || undefined,
       priceChange: formState.priceChange.trim() || undefined,
@@ -150,7 +155,15 @@ export function CompanyCreateForm({ authToken, onCreated }: CompanyCreateFormPro
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result?.error ?? "Failed to create company");
+        const detailedError = Array.isArray(result?.errors)
+          ? (result.errors as Array<{ path?: string; message?: string }>)
+              .map((issue) => {
+                const path = issue.path ? `${issue.path}: ` : "";
+                return `${path}${issue.message ?? "Invalid value"}`;
+              })
+              .join("\n")
+          : null;
+        throw new Error(detailedError || result?.error || "Failed to create company");
       }
 
       toast.success("Company created successfully");
@@ -164,9 +177,8 @@ export function CompanyCreateForm({ authToken, onCreated }: CompanyCreateFormPro
     }
   };
 
-  return (
-    <Card className="p-6 space-y-6">
-      <form className="space-y-4" onSubmit={handleSubmit}>
+  const formContent = (
+    <form className="space-y-4" onSubmit={handleSubmit}>
         <div className="grid md:grid-cols-2 gap-4">
           <InputField
             label="Company Name"
@@ -176,17 +188,6 @@ export function CompanyCreateForm({ authToken, onCreated }: CompanyCreateFormPro
             required
             type="text"
           />
-          <InputField
-            label="Ticker"
-            name="ticker"
-            value={formState.ticker}
-            onChange={handleInputChange("ticker")}
-            required
-            type="text"
-          />
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-4">
           <InputField
             label="Sector"
             name="sector"
@@ -310,7 +311,12 @@ export function CompanyCreateForm({ authToken, onCreated }: CompanyCreateFormPro
             {submitting ? "Creating..." : "Create company"}
           </Button>
         </div>
-      </form>
-    </Card>
+    </form>
   );
+
+  if (withCard) {
+    return <Card className="p-6 space-y-6">{formContent}</Card>;
+  }
+
+  return <div className="space-y-6">{formContent}</div>;
 }

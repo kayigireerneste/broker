@@ -4,14 +4,25 @@ import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { authApi } from '@/lib/axios'
 import toast from 'react-hot-toast'
+import type { VerifyOtpResponse } from '@/types/auth'
 
 interface OTPModalProps {
   isOpen: boolean
   onClose: () => void
   email: string
+  onVerified?: (response: VerifyOtpResponse) => void | Promise<void>
+  buildSuccessMessage?: (response: VerifyOtpResponse) => string
+  successRedirect?: string | null
 }
 
-export default function OTPModal({ isOpen, onClose, email }: OTPModalProps) {
+export default function OTPModal({
+  isOpen,
+  onClose,
+  email,
+  onVerified,
+  buildSuccessMessage,
+  successRedirect = '/auth/login',
+}: OTPModalProps) {
   const router = useRouter()
   const [digits, setDigits] = useState<string[]>(Array(6).fill(''))
   const [isLoading, setIsLoading] = useState(false)
@@ -91,21 +102,30 @@ export default function OTPModal({ isOpen, onClose, email }: OTPModalProps) {
     setError('')
 
     try {
-      await toast.promise(
-        authApi.verifyOtp({ email, otp }),
-        {
-          loading: 'Verifying OTP...',
-          success: (response) => {
-            router.push('/auth/login')
-            const baseMessage = response.message || 'Email verified successfully!'
-            return `${baseMessage} Your CSD number is ${response.csdNumber}.`
-          },
-          error: (err) => {
-            setError(err.message)
-            return err.message || 'Failed to verify OTP'
-          }
+      const operation = async () => {
+        const response = await authApi.verifyOtp({ email, otp })
+        if (onVerified) {
+          await onVerified(response)
+        } else if (successRedirect !== null) {
+          router.push(successRedirect ?? '/auth/login')
         }
-      )
+        return response
+      }
+
+      await toast.promise(operation(), {
+        loading: 'Verifying OTP...',
+        success: (response) => {
+          if (buildSuccessMessage) {
+            return buildSuccessMessage(response)
+          }
+          const baseMessage = response.message || 'Email verified successfully!'
+          return `${baseMessage} Your CSD number is ${response.csdNumber}.`
+        },
+        error: (err) => {
+          setError(err.message)
+          return err.message || 'Failed to verify OTP'
+        }
+      })
     } catch (err) {
       console.error('OTP verification error:', err)
     } finally {

@@ -19,7 +19,6 @@ import {
   FiMenu,
   FiHelpCircle,
   FiSearch,
-  FiActivity,
 } from "react-icons/fi";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -63,10 +62,22 @@ export default function DashboardLayout({
   const { user, loading, isAuthenticated } = useAuth();
 
   useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      const redirectSuffix = pathname ? `?redirect=${encodeURIComponent(pathname)}` : "";
-      router.replace(`/auth/login${redirectSuffix}`);
+    if (loading || isAuthenticated) {
+      return;
     }
+
+    const logoutFlagKey = "santech:logoutRedirect";
+    const hasWindow = typeof window !== "undefined";
+    const shouldGoHome = hasWindow && sessionStorage.getItem(logoutFlagKey) === "true";
+
+    if (shouldGoHome) {
+      sessionStorage.removeItem(logoutFlagKey);
+      router.replace("/");
+      return;
+    }
+
+    const redirectSuffix = pathname ? `?redirect=${encodeURIComponent(pathname)}` : "";
+    router.replace(`/auth/login${redirectSuffix}`);
   }, [loading, isAuthenticated, pathname, router]);
 
   const derivedRole = useMemo(() => {
@@ -78,16 +89,21 @@ export default function DashboardLayout({
     if (userName) return userName;
     const fullName = (user?.fullName as string | undefined)?.trim();
     if (fullName) return fullName;
-    if (user?.email) {
-      return user.email.split("@")[0];
-    }
     return "User";
-  }, [userName, user?.fullName, user?.email]);
+  }, [userName, user?.fullName]);
 
   const derivedEmail = useMemo(() => {
     if (userEmail) return userEmail;
     return user?.email ?? "";
   }, [userEmail, user?.email]);
+
+  const derivedPassportPhoto = useMemo(() => {
+    const raw = (user as { passportPhoto?: unknown } | undefined)?.passportPhoto;
+    if (typeof raw === "string" && raw.trim()) {
+      return raw.trim();
+    }
+    return undefined;
+  }, [user]);
 
   if (loading) {
     return (
@@ -117,14 +133,17 @@ export default function DashboardLayout({
           { name: "Dashboard", icon: FiBarChart2, href: "/dashboard/teller" },
           { name: "Orders", icon: FiClipboard, href: "/dashboard/teller/orders" },
           { name: "Executions", icon: FiZap, href: "/dashboard/teller/executions" },
-          { name: "Clients", icon: FiUsers, href: "/dashboard/teller/clients" },
+          { name: "Users", icon: FiUsers, href: "/dashboard/teller/users" },
+          { name: "Companies", icon: FiBriefcase, href: "/dashboard/teller/companies" },
           { name: "Reports", icon: FiTrendingUp, href: "/dashboard/teller/reports" },
+          { name: "Settings", icon: FiSettings, href: "/dashboard/teller/settings" },
         ];
       case "admin":
         return [
           { name: "Dashboard", icon: FiBarChart2, href: "/dashboard/admin" },
           { name: "Users", icon: FiUsers, href: "/dashboard/admin/users" },
           { name: "Tellers", icon: FiHome, href: "/dashboard/admin/tellers" },
+          { name: "Companies", icon: FiBriefcase, href: "/dashboard/admin/companies" },
           { name: "Transactions", icon: FiDollarSign, href: "/dashboard/admin/transactions" },
           { name: "Reports", icon: FiTrendingUp, href: "/dashboard/admin/reports" },
           { name: "Settings", icon: FiSettings, href: "/dashboard/admin/settings" },
@@ -134,7 +153,6 @@ export default function DashboardLayout({
           { name: "Overview", icon: FiBarChart2, href: "/dashboard/super-admin" },
           { name: "User Management", icon: FiUsers, href: "/dashboard/super-admin/users" },
           { name: "Companies", icon: FiBriefcase, href: "/dashboard/super-admin/companies" },
-          { name: "System Health", icon: FiActivity, href: "/dashboard/super-admin/system" },
           { name: "Settings", icon: FiSettings, href: "/dashboard/super-admin/settings" },
         ];
       case "company":
@@ -197,15 +215,25 @@ export default function DashboardLayout({
 
         <div className="absolute bottom-4 left-4 right-4">
           <div className="bg-white/10 rounded-lg p-4 text-white">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                <span className="font-semibold text-white">
-                  {derivedName?.charAt(0) ?? "U"}
-                </span>
+            <div className="flex flex-col items-center space-y-2 text-center">
+              <div className="w-16 h-16 rounded-full overflow-hidden bg-white/25 flex items-center justify-center border border-white/40 shadow-inner">
+                {derivedPassportPhoto ? (
+                  <Image
+                    src={derivedPassportPhoto}
+                    alt={derivedName ?? "User"}
+                    width={64}
+                    height={64}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="font-semibold text-white text-xl">
+                    {derivedName?.charAt(0) ?? "U"}
+                  </span>
+                )}
               </div>
-              <div>
-                <p className="font-medium">{derivedName}</p>
-                <p className="text-xs text-white/80 truncate">{derivedEmail || "Email unavailable"}</p>
+              <div className="max-w-40">
+                <p className="font-medium leading-tight">{derivedName}</p>
+                <p className="text-xs text-white/80 truncate">{derivedEmail}</p>
                 <p className="text-sm text-white/70 capitalize">{derivedRole}</p>
               </div>
             </div>

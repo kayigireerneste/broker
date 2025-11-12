@@ -239,19 +239,12 @@ export default function SignupPage() {
                 {generalError}
               </div>
             )}
-            <p className="text-sm text-gray-500">
-              We only need a few details so we can verify your identity and secure your account.
-            </p>
             <motion.div
               className="space-y-6 animate-fadeInUp"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Personal details</h3>
-                <p className="text-sm text-gray-500">Let us know who you are and how to contact you.</p>
-              </div>
               <div className="grid gap-6 md:grid-cols-2">
                 <InputField
                   name="fullName"
@@ -327,10 +320,6 @@ export default function SignupPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: 0.05 }}
             >
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Security</h3>
-                <p className="text-sm text-gray-500">Choose a strong password so we can keep your account safe.</p>
-              </div>
               <div className="grid gap-6 md:grid-cols-2">
                 <InputField
                   name="password"
@@ -364,10 +353,6 @@ export default function SignupPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: 0.1 }}
             >
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Location & details</h3>
-                <p className="text-sm text-gray-500">Tell us where you&apos;re based to tailor your experience.</p>
-              </div>
               <div className="grid gap-6 md:grid-cols-2">
                 <div className="space-y-2 md:col-span-2">
                   <label htmlFor="country" className="block text-sm font-medium text-[#004B5B]">

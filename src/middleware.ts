@@ -1,19 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
 
-type Role = "client" | "teller" | "admin";
+type Role = "client" | "teller" | "admin" | "super_admin" | "company";
 
 const roleToDashboard: Record<Role, string> = {
   client: "/dashboard/client",
   teller: "/dashboard/teller",
   admin: "/dashboard/admin",
+  super_admin: "/dashboard/super-admin",
+  company: "/dashboard/company",
 };
 
 const normalizeRole = (role?: unknown): Role | null => {
   if (typeof role !== "string") return null;
-  const lower = role.toLowerCase();
-  if (lower === "client" || lower === "teller" || lower === "admin") {
-    return lower as Role;
+  const normalized = role.toLowerCase().replace(/-/g, "_");
+  if (
+    normalized === "client" ||
+    normalized === "teller" ||
+    normalized === "admin" ||
+    normalized === "super_admin" ||
+    normalized === "company"
+  ) {
+    return normalized as Role;
   }
   return null;
 };

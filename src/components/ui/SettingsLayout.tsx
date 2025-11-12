@@ -17,6 +17,8 @@ export interface SettingsLayoutNavItem {
 	disabled?: boolean;
 }
 
+type SettingsLayoutRole = "client" | "teller" | "admin" | "super-admin" | "company";
+
 interface SettingsLayoutProps {
 	title: string;
 	description?: string;
@@ -24,7 +26,7 @@ interface SettingsLayoutProps {
 	activeItem?: string;
 	onItemSelect?: (id: string) => void;
 	actions?: ReactNode;
-	userRole?: "client" | "teller" | "admin";
+	userRole?: SettingsLayoutRole;
 	userName?: string;
 	userEmail?: string;
 	onDeleteAccount?: () => void;
@@ -54,10 +56,24 @@ export default function SettingsLayout({
 	const [deleteError, setDeleteError] = useState<string | null>(null);
 	const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
-	const derivedRole = useMemo(() => {
+	const derivedRole = useMemo<SettingsLayoutRole>(() => {
 		if (userRole) return userRole;
-		const role = typeof user?.role === "string" ? user.role.toLowerCase() : undefined;
-		return role === "client" || role === "teller" || role === "admin" ? role : "client";
+		if (typeof user?.role !== "string") {
+			return "client";
+		}
+		const normalized = user.role
+			.toLowerCase()
+			.replace(/_/g, "-");
+		if (
+			normalized === "client" ||
+			normalized === "teller" ||
+			normalized === "admin" ||
+			normalized === "super-admin" ||
+			normalized === "company"
+		) {
+			return normalized as SettingsLayoutRole;
+		}
+		return "client";
 	}, [userRole, user?.role]);
 
 	const derivedName = useMemo(() => {

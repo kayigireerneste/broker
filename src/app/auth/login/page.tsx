@@ -4,7 +4,7 @@ import { useState, type ChangeEvent, type FormEvent } from "react";
 import { motion } from "framer-motion";
 import Card from "@/components/ui/Card";
 import { InputField } from "@/components/ui/InputField";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { isAxiosError } from "axios";
 import axiosInstance from "@/lib/axios";
@@ -15,6 +15,7 @@ import { getDashboardPath } from "@/hooks/useAuth";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<LoginFormData>({
     email: "",
@@ -89,7 +90,15 @@ export default function LoginPage() {
           : undefined
       );
 
-      router.push(dashboardHref);
+      const redirectTarget = (() => {
+        const redirectParam = searchParams.get("redirect");
+        if (redirectParam && redirectParam.startsWith("/")) {
+          return redirectParam;
+        }
+        return dashboardHref;
+      })();
+
+      router.push(redirectTarget);
     } catch (error) {
       console.error("Login error:", error);
       const apiError = error as Error & { status?: number };

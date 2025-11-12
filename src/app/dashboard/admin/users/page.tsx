@@ -20,8 +20,13 @@ import {
   type UserCreationPayload,
 } from "@/lib/validations/signupValidation";
 import api, { authApi } from "@/lib/axios";
+import { useAuth } from "@/hooks/useAuth";
 
-type ApiUserRole = "ADMIN" | "TELLER" | "CLIENT";
+type ApiUserRole = "SUPER_ADMIN" | "ADMIN" | "TELLER" | "COMPANY" | "CLIENT";
+
+type ManagementMode = "SUPER_ADMIN" | "ADMIN" | "TELLER";
+
+type UserDisplayRole = "Super Admin" | "Admin" | "Teller" | "Company" | "Client";
 
 interface ApiUser {
   id: string;
@@ -52,7 +57,7 @@ interface UserRow {
   id: string;
   name: string;
   email: string;
-  role: "Admin" | "Teller" | "Client";
+  role: UserDisplayRole;
   status: UserStatus;
   raw: ApiUser;
 }
@@ -78,7 +83,7 @@ interface EditFormState {
 
 type NotificationPreferences = Record<string, boolean>;
 
-const roleEnum = z.enum(["ADMIN", "TELLER", "CLIENT"]);
+const roleEnum = z.enum(["SUPER_ADMIN", "ADMIN", "TELLER", "COMPANY", "CLIENT"]);
 
 type AdminSignupFormData = z.input<typeof baseSignupSchema>;
 
@@ -110,6 +115,92 @@ const GENDER_LABELS: Record<(typeof GENDER_VALUES)[number], string> = {
 const GENDER_OPTIONS = GENDER_VALUES.map((value) => ({ value, label: GENDER_LABELS[value] }));
 
 const OTP_LENGTH = 6;
+
+const ROLE_LABELS: Record<ApiUserRole, UserDisplayRole> = {
+  SUPER_ADMIN: "Super Admin",
+  ADMIN: "Admin",
+  TELLER: "Teller",
+  COMPANY: "Company",
+  CLIENT: "Client",
+};
+
+const ROLE_ORDER: ApiUserRole[] = ["SUPER_ADMIN", "ADMIN", "TELLER", "COMPANY", "CLIENT"];
+
+type DashboardRole = "client" | "teller" | "admin" | "super-admin" | "company";
+
+interface ModeConfig {
+  dashboardRole: DashboardRole;
+  title: string;
+  subtitle: string;
+  addButtonLabel: string;
+  itemNoun: string;
+  itemPlural: string;
+  allowedCreateRoles: ApiUserRole[];
+  allowedEditRoles: ApiUserRole[];
+  defaultCreateRole: ApiUserRole;
+  lockedRoleTargets: ApiUserRole[];
+  deleteBlockedRoles: ApiUserRole[];
+}
+
+const MODE_CONFIG: Record<ManagementMode, ModeConfig> = {
+  SUPER_ADMIN: {
+    dashboardRole: "super-admin",
+    title: "User directory",
+    subtitle: "Create accounts and assign roles across the platform.",
+    addButtonLabel: "Add user",
+    itemNoun: "user",
+  itemPlural: "users",
+    allowedCreateRoles: ROLE_ORDER,
+    allowedEditRoles: ROLE_ORDER,
+    defaultCreateRole: "CLIENT",
+    lockedRoleTargets: [],
+    deleteBlockedRoles: [],
+  },
+  ADMIN: {
+    dashboardRole: "admin",
+    title: "Manage users",
+    subtitle: "Invite team members and keep client access up to date.",
+    addButtonLabel: "Add user",
+    itemNoun: "user",
+  itemPlural: "users",
+    allowedCreateRoles: ["ADMIN", "TELLER", "COMPANY", "CLIENT"],
+    allowedEditRoles: ["ADMIN", "TELLER", "COMPANY", "CLIENT"],
+    defaultCreateRole: "CLIENT",
+    lockedRoleTargets: ["SUPER_ADMIN"],
+    deleteBlockedRoles: ["SUPER_ADMIN"],
+  },
+  TELLER: {
+    dashboardRole: "teller",
+    title: "Manage clients",
+    subtitle: "Onboard clients and keep their profiles current.",
+    addButtonLabel: "Add client",
+    itemNoun: "client",
+  itemPlural: "clients",
+    allowedCreateRoles: ["CLIENT"],
+    allowedEditRoles: ["CLIENT"],
+    defaultCreateRole: "CLIENT",
+    lockedRoleTargets: ["SUPER_ADMIN", "ADMIN", "TELLER", "COMPANY"],
+    deleteBlockedRoles: ["SUPER_ADMIN", "ADMIN", "TELLER", "COMPANY"],
+  },
+};
+
+const normalizeAuthRole = (role?: string | null): ManagementMode => {
+  const normalized = role?.toUpperCase().replace(/-/g, "_");
+  switch (normalized) {
+    case "SUPER_ADMIN":
+      return "SUPER_ADMIN";
+    case "TELLER":
+      return "TELLER";
+    default:
+      return "ADMIN";
+  }
+};
+
+const MODE_LABEL: Record<ManagementMode, string> = {
+  SUPER_ADMIN: "Super Admin",
+  ADMIN: "Admin",
+  TELLER: "Teller",
+};
 
 const updateUserSchema = baseSignupSchema
   .extend({
@@ -194,8 +285,8 @@ interface CreateExtras {
   notificationPreferences: NotificationPreferences;
 }
 
-const createInitialExtras = (): CreateExtras => ({
-  role: "CLIENT",
+const createInitialExtras = (defaultRole: ApiUserRole): CreateExtras => ({
+  role: defaultRole,
   notificationPreferences: {
     email: true,
     sms: false,
@@ -203,7 +294,20 @@ const createInitialExtras = (): CreateExtras => ({
   },
 });
 
-export default function AdminUsersPage() {
+export default function UserManagementPage() {
+  const { user } = useAuth();
+  const actorMode = useMemo<ManagementMode>(() => normalizeAuthRole(user?.role), [user?.role]);
+  const config = MODE_CONFIG[actorMode];
+
+  const { displayName, email } = useMemo(() => {
+    const fullName = typeof user?.fullName === "string" ? user.fullName.trim() : "";
+    const fallback = user?.email ? user.email.split("@")[0] : MODE_LABEL[actorMode];
+    return {
+      displayName: fullName || fallback || MODE_LABEL[actorMode],
+      email: user?.email ?? "",
+    };
+  }, [user?.fullName, user?.email, actorMode]);
+
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -222,7 +326,7 @@ export default function AdminUsersPage() {
   const [editErrors, setEditErrors] = useState<Partial<Record<keyof EditFormState, string>>>({});
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState<AdminSignupFormData>(createInitialForm());
-  const [createExtras, setCreateExtras] = useState<CreateExtras>(createInitialExtras());
+  const [createExtras, setCreateExtras] = useState<CreateExtras>(() => createInitialExtras(config.defaultCreateRole));
   const [createErrors, setCreateErrors] = useState<Partial<Record<keyof AdminSignupFormData, string>>>({});
   const [createError, setCreateError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -236,6 +340,18 @@ export default function AdminUsersPage() {
   const [resendingOtp, setResendingOtp] = useState(false);
   const rowsPerPage = 5;
 
+  useEffect(() => {
+    setCreateExtras((prev) => {
+      if (config.allowedCreateRoles.includes(prev.role)) {
+        return prev;
+      }
+      return {
+        ...prev,
+        role: config.defaultCreateRole,
+      };
+    });
+  }, [config.allowedCreateRoles, config.defaultCreateRole]);
+
   const formatDate = (value?: string | null) => {
     if (!value) return "—";
     const date = new Date(value);
@@ -247,8 +363,7 @@ export default function AdminUsersPage() {
     return `${user.phoneCountryCode ?? ""}${user.phone ?? ""}`.trim();
   };
 
-  const roleLabel = (role: ApiUserRole): UserRow["role"] =>
-    `${role.charAt(0)}${role.slice(1).toLowerCase()}` as UserRow["role"];
+  const roleLabel = (role: ApiUserRole): UserRow["role"] => ROLE_LABELS[role];
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -281,6 +396,22 @@ export default function AdminUsersPage() {
       raw: user,
     }));
   }, [users]);
+
+  const availableRoleFilters = useMemo<UserDisplayRole[]>(() => {
+    const currentRoles = new Set<UserDisplayRole>();
+    for (const row of userRows) {
+      currentRoles.add(row.role);
+    }
+    return ROLE_ORDER.map((role) => ROLE_LABELS[role]).filter((label) => currentRoles.has(label as UserDisplayRole)) as UserDisplayRole[];
+  }, [userRows]);
+
+  const editRoleOptions = useMemo<ApiUserRole[]>(() => {
+    if (!editForm) {
+      return config.allowedEditRoles;
+    }
+    const unique = new Set<ApiUserRole>([editForm.role, ...config.allowedEditRoles]);
+    return Array.from(unique);
+  }, [editForm, config.allowedEditRoles]);
 
   const filteredUsers = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
@@ -325,6 +456,12 @@ export default function AdminUsersPage() {
 
     const userId = pendingDelete.id;
 
+    if (config.deleteBlockedRoles.includes(pendingDelete.raw.role)) {
+      setError(`You don't have permission to delete ${ROLE_LABELS[pendingDelete.raw.role]} accounts.`);
+      setPendingDelete(null);
+      return;
+    }
+
     setDeletingId(userId);
     setError(null);
 
@@ -342,7 +479,7 @@ export default function AdminUsersPage() {
 
   const openCreateModal = () => {
     setCreateForm(createInitialForm());
-    setCreateExtras(createInitialExtras());
+    setCreateExtras(createInitialExtras(config.defaultCreateRole));
     setCreateErrors({});
     setCreateError(null);
     setIsCreateOpen(true);
@@ -352,7 +489,7 @@ export default function AdminUsersPage() {
     if (creating) return;
     setIsCreateOpen(false);
     setCreateForm(createInitialForm());
-    setCreateExtras(createInitialExtras());
+    setCreateExtras(createInitialExtras(config.defaultCreateRole));
     setCreateErrors({});
     setCreateError(null);
   };
@@ -441,6 +578,14 @@ export default function AdminUsersPage() {
     });
   };
 
+  const handleEditRoleSelect = (event: ChangeEvent<HTMLSelectElement>) => {
+    const value = event.target.value as ApiUserRole;
+    if (!config.allowedEditRoles.includes(value)) {
+      return;
+    }
+    updateEditField("role", value);
+  };
+
   const handleEditFileUpload = (field: "passportPhoto" | "idDocument") => (value: string) => {
     setEditForm((prev) => (prev ? { ...prev, [field]: value } : prev));
     setEditErrors((prev) => {
@@ -487,6 +632,9 @@ export default function AdminUsersPage() {
 
   const handleCreateRoleChange = (event: ChangeEvent<HTMLSelectElement>) => {
     const value = event.target.value as ApiUserRole;
+    if (!config.allowedCreateRoles.includes(value)) {
+      return;
+    }
     setCreateExtras((prev) => ({ ...prev, role: value }));
   };
 
@@ -606,7 +754,9 @@ export default function AdminUsersPage() {
     }
 
     if (createExtras.role) {
-      payload.role = createExtras.role;
+      payload.role = config.allowedCreateRoles.includes(createExtras.role)
+        ? createExtras.role
+        : config.defaultCreateRole;
     }
 
     payload.isVerified = false;
@@ -629,7 +779,7 @@ export default function AdminUsersPage() {
 
       setIsCreateOpen(false);
       setCreateForm(createInitialForm());
-      setCreateExtras(createInitialExtras());
+  setCreateExtras(createInitialExtras(config.defaultCreateRole));
       setCreateErrors({});
       setCreateError(null);
       openOtpModal(newUser.email, newUser.id);
@@ -716,6 +866,13 @@ export default function AdminUsersPage() {
       return;
     }
 
+    if ("role" in payload) {
+      const requestedRole = payload.role as ApiUserRole;
+      if (!config.allowedEditRoles.includes(requestedRole) || (editUser && config.lockedRoleTargets.includes(editUser.raw.role))) {
+        delete payload.role;
+      }
+    }
+
     const validation = updateUserSchema.safeParse(payload);
     if (!validation.success) {
       const flattened = validation.error.flatten();
@@ -768,11 +925,11 @@ export default function AdminUsersPage() {
   };
 
   return (
-    <DashboardLayout userRole="admin" userName="Admin">
+    <DashboardLayout userRole={config.dashboardRole} userName={displayName} userEmail={email}>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-3">
-          <h1 className="text-2xl font-semibold text-[#004B5B]">Manage Users</h1>
+          <h1 className="text-2xl font-semibold text-[#004B5B]">{config.title}</h1>
           <div className="flex items-center gap-3">
             <Button
               variant="secondary"
@@ -785,10 +942,12 @@ export default function AdminUsersPage() {
               className="flex items-center gap-2 px-4 py-2 bg-[#004B5B] text-white hover:bg-[#006B85] rounded-full"
               onClick={openCreateModal}
             >
-              <UserPlus className="h-4 w-4" /> Add User
+              <UserPlus className="h-4 w-4" /> {config.addButtonLabel}
             </Button>
           </div>
         </div>
+
+        <p className="text-sm text-gray-500">{config.subtitle}</p>
 
         {flashMessage && (
           <div
@@ -835,10 +994,12 @@ export default function AdminUsersPage() {
                 setCurrentPage(1);
               }}
             >
-              <option value="All">All Roles</option>
-              <option value="Admin">Admin</option>
-              <option value="Teller">Teller</option>
-              <option value="Client">Client</option>
+              <option value="All">All roles</option>
+              {availableRoleFilters.map((label) => (
+                <option key={label} value={label}>
+                  {label}
+                </option>
+              ))}
             </select>
 
             <select
@@ -900,7 +1061,7 @@ export default function AdminUsersPage() {
               {!loading && paginatedUsers.length === 0 && (
                 <tr>
                   <td colSpan={5} className="p-6 text-center text-gray-500">
-                    No users found. Adjust your filters or refresh the list.
+                    {`No ${config.itemPlural} found. Adjust your filters or refresh the list.`}
                   </td>
                 </tr>
               )}
@@ -946,6 +1107,7 @@ export default function AdminUsersPage() {
                       variant="outline"
                       className="h-8 w-8 p-0 text-red-600 hover:text-red-800"
                       onClick={() => openDeleteModal(user)}
+                      disabled={config.deleteBlockedRoles.includes(user.raw.role)}
                     >
                       {deletingId === user.id ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -1245,13 +1407,18 @@ export default function AdminUsersPage() {
                       <select
                         value={createExtras.role}
                         onChange={handleCreateRoleChange}
-                        disabled={creating}
+                        disabled={creating || config.allowedCreateRoles.length <= 1}
                         className="w-full rounded-full border border-[#004B5B]/50 bg-transparent px-4 py-2 text-sm text-[#004B5B] outline-none transition-all focus:border-[#004B5B]"
                       >
-                        <option value="ADMIN">Admin</option>
-                        <option value="TELLER">Teller</option>
-                        <option value="CLIENT">Client</option>
+                        {config.allowedCreateRoles.map((role) => (
+                          <option key={role} value={role}>
+                            {ROLE_LABELS[role]}
+                          </option>
+                        ))}
                       </select>
+                      {config.allowedCreateRoles.length <= 1 && (
+                        <p className="text-xs text-gray-500">{`Role is fixed to ${ROLE_LABELS[config.defaultCreateRole]}.`}</p>
+                      )}
                     </div>
 
                     <div className="md:col-span-2">
@@ -1529,15 +1696,20 @@ export default function AdminUsersPage() {
                     <label className="block text-sm font-medium text-[#004B5B]">Role</label>
                     <select
                       value={editForm.role}
-                      onChange={(e) => updateEditField("role", e.target.value as ApiUserRole)}
-                      disabled={savingEdit}
+                      onChange={handleEditRoleSelect}
+                      disabled={savingEdit || (editUser ? config.lockedRoleTargets.includes(editUser.raw.role) : false)}
                       className="w-full rounded-full border border-[#004B5B]/50 bg-transparent px-4 py-2 text-sm text-[#004B5B] outline-none transition-all focus:border-[#004B5B]"
                     >
-                      <option value="ADMIN">Admin</option>
-                      <option value="TELLER">Teller</option>
-                      <option value="CLIENT">Client</option>
+                      {editRoleOptions.map((role) => (
+                        <option key={role} value={role} disabled={!config.allowedEditRoles.includes(role)}>
+                          {ROLE_LABELS[role]}
+                        </option>
+                      ))}
                     </select>
                     {editErrors.role && <p className="text-sm text-red-600">{editErrors.role}</p>}
+                    {editUser && config.lockedRoleTargets.includes(editUser.raw.role) && (
+                      <p className="text-xs text-gray-500">You can&apos;t change the role of {ROLE_LABELS[editUser.raw.role]} accounts.</p>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2 pt-2 md:pt-6">

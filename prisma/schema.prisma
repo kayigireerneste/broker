@@ -56,7 +56,6 @@ model User {
 model Company {
   id             String   @id @default(uuid())
   name           String
-  ticker         String?  @unique
   description    String?
   sector         String?
   sharePrice     Decimal? @db.Decimal(18, 2)

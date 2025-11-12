@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;500;600;700;800&display=swap');
 @import "swagger-ui-react/swagger-ui.css";
 @import "tailwindcss";
 
@@ -6,6 +7,7 @@
   --primary-light: #006B85;
   --background: #ffffff;
   --foreground: #000000;
+  --font-sans: 'Comfortaa', sans-serif;
 }
 
 @theme inline {
@@ -21,7 +23,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Comfortaa', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 @keyframes fadeInUp {

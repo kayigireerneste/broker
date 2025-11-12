@@ -13,6 +13,8 @@ interface CachedPayload {
 	expiry: number;
 }
 
+type MarketStatusValue = "open" | "closed" | "suspended" | "unknown";
+
 interface MarketSummaryPayload {
 	snapshotDate: string;
 	dailySnapshot: Array<{
@@ -49,6 +51,11 @@ interface MarketSummaryPayload {
 		couponRate: string;
 		yieldTM: string;
 	}>;
+	marketStatus?: {
+		label: string;
+		normalized: MarketStatusValue;
+		isOpen: boolean;
+	};
 	sourceUrl: string;
 	fetchedAt: string;
 }
@@ -109,6 +116,91 @@ const parseHighlightStats = ($: cheerio.Root) => {
 	});
 
 	return highlights;
+};
+
+const classifyMarketStatus = (raw: string): MarketSummaryPayload["marketStatus"] => {
+	const label = normaliseText(raw).replace(/^[:\-\s]+/u, "");
+	const lower = label.toLowerCase();
+	let normalized: MarketStatusValue = "unknown";
+
+	if (/suspend|halt|holiday|maintenance/u.test(lower)) {
+		normalized = "suspended";
+	} else if (/close|closed|after\s*hours|post-?close|end of day/u.test(lower)) {
+		normalized = "closed";
+	} else if (/open|trading|pre-?open|session/u.test(lower)) {
+		normalized = "open";
+	}
+
+	return {
+		label: label || "Unknown",
+		normalized,
+		isOpen: normalized === "open",
+	};
+};
+
+const extractMarketStatus = (
+	$: cheerio.Root,
+	highlightStats: MarketSummaryPayload["highlightStats"]
+): MarketSummaryPayload["marketStatus"] | undefined => {
+	const highlightEntry = highlightStats.find((item) => /market status/i.test(item.indicator));
+	if (highlightEntry?.current) {
+		return classifyMarketStatus(highlightEntry.current);
+	}
+
+	let marqueeStatus: string | undefined;
+	$("span.market-status").each((_, element) => {
+		const text = normaliseText($(element).text());
+		if (!text) {
+			return;
+		}
+		const directMatch = text.match(/market status\s*[:\-]?\s*(.+)/iu);
+		marqueeStatus = directMatch?.[1] ?? text;
+		if (marqueeStatus) {
+			return false;
+		}
+	});
+	if (marqueeStatus) {
+		return classifyMarketStatus(marqueeStatus);
+	}
+
+	let extracted: string | undefined;
+
+	$('*').each((_, element) => {
+		const text = normaliseText($(element).text());
+		if (!text) {
+			return;
+		}
+
+		const directMatch = text.match(/market status\s*[:\-]?\s*(.+)/iu);
+		if (directMatch?.[1]) {
+			extracted = directMatch[1];
+			return false;
+		}
+
+		if (/^market status$/iu.test(text)) {
+			const siblingText = normaliseText($(element).next().text());
+			if (siblingText) {
+				extracted = siblingText;
+				return false;
+			}
+
+			const parentText = normaliseText($(element).parent().text());
+			const parentMatch = parentText.match(/market status\s*[:\-]?\s*(.+)/iu);
+			if (parentMatch?.[1]) {
+				extracted = parentMatch[1];
+				return false;
+			}
+		}
+	});
+
+	if (!extracted) {
+		const bodyMatch = normaliseText($("body").text()).match(/market status\s*[:\-]?\s*([A-Za-z ]{3,40})/iu);
+		if (bodyMatch?.[1]) {
+			extracted = bodyMatch[1];
+		}
+	}
+
+	return extracted ? classifyMarketStatus(extracted) : undefined;
 };
 
 const parseExchangeRates = ($: cheerio.Root, baseUrl: string) => {
@@ -178,14 +270,19 @@ const fetchMarketSummary = async (): Promise<MarketSummaryPayload> => {
 
 			const snapshotDate =
 				normaliseText($("#tabs #date").text()) || new Date().toLocaleDateString();
+			const dailySnapshot = parseDailySnapshot($);
+			const marketStats = parseMarketStats($);
+			const highlightStats = parseHighlightStats($);
+			const marketStatus = extractMarketStatus($, highlightStats);
 
 			return {
 				snapshotDate,
-				dailySnapshot: parseDailySnapshot($),
-				marketStats: parseMarketStats($),
-				highlightStats: parseHighlightStats($),
+				dailySnapshot,
+				marketStats,
+				highlightStats,
 				exchangeRates: parseExchangeRates($, url),
 				bonds: parseBonds($),
+				marketStatus,
 				sourceUrl: url,
 				fetchedAt: new Date().toISOString(),
 			};

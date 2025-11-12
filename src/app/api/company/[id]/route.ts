@@ -80,7 +80,6 @@ export async function PATCH(request: Request, { params }: { params: RouteParams 
     const data: Prisma.CompanyUpdateInput = {};
 
     if (parsed.name !== undefined) data.name = parsed.name;
-    if (parsed.ticker !== undefined) data.ticker = parsed.ticker;
     if (parsed.description !== undefined)
       data.description = parsed.description ?? null;
     if (parsed.sector !== undefined) data.sector = parsed.sector ?? null;
@@ -123,7 +122,7 @@ export async function PATCH(request: Request, { params }: { params: RouteParams 
       error.code === "P2002"
     ) {
       return NextResponse.json(
-        { error: "A company with the provided ticker already exists" },
+        { error: "A company with these details already exists" },
         { status: 409 }
       );
     }
