@@ -15,8 +15,8 @@ export async function GET(request: Request) {
     const where: Prisma.CompanyWhereInput | undefined = query
       ? {
           OR: [
-            { name: { contains: query, mode: "insensitive" } },
-            { sector: { contains: query, mode: "insensitive" } },
+            { name: { contains: query } },
+            { sector: { contains: query } },
           ],
         }
       : undefined;

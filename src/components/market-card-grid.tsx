@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { JSX } from "react";
 import { useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import { FiActivity, FiTrendingDown, FiTrendingUp } from "react-icons/fi";
 import { useMarketSummary } from "@/hooks/useMarketSummary";
 
@@ -104,160 +105,317 @@ export function MarketCardGrid(): JSX.Element {
   const hasSnapshot = sortedCards.length > 0;
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-      <header className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-10">
-        <div className="space-y-2">
-          <p className="text-sm tracking-wide text-[#2d94b0] uppercase font-semibold">
-            Daily market momentum
-          </p>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">
-            Explore live securities and trade opportunities
-          </h1>
-          <p className="text-base text-slate-600 max-w-2xl leading-relaxed">
-            We reimagined the daily snapshot from the exchange into actionable trading cards. Monitor the last
-            close, intraday swings, and liquidity signals, then act instantly with Buy or Sell CTA buttons.
-          </p>
-          {data?.snapshotDate && (
-            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-slate-400 pt-2">
-              <FiActivity className="h-4 w-4" />
-              Updated {data.snapshotDate}
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+      {/* Enhanced Header */}
+      <motion.header
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: false, margin: "-100px" }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className="mb-12"
+      >
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8 bg-white rounded-3xl shadow-lg border border-slate-200/60 p-8">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: false, margin: "-50px" }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="space-y-4 flex-1"
+          >
+            <div className="flex items-center gap-3">
+              <motion.div
+                initial={{ scaleY: 0 }}
+                whileInView={{ scaleY: 1 }}
+                viewport={{ once: false, margin: "-50px" }}
+                transition={{ duration: 0.6, delay: 0.4 }}
+                className="h-10 w-1 bg-linear-to-b from-[#026379] to-cyan-400 rounded-full origin-top"
+              />
+              <h2 className="text-3xl sm:text-4xl font-bold text-slate-900">
+                Live Securities
+              </h2>
             </div>
-          )}
-        </div>
+            <p className="text-base text-slate-600 leading-relaxed max-w-2xl">
+              Real-time market data presented in actionable trading cards. Monitor prices, 
+              track momentum, and execute trades with a single click.
+            </p>
+            {data?.snapshotDate && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: false, margin: "-50px" }}
+                transition={{ duration: 0.4, delay: 0.6 }}
+                className="inline-flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-200 px-4 py-2 text-sm text-emerald-700"
+              >
+                <FiActivity className="h-4 w-4 animate-pulse" />
+                <span className="font-medium">Last updated: {data.snapshotDate}</span>
+              </motion.div>
+            )}
+          </motion.div>
 
-        <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
-          <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-full px-4 py-2.5 shadow-sm">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Sort by</span>
-            <select
-              value={sortKey}
-              onChange={(event) => setSortKey(event.target.value as SortKey)}
-              className="bg-transparent border-none text-sm font-semibold text-slate-800 focus:outline-none cursor-pointer"
-            >
-              <option value="change">Change % (desc)</option>
-              <option value="volume">Volume (desc)</option>
-              <option value="value">Value (desc)</option>
-              <option value="closing">Closing price (desc)</option>
-            </select>
-          </div>
-          {/* Placeholder view toggle for future extension */}
-          <div className="flex items-center gap-2 rounded-full bg-slate-900/90 px-4 py-2.5 text-xs uppercase text-white tracking-wider shadow-sm">
-            <span className="font-semibold">Grid view</span>
-          </div>
+          {/* Enhanced Controls */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: false, margin: "-50px" }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="flex flex-col gap-4"
+          >
+            <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 shadow-sm">
+              <svg className="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+              </svg>
+              <span className="text-sm font-semibold text-slate-600 uppercase tracking-wide">Sort by</span>
+              <select
+                value={sortKey}
+                onChange={(event) => setSortKey(event.target.value as SortKey)}
+                className="bg-transparent border-none text-sm font-bold text-slate-900 focus:outline-none cursor-pointer"
+              >
+                <option value="change">Change %</option>
+                <option value="volume">Volume</option>
+                <option value="value">Value</option>
+                <option value="closing">Price</option>
+              </select>
+            </div>
+            <div className="flex items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-[#004B5B] to-[#026379] px-5 py-3.5 text-sm uppercase text-white tracking-wider shadow-md">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
+              <span className="font-bold">Grid View</span>
+            </div>
+          </motion.div>
         </div>
-      </header>
+      </motion.header>
 
       {loading && (
-        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-7 sm:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 6 }).map((_, idx) => (
-            <div
+            <motion.div
               key={idx}
-              className="rounded-3xl border border-slate-200 bg-white/70 p-6 animate-pulse min-h-[280px]"
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: false, margin: "-100px" }}
+              transition={{ duration: 0.4, delay: idx * 0.1 }}
+              className="rounded-3xl border-2 border-slate-200/60 bg-white p-7 min-h-80 shadow-lg"
             >
-              <div className="h-4 w-24 bg-slate-200 rounded-full mb-4" />
-              <div className="h-8 w-32 bg-slate-200 rounded-lg mb-6" />
-              <div className="space-y-3">
-                <div className="h-3 w-full bg-slate-200 rounded-full" />
-                <div className="h-3 w-3/4 bg-slate-200 rounded-full" />
-                <div className="h-3 w-2/3 bg-slate-200 rounded-full" />
+              <div className="flex items-start justify-between mb-6">
+                <div className="space-y-3 flex-1">
+                  <motion.div
+                    animate={{
+                      opacity: [0.5, 0.8, 0.5]
+                    }}
+                    transition={{
+                      duration: 1.5,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                    className="h-6 w-24 bg-slate-200 rounded-full"
+                  />
+                  <motion.div
+                    animate={{
+                      opacity: [0.5, 0.8, 0.5]
+                    }}
+                    transition={{
+                      duration: 1.5,
+                      delay: 0.2,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                    className="h-8 w-40 bg-slate-200 rounded-xl"
+                  />
+                </div>
+                <motion.div
+                  animate={{
+                    opacity: [0.5, 0.8, 0.5]
+                  }}
+                  transition={{
+                    duration: 1.5,
+                    delay: 0.4,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                  className="h-16 w-16 bg-slate-200 rounded-2xl"
+                />
               </div>
-              <div className="mt-8 flex gap-3">
-                <div className="h-10 flex-1 bg-slate-200 rounded-full" />
-                <div className="h-10 flex-1 bg-slate-200 rounded-full" />
+              <div className="grid grid-cols-2 gap-3 mb-6">
+                {[1, 2, 3, 4].map((i) => (
+                  <motion.div
+                    key={i}
+                    animate={{
+                      opacity: [0.5, 0.8, 0.5]
+                    }}
+                    transition={{
+                      duration: 1.5,
+                      delay: i * 0.1,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                    className="h-20 bg-slate-100 rounded-2xl"
+                  />
+                ))}
               </div>
-            </div>
+              <div className="flex gap-3">
+                <motion.div
+                  animate={{
+                    opacity: [0.5, 0.8, 0.5]
+                  }}
+                  transition={{
+                    duration: 1.5,
+                    delay: 0.6,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                  className="h-12 flex-1 bg-slate-200 rounded-xl"
+                />
+                <motion.div
+                  animate={{
+                    opacity: [0.5, 0.8, 0.5]
+                  }}
+                  transition={{
+                    duration: 1.5,
+                    delay: 0.8,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                  className="h-12 flex-1 bg-slate-200 rounded-xl"
+                />
+              </div>
+            </motion.div>
           ))}
         </div>
       )}
 
       {!loading && error && (
-        <div className="rounded-3xl border border-rose-200 bg-rose-50/80 px-6 py-8 text-rose-600 text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: false, margin: "-100px" }}
+          transition={{ duration: 0.5 }}
+          className="rounded-3xl border border-rose-200 bg-rose-50/80 px-6 py-8 text-rose-600 text-center"
+        >
           <p className="font-semibold text-base">{error}</p>
           <p className="text-sm text-rose-500 mt-2">
             Please refresh the page to attempt another fetch from the exchange.
           </p>
-        </div>
+        </motion.div>
       )}
 
       {!loading && !error && !hasSnapshot && (
-        <div className="rounded-3xl border border-slate-200 bg-white px-6 py-12 text-center text-slate-500">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: false, margin: "-100px" }}
+          transition={{ duration: 0.5 }}
+          className="rounded-3xl border border-slate-200 bg-white px-6 py-12 text-center text-slate-500"
+        >
           <p className="text-base">There are no securities in today&apos;s snapshot yet. Check back soon for live opportunities.</p>
-        </div>
+        </motion.div>
       )}
 
       {hasSnapshot && (
-        <div className="grid gap-6 md:gap-7 lg:gap-8 sm:grid-cols-2 xl:grid-cols-3">
-          {sortedCards.map((card) => {
+        <div className="grid gap-7 md:gap-8 sm:grid-cols-2 xl:grid-cols-3">
+          {sortedCards.map((card, index) => {
             const trendIcon = card.positive ? FiTrendingUp : card.negative ? FiTrendingDown : FiActivity;
             const TrendIcon = trendIcon;
             const changeTone = card.positive
-              ? "text-emerald-500 bg-emerald-500/10"
+              ? "text-emerald-600 bg-emerald-50 border-emerald-200"
               : card.negative
-              ? "text-rose-500 bg-rose-500/10"
-              : "text-slate-500 bg-slate-200/50";
+              ? "text-rose-600 bg-rose-50 border-rose-200"
+              : "text-slate-600 bg-slate-50 border-slate-200";
 
             return (
-              <article
+              <motion.article
                 key={`${card.security}-${card.index}`}
-                className={`relative overflow-hidden rounded-3xl border backdrop-blur-md bg-linear-to-br ${card.tone.bg} ${card.tone.border} p-6 sm:p-7 flex flex-col gap-6 shadow-[0_25px_45px_-20px_rgba(15,23,42,0.25)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_35px_55px_-25px_rgba(15,23,42,0.35)]`}
+                initial={{ opacity: 0, y: 50, scale: 0.95 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                viewport={{ once: false, margin: "-80px", amount: 0.3 }}
+                transition={{
+                  duration: 0.7,
+                  delay: (index % 3) * 0.15, // Stagger by row
+                  ease: [0.25, 0.46, 0.45, 0.94], // Custom easing
+                }}
+                whileHover={{
+                  y: -12,
+                  scale: 1.03,
+                  transition: { duration: 0.3, ease: "easeOut" }
+                }}
+                className="group relative overflow-hidden rounded-3xl border-2 border-slate-200/60 bg-white p-7 shadow-lg hover:shadow-2xl hover:border-[#026379]/30"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="space-y-3">
-                    <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${card.tone.badge} ${card.tone.badgeText}`}>
+                {/* Decorative gradient background on hover */}
+                <div className="absolute inset-0 bg-linear-to-br from-[#026379]/0 via-cyan-500/0 to-blue-500/0 opacity-0 transition-opacity duration-500 group-hover:opacity-5"></div>
+                
+                {/* Content */}
+                <div className="relative z-10 flex flex-col gap-6">
+                  {/* Header Section */}
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 space-y-3">
+                      {/* Trend Badge */}
+                      <div className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold uppercase tracking-wide transition-all ${changeTone}`}>
+                        <TrendIcon className="h-4 w-4" />
+                        {card.positive ? "Bullish" : card.negative ? "Bearish" : "Neutral"}
+                      </div>
+                      
+                      {/* Security Name */}
+                      <h3 className="text-2xl font-bold text-slate-900 leading-tight group-hover:text-[#026379] transition-colors">
+                        {card.security || "Unnamed Security"}
+                      </h3>
+                    </div>
+
+                    {/* Price Badge */}
+                    <div className="relative h-18 w-18 shrink-0 rounded-2xl bg-linear-to-br from-[#004B5B] to-[#026379] flex items-center justify-center shadow-md group-hover:shadow-xl transition-all group-hover:scale-110">
+                      <span className="text-white text-lg font-bold">{card.closing || "—"}</span>
+                      <div className="absolute -inset-1 bg-linear-to-br from-cyan-400 to-blue-500 rounded-2xl opacity-0 group-hover:opacity-20 blur transition-all"></div>
+                    </div>
+                  </div>
+
+                  {/* Metrics Grid */}
+                  <dl className="grid grid-cols-2 gap-3">
+                    <div className="rounded-2xl border-2 border-slate-100 bg-slate-50/50 px-4 py-3.5 transition-all group-hover:border-[#026379]/20 group-hover:bg-[#026379]/5">
+                      <dt className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-1">Closing</dt>
+                      <dd className="text-lg font-bold text-slate-900">{card.closing || "—"}</dd>
+                    </div>
+                    <div className="rounded-2xl border-2 border-slate-100 bg-slate-50/50 px-4 py-3.5 transition-all group-hover:border-[#026379]/20 group-hover:bg-[#026379]/5">
+                      <dt className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-1">Previous</dt>
+                      <dd className="text-lg font-bold text-slate-900">{card.previous || "—"}</dd>
+                    </div>
+                    <div className="rounded-2xl border-2 border-slate-100 bg-slate-50/50 px-4 py-3.5 transition-all group-hover:border-[#026379]/20 group-hover:bg-[#026379]/5">
+                      <dt className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-1">Volume</dt>
+                      <dd className="text-lg font-bold text-slate-900">{card.volume || "—"}</dd>
+                    </div>
+                    <div className="rounded-2xl border-2 border-slate-100 bg-slate-50/50 px-4 py-3.5 transition-all group-hover:border-[#026379]/20 group-hover:bg-[#026379]/5">
+                      <dt className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-1">Value</dt>
+                      <dd className="text-lg font-bold text-slate-900">{card.value || "—"}</dd>
+                    </div>
+                  </dl>
+
+                  {/* Footer with Change and Actions */}
+                  <div className="flex items-center justify-between gap-4 pt-2">
+                    {/* Change Indicator */}
+                    <div className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-bold ${changeTone}`}>
                       <TrendIcon className="h-4 w-4" />
-                      {card.positive ? "Bullish" : card.negative ? "Bearish" : "Sideways"}
-                    </span>
-                    <h2 className="text-xl font-semibold text-slate-900 leading-tight">
-                      {card.security || "Unnamed Security"}
-                    </h2>
-                    <p className="text-sm text-slate-600 max-w-xs leading-relaxed">
-                      Quick pulse on liquidity and price action so you can decide whether to buy the dip or secure gains.
-                    </p>
-                  </div>
-                  <div className="relative h-16 w-16 shrink-0 rounded-2xl bg-slate-900/5 flex items-center justify-center border border-white/40 shadow-inner">
-                    <span className={`${card.tone.highlight} text-lg font-bold`}>{card.closing || "—"}</span>
+                      <span>{card.change || "0.00"}</span>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2">
+                      <Link
+                        href="/forms/PurchaseOrderForm"
+                        className="group/btn inline-flex items-center justify-center rounded-xl bg-emerald-500 px-5 py-2.5 text-sm font-bold uppercase tracking-wide text-white shadow-md transition-all hover:bg-emerald-600 hover:shadow-xl hover:scale-105 focus:outline-none focus:ring-4 focus:ring-emerald-300"
+                      >
+                        <span>Buy</span>
+                        <svg className="ml-1 h-4 w-4 transition-transform group-hover/btn:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </Link>
+                      <Link
+                        href="/forms/SaleOrderForm"
+                        className="inline-flex items-center justify-center rounded-xl border-2 border-rose-400 bg-white px-5 py-2.5 text-sm font-bold uppercase tracking-wide text-rose-500 transition-all hover:bg-rose-500 hover:text-white hover:shadow-xl hover:scale-105 focus:outline-none focus:ring-4 focus:ring-rose-300"
+                      >
+                        <span>Sell</span>
+                      </Link>
+                    </div>
                   </div>
                 </div>
-
-                <dl className="grid grid-cols-2 gap-4 text-sm text-slate-600">
-                  <div className="rounded-2xl border border-white/40 bg-white/60 backdrop-blur-sm px-4 py-3 shadow-sm">
-                    <dt className="text-xs uppercase tracking-wider text-slate-500 font-medium">Closing</dt>
-                    <dd className="text-base font-semibold text-slate-900 mt-1">{card.closing || "—"}</dd>
-                  </div>
-                  <div className="rounded-2xl border border-white/40 bg-white/60 backdrop-blur-sm px-4 py-3 shadow-sm">
-                    <dt className="text-xs uppercase tracking-wider text-slate-500 font-medium">Previous</dt>
-                    <dd className="text-base font-semibold text-slate-900 mt-1">{card.previous || "—"}</dd>
-                  </div>
-                  <div className="rounded-2xl border border-white/40 bg-white/60 backdrop-blur-sm px-4 py-3 shadow-sm">
-                    <dt className="text-xs uppercase tracking-wider text-slate-500 font-medium">Volume</dt>
-                    <dd className="text-base font-semibold text-slate-900 mt-1">{card.volume || "—"}</dd>
-                  </div>
-                  <div className="rounded-2xl border border-white/40 bg-white/60 backdrop-blur-sm px-4 py-3 shadow-sm">
-                    <dt className="text-xs uppercase tracking-wider text-slate-500 font-medium">Value</dt>
-                    <dd className="text-base font-semibold text-slate-900 mt-1">{card.value || "—"}</dd>
-                  </div>
-                </dl>
-
-                <div className="flex items-center justify-between">
-                  <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${changeTone}`}>
-                    <TrendIcon className="h-4 w-4" />
-                    {card.change || "0.00"}
-                  </div>
-                  <div className="flex gap-3">
-                    <Link
-                      href="/forms/PurchaseOrderForm"
-                      className="group inline-flex items-center justify-center rounded-full bg-emerald-500 px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-white shadow-md transition-all hover:bg-emerald-600 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:ring-offset-2"
-                    >
-                      Buy
-                    </Link>
-                    <Link
-                      href="/forms/SaleOrderForm"
-                      className="inline-flex items-center justify-center rounded-full border-2 border-rose-300/70 px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-rose-500 transition-all hover:bg-rose-500 hover:text-white hover:border-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:ring-offset-2"
-                    >
-                      Sell
-                    </Link>
-                  </div>
-                </div>
-              </article>
+              </motion.article>
             );
           })}
         </div>

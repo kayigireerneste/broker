@@ -354,7 +354,7 @@ export default function Header() {
                 }}
               >
                 {isTickerLoading && (
-                  <div className="shrink-0 mx-4 text-gray-500">
+                  <div className="shrink-0 mx-4 text-white">
                     Loading live market data...
                   </div>
                 )}
