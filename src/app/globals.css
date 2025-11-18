@@ -24,6 +24,19 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: 'Comfortaa', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+html {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+#__next {
+  width: 100%;
+  overflow-x: hidden;
 }
 
 @keyframes fadeInUp {

@@ -158,9 +158,12 @@ export default function DashboardLayout({
       case "company":
         return [
           { name: "Dashboard", icon: FiBarChart2, href: "/dashboard/company" },
-          { name: "Listings", icon: FiBriefcase, href: "/dashboard/company/listings" },
-          { name: "Share Offers", icon: FiTrendingUp, href: "/dashboard/company/offers" },
-          { name: "Orders", icon: FiClipboard, href: "/dashboard/company/orders" },
+          { name: "Investments", icon: FiBriefcase, href: "/dashboard/company/investments" },
+          { name: "Trade", icon: FiTrendingUp, href: "/dashboard/company/trade" },
+          { name: "Wallet", icon: FiCreditCard, href: "/dashboard/company/wallet" },
+          { name: "History", icon: FiClipboard, href: "/dashboard/company/history" },
+          { name: "Share Movement", icon: FiZap, href: "/dashboard/company/share-movement" },
+          { name: "Shareholders", icon: FiUsers, href: "/dashboard/company/shareholders" },
           { name: "Settings", icon: FiSettings, href: "/dashboard/company/settings" },
         ];
       default:
@@ -169,7 +172,7 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50 flex overflow-x-hidden w-full">
       <aside
         className={`fixed inset-y-0 left-0 z-50 w-64 gradient-primary transform transition-transform duration-300 
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} 
@@ -245,8 +248,8 @@ export default function DashboardLayout({
         className={`flex-1 flex flex-col min-h-screen transition-all duration-300 
         ${sidebarOpen ? "ml-0" : "md:ml-64"}`}
       >
-        <header className="fixed top-0 z-40 bg-white shadow-sm border-b border-gray-200 w-full md:w-[calc(100%-16rem)] md:left-64">
-          <div className="flex items-center justify-between h-16 px-4 md:px-6">
+        <header className="fixed top-0 right-0 z-40 bg-white shadow-sm border-b border-gray-200 left-0 md:left-64 w-full">
+          <div className="flex items-center justify-between h-16 px-3 md:px-6 w-full max-w-full">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className="p-2 rounded-lg hover:bg-gray-100 transition-colors md:hidden"
@@ -285,7 +288,7 @@ export default function DashboardLayout({
           </div>
         </header>
 
-        <main className="pt-20 px-4 md:px-8 pb-8 flex-1 overflow-y-auto bg-gray-50">
+  <main className="pt-20 pr-3 pb-8 pl-3 md:pr-8 md:pl-6 flex-1 overflow-y-auto bg-gray-50 w-full max-w-full">
           {children}
         </main>
       </div>

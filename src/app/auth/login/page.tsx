@@ -58,37 +58,47 @@ function LoginForm() {
       }
 
       const validatedData = validationResult.data;
+      
+      // Login endpoint now handles both users and companies
       const data = await axiosInstance.post("/auth/login", validatedData);
-
-      console.log("Login response:", data);
 
       if (!data || typeof data !== "object") {
         throw new Error("Invalid response from server");
       }
 
-      const { token, user, message } = data as {
+      const { token, user, company, message } = data as {
         token?: string;
         user?: unknown;
+        company?: unknown;
         message?: string;
         error?: string;
       };
 
-      if (!token || !user) {
+      // Determine if it's a company login based on the response
+      const isCompanyLogin = !!company;
+      const loggedInEntity = isCompanyLogin ? company : user;
+
+      if (!token || !loggedInEntity) {
         const apiError = (data as { error?: string }).error;
-        throw new Error(apiError || "Missing token or user data in response");
+        throw new Error(apiError || "Missing token or login data in response");
       }
 
       localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
-      document.cookie = `token=${token}; path=/`;
+      localStorage.setItem(isCompanyLogin ? "company" : "user", JSON.stringify(loggedInEntity));
+      
+      // Set cookie with proper options to ensure it's sent with subsequent requests
+      document.cookie = `token=${token}; path=/; max-age=604800; SameSite=Lax`;
       
       toast.success(message || "Login successful!");
 
-      const dashboardHref = getDashboardPath(
-        typeof user === "object" && user !== null && "role" in user
-          ? (user as { role?: string }).role
-          : undefined
-      );
+      // For companies, redirect to company dashboard
+      const dashboardHref = isCompanyLogin 
+        ? "/dashboard/company"
+        : getDashboardPath(
+            typeof loggedInEntity === "object" && loggedInEntity !== null && "role" in loggedInEntity
+              ? (loggedInEntity as { role?: string }).role
+              : undefined
+          );
 
       const redirectTarget = (() => {
         const redirectParam = searchParams.get("redirect");
@@ -97,8 +107,10 @@ function LoginForm() {
         }
         return dashboardHref;
       })();
-
-      router.push(redirectTarget);
+      
+      // Use window.location.href for full page reload to ensure cookie is sent
+      // router.push doesn't always include newly set cookies in server requests
+      window.location.href = redirectTarget;
     } catch (error) {
       console.error("Login error:", error);
       const apiError = error as Error & { status?: number };

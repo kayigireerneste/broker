@@ -40,15 +40,23 @@ api.interceptors.response.use(
     return response.data;
   },
   (error: AxiosError<{ error?: string; message?: string; errors?: Array<{ field?: string; message: string }> }>) => {
+    console.log('Axios error interceptor:', {
+      url: error.config?.url,
+      status: error.response?.status,
+      data: error.response?.data
+    });
+    
     if (error.response) {
       const data = error.response.data;
       const message =
         data?.message || data?.error || `Server error: ${error.response.status}`;
       const enrichedError = new Error(message) as Error & {
         status?: number;
+        response?: typeof error.response;
         fieldErrors?: Array<{ field?: string; message: string }>;
       };
       enrichedError.status = error.response.status;
+      enrichedError.response = error.response; // Preserve the full response
       if (Array.isArray(data?.errors)) {
         enrichedError.fieldErrors = data.errors;
       }

@@ -40,6 +40,19 @@ export async function middleware(request: NextRequest) {
   const isOpenAuthPage = openAuthPaths.has(pathname);
   const isDashboardPage = pathname.startsWith("/dashboard");
 
+  // Skip logging for static assets and API routes
+  const isStaticAsset = pathname.match(/\.(ico|png|jpg|jpeg|svg|css|js|woff|woff2|ttf)$/);
+  const isApiRoute = pathname.startsWith("/api");
+  
+  if (!isStaticAsset && !isApiRoute) {
+    console.log('Middleware check:', {
+      pathname,
+      hasToken: !!tokenValue,
+      isDashboardPage,
+      isAuthPage
+    });
+  }
+
   const redirectToLogin = () => {
     const loginUrl = new URL("/auth/login", request.url);
     const existingRedirect = request.nextUrl.searchParams.get("redirect");
@@ -49,12 +62,18 @@ export async function middleware(request: NextRequest) {
     } else {
       loginUrl.searchParams.set("redirect", pathname);
     }
+    if (!isStaticAsset && !isApiRoute) {
+      console.log('Redirecting to login from:', pathname);
+    }
     const response = NextResponse.redirect(loginUrl);
     response.cookies.delete("token");
     return response;
   };
 
   if (!tokenValue) {
+    if (!isStaticAsset && !isApiRoute) {
+      console.log('No token found, checking if dashboard page...');
+    }
     if (isDashboardPage) {
       return redirectToLogin();
     }
@@ -62,8 +81,19 @@ export async function middleware(request: NextRequest) {
   }
 
   try {
-    const payload = await verifyToken<{ role?: string }>(tokenValue);
-    const userRole = normalizeRole(payload.role);
+    const payload = await verifyToken<{ role?: string; type?: string }>(tokenValue);
+    if (!isStaticAsset && !isApiRoute) {
+      console.log('Token verified, payload type:', payload.type || 'user');
+    }
+    
+    // If it's a company token, set role to 'company'
+    const userRole = payload.type === "company" 
+      ? normalizeRole("company") 
+      : normalizeRole(payload.role);
+
+    if (!isStaticAsset && !isApiRoute) {
+      console.log('Determined user role:', userRole);
+    }
 
     if (!userRole) {
       if (isDashboardPage) {

@@ -71,6 +71,26 @@ export const generateCsdNumber = async (
 
   return `${prefix}${serialSegment}`;
 };
+
+export const generateCompanyCsdNumber = async (
+  tx: Prisma.TransactionClient,
+  country: string | null | undefined
+): Promise<string> => {
+  const date = new Date();
+  const dateSegment = buildDateSegment(date);
+  const genderSegment = "C"; // C for Company
+  const countrySegment = buildCountrySegment(country);
+  const prefix = `${dateSegment} ${genderSegment} ${countrySegment}`;
+
+  const existingCount = await tx.company.count({
+    where: { csdNumber: { startsWith: prefix } },
+  });
+
+  const serial = existingCount + 1;
+  const serialSegment = buildSerialSegment(serial);
+
+  return `${prefix}${serialSegment}`;
+};
 type AssignmentOptions = {
   extraData?: Prisma.UserUpdateInput;
   maxAttempts?: number;

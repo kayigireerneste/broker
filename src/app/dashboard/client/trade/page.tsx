@@ -124,79 +124,79 @@ export default function TradePage() {
 
   return (
     <DashboardLayout userRole={dashboardRole} userName={displayName} userEmail={email}>
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Trading Desk</h1>
-          <p className="text-base text-slate-600 mt-1">Execute trades and monitor live market data</p>
+          <h1 className="text-xl md:text-2xl font-bold text-slate-900">Trading Desk</h1>
+          <p className="text-sm md:text-base text-slate-600 mt-1">Execute trades and monitor live market data</p>
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="p-4" hover={false}>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          <Card className="p-3 md:p-4" hover={false}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600">Wallet Balance</p>
-                <p className="text-xl font-bold text-slate-900">Rwf 3,420</p>
+                <p className="text-xs md:text-sm font-medium text-slate-600">Wallet Balance</p>
+                <p className="text-base md:text-xl font-bold text-slate-900">Rwf 3,420</p>
               </div>
-              <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                <Activity className="h-5 w-5 text-blue-600" />
+              <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                <Activity className="h-4 w-4 md:h-5 md:w-5 text-blue-600" />
               </div>
             </div>
           </Card>
 
-          <Card className="p-4" hover={false}>
+          <Card className="p-3 md:p-4" hover={false}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600">Buying Power</p>
-                <p className="text-xl font-bold text-slate-900">Rwf 3,420</p>
+                <p className="text-xs md:text-sm font-medium text-slate-600">Buying Power</p>
+                <p className="text-base md:text-xl font-bold text-slate-900">Rwf 3,420</p>
               </div>
-              <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-emerald-600" />
+              <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                <TrendingUp className="h-4 w-4 md:h-5 md:w-5 text-emerald-600" />
               </div>
             </div>
           </Card>
 
-          <Card className="p-4" hover={false}>
+          <Card className="p-3 md:p-4" hover={false}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600">Open Orders</p>
-                <p className="text-xl font-bold text-slate-900">3</p>
+                <p className="text-xs md:text-sm font-medium text-slate-600">Open Orders</p>
+                <p className="text-base md:text-xl font-bold text-slate-900">3</p>
               </div>
-              <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
-                <Activity className="h-5 w-5 text-amber-600" />
+              <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                <Activity className="h-4 w-4 md:h-5 md:w-5 text-amber-600" />
               </div>
             </div>
           </Card>
 
-          <Card className="p-4" hover={false}>
+          <Card className="p-3 md:p-4" hover={false}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600">Today&apos;s Trades</p>
-                <p className="text-xl font-bold text-slate-900">0</p>
+                <p className="text-xs md:text-sm font-medium text-slate-600">Today&apos;s Trades</p>
+                <p className="text-base md:text-xl font-bold text-slate-900">0</p>
               </div>
-              <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
-                <Activity className="h-5 w-5 text-purple-600" />
+              <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-purple-100 flex items-center justify-center shrink-0">
+                <Activity className="h-4 w-4 md:h-5 md:w-5 text-purple-600" />
               </div>
             </div>
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
           {/* Trading Form */}
-          <Card className="p-6 lg:col-span-2" hover={false}>
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold text-slate-900">Place Order</h2>
-              <p className="text-base text-slate-600 mt-1">Execute a buy or sell order</p>
+          <Card className="p-4 md:p-6 lg:col-span-2" hover={false}>
+            <div className="mb-4 md:mb-6">
+              <h2 className="text-lg md:text-xl font-semibold text-slate-900">Place Order</h2>
+              <p className="text-sm md:text-base text-slate-600 mt-1">Execute a buy or sell order</p>
             </div>
 
-            <form onSubmit={handleSubmitOrder} className="space-y-6">
+            <form onSubmit={handleSubmitOrder} className="space-y-4 md:space-y-6">
               {/* Order Type Toggle */}
-              <div className="flex gap-3">
+              <div className="flex gap-2 md:gap-3">
                 <button
                   type="button"
                   onClick={() => setOrderType("buy")}
-                  className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all ${
+                  className={`flex-1 py-2.5 md:py-3 px-4 rounded-lg md:rounded-xl font-semibold text-sm md:text-base transition-all ${
                     orderType === "buy"
                       ? "bg-emerald-500 text-white shadow-md"
                       : "bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -207,7 +207,7 @@ export default function TradePage() {
                 <button
                   type="button"
                   onClick={() => setOrderType("sell")}
-                  className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all ${
+                  className={`flex-1 py-2.5 md:py-3 px-4 rounded-lg md:rounded-xl font-semibold text-sm md:text-base transition-all ${
                     orderType === "sell"
                       ? "bg-rose-500 text-white shadow-md"
                       : "bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -225,7 +225,7 @@ export default function TradePage() {
                 <select
                   value={selectedSecurity}
                   onChange={(e) => setSelectedSecurity(e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 text-base text-slate-900 focus:border-[#004B5B] focus:outline-none focus:ring-2 focus:ring-[#004B5B]/20"
+                  className="w-full rounded-lg md:rounded-xl border border-slate-300 px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base text-slate-900 focus:border-[#004B5B] focus:outline-none focus:ring-2 focus:ring-[#004B5B]/20"
                 >
                   {securities.map((sec) => (
                     <option key={sec.symbol} value={sec.symbol}>
@@ -240,11 +240,11 @@ export default function TradePage() {
                 <label className="block text-sm font-medium text-slate-700 mb-2">
                   Order Type
                 </label>
-                <div className="flex gap-3">
+                <div className="flex gap-2 md:gap-3">
                   <button
                     type="button"
                     onClick={() => setPriceType("market")}
-                    className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all ${
+                    className={`flex-1 py-2 md:py-2.5 px-3 md:px-4 rounded-lg text-xs md:text-sm font-semibold transition-all ${
                       priceType === "market"
                         ? "bg-[#004B5B] text-white"
                         : "bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -255,7 +255,7 @@ export default function TradePage() {
                   <button
                     type="button"
                     onClick={() => setPriceType("limit")}
-                    className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all ${
+                    className={`flex-1 py-2 md:py-2.5 px-3 md:px-4 rounded-lg text-xs md:text-sm font-semibold transition-all ${
                       priceType === "limit"
                         ? "bg-[#004B5B] text-white"
                         : "bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -289,54 +289,54 @@ export default function TradePage() {
                 />
               )}
               {/* Order Summary */}
-              <div className="rounded-2xl bg-slate-50 p-4 space-y-3">
-                <div className="flex justify-between text-base">
+              <div className="rounded-xl md:rounded-2xl bg-slate-50 p-3 md:p-4 space-y-2 md:space-y-3">
+                <div className="flex justify-between text-sm md:text-base">
                   <span className="text-slate-600">Current Price</span>
                   <span className="font-semibold text-slate-900">Rwf {currentSecurity.price}</span>
                 </div>
-                <div className="flex justify-between text-base">
+                <div className="flex justify-between text-sm md:text-base">
                   <span className="text-slate-600">Quantity</span>
                   <span className="font-semibold text-slate-900">{quantity || 0} shares</span>
                 </div>
                 {priceType === "limit" && (
-                  <div className="flex justify-between text-base">
+                  <div className="flex justify-between text-sm md:text-base">
                     <span className="text-slate-600">Limit Price</span>
                     <span className="font-semibold text-slate-900">Rwf {limitPrice || 0}</span>
                   </div>
                 )}
-                <div className="pt-3 border-t border-slate-200 flex justify-between text-lg">
+                <div className="pt-2 md:pt-3 border-t border-slate-200 flex justify-between text-base md:text-lg">
                   <span className="font-semibold text-slate-700">Estimated Total</span>
                   <span className="font-bold text-slate-900">Rwf {estimatedTotal.toLocaleString()}</span>
                 </div>
               </div>
 
               {/* Submit Buttons */}
-              <div className="flex gap-3">
+              <div className="flex gap-2 md:gap-3">
                 <Button
                   type="submit"
-                  className={`flex-1 ${
+                  className={`flex-1 text-sm md:text-base ${
                     orderType === "buy" ? "bg-emerald-500 hover:bg-emerald-600" : "bg-rose-500 hover:bg-rose-600"
                   }`}
                   disabled={!quantity || (priceType === "limit" && !limitPrice)}
                 >
                   {orderType === "buy" ? "Place Buy Order" : "Place Sell Order"}
                 </Button>
-                <Button type="button" variant="outline" className="px-6">
+                <Button type="button" variant="outline" className="px-4 md:px-6 text-sm md:text-base">
                   Reset
                 </Button>
               </div>
 
               {/* Quick Links */}
-              <div className="pt-4 border-t border-slate-200 flex gap-3">
+              <div className="pt-3 md:pt-4 border-t border-slate-200 flex flex-col sm:flex-row gap-2 md:gap-3">
                 <Link
                   href="/forms/PurchaseOrderForm"
-                  className="text-sm text-[#004B5B] hover:underline font-medium"
+                  className="text-xs md:text-sm text-[#004B5B] hover:underline font-medium"
                 >
                   Advanced Buy Form →
                 </Link>
                 <Link
                   href="/forms/SaleOrderForm"
-                  className="text-sm text-[#004B5B] hover:underline font-medium"
+                  className="text-xs md:text-sm text-[#004B5B] hover:underline font-medium"
                 >
                   Advanced Sell Form →
                 </Link>
@@ -345,10 +345,10 @@ export default function TradePage() {
           </Card>
 
           {/* Market Watch */}
-          <Card className="p-6" hover={false}>
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold text-slate-900">Market Watch</h2>
-              <p className="text-base text-slate-600 mt-1">Live securities prices</p>
+          <Card className="p-4 md:p-6" hover={false}>
+            <div className="mb-4 md:mb-6">
+              <h2 className="text-lg md:text-xl font-semibold text-slate-900">Market Watch</h2>
+              <p className="text-sm md:text-base text-slate-600 mt-1">Live securities prices</p>
             </div>
 
             {/* Search */}
@@ -359,29 +359,29 @@ export default function TradePage() {
                 placeholder="Search securities..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-[#004B5B] focus:outline-none focus:ring-2 focus:ring-[#004B5B]/20"
+                className="w-full pl-10 pr-4 py-2 md:py-2.5 rounded-lg md:rounded-xl border border-slate-200 text-sm focus:border-[#004B5B] focus:outline-none focus:ring-2 focus:ring-[#004B5B]/20"
               />
             </div>
 
             {/* Securities List */}
-            <div className="space-y-3 max-h-96 overflow-y-auto">
+            <div className="space-y-2 md:space-y-3 max-h-96 overflow-y-auto">
               {filteredSecurities.map((sec) => (
                 <button
                   key={sec.symbol}
                   onClick={() => setSelectedSecurity(sec.symbol)}
-                  className={`w-full text-left p-3 rounded-xl border transition-all ${
+                  className={`w-full text-left p-2.5 md:p-3 rounded-lg md:rounded-xl border transition-all ${
                     selectedSecurity === sec.symbol
                       ? "border-[#004B5B] bg-[#004B5B]/5"
                       : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between mb-1.5 md:mb-2">
                     <div>
-                      <p className="font-semibold text-slate-900">{sec.symbol}</p>
-                      <p className="text-xs text-slate-500">{sec.name}</p>
+                      <p className="text-sm md:text-base font-semibold text-slate-900">{sec.symbol}</p>
+                      <p className="text-xs text-slate-500 truncate">{sec.name}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-slate-900">Rwf {sec.price}</p>
+                      <p className="text-sm md:text-base font-bold text-slate-900">Rwf {sec.price}</p>
                       <div className={`flex items-center gap-1 text-xs font-semibold ${
                         sec.change >= 0 ? "text-emerald-600" : "text-rose-600"
                       }`}>
@@ -409,7 +409,7 @@ export default function TradePage() {
             <div className="mt-4 pt-4 border-t border-slate-200">
               <Link
                 href="/market"
-                className="block text-center text-sm font-medium text-[#004B5B] hover:underline"
+                className="block text-center text-xs md:text-sm font-medium text-[#004B5B] hover:underline"
               >
                 View Full Market →
               </Link>
@@ -418,37 +418,37 @@ export default function TradePage() {
         </div>
 
         {/* Selected Security Details */}
-        <Card className="p-6" hover={false}>
+        <Card className="p-4 md:p-6" hover={false}>
           <div className="mb-4">
-            <h2 className="text-xl font-semibold text-slate-900">{currentSecurity.name} ({currentSecurity.symbol})</h2>
-            <p className="text-base text-slate-600 mt-1">Current market data</p>
+            <h2 className="text-lg md:text-xl font-semibold text-slate-900">{currentSecurity.name} ({currentSecurity.symbol})</h2>
+            <p className="text-sm md:text-base text-slate-600 mt-1">Current market data</p>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            <div className="p-4 rounded-xl bg-slate-50">
-              <p className="text-sm text-slate-600 mb-1">Last Price</p>
-              <p className="text-lg font-bold text-slate-900">Rwf {currentSecurity.price}</p>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
+            <div className="p-3 md:p-4 rounded-lg md:rounded-xl bg-slate-50">
+              <p className="text-xs md:text-sm text-slate-600 mb-1">Last Price</p>
+              <p className="text-base md:text-lg font-bold text-slate-900">Rwf {currentSecurity.price}</p>
             </div>
-            <div className="p-4 rounded-xl bg-slate-50">
-              <p className="text-sm text-slate-600 mb-1">Change</p>
-              <p className={`text-lg font-bold ${currentSecurity.change >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+            <div className="p-3 md:p-4 rounded-lg md:rounded-xl bg-slate-50">
+              <p className="text-xs md:text-sm text-slate-600 mb-1">Change</p>
+              <p className={`text-base md:text-lg font-bold ${currentSecurity.change >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
                 {currentSecurity.change >= 0 ? "+" : ""}{currentSecurity.change}%
               </p>
             </div>
-            <div className="p-4 rounded-xl bg-slate-50">
-              <p className="text-sm text-slate-600 mb-1">Volume</p>
-              <p className="text-lg font-bold text-slate-900">{currentSecurity.volume}</p>
+            <div className="p-3 md:p-4 rounded-lg md:rounded-xl bg-slate-50">
+              <p className="text-xs md:text-sm text-slate-600 mb-1">Volume</p>
+              <p className="text-base md:text-lg font-bold text-slate-900">{currentSecurity.volume}</p>
             </div>
-            <div className="p-4 rounded-xl bg-slate-50">
-              <p className="text-sm text-slate-600 mb-1">Day High</p>
-              <p className="text-lg font-bold text-slate-900">Rwf {currentSecurity.high}</p>
+            <div className="p-3 md:p-4 rounded-lg md:rounded-xl bg-slate-50">
+              <p className="text-xs md:text-sm text-slate-600 mb-1">Day High</p>
+              <p className="text-base md:text-lg font-bold text-slate-900">Rwf {currentSecurity.high}</p>
             </div>
-            <div className="p-4 rounded-xl bg-slate-50">
-              <p className="text-sm text-slate-600 mb-1">Day Low</p>
-              <p className="text-lg font-bold text-slate-900">Rwf {currentSecurity.low}</p>
+            <div className="p-3 md:p-4 rounded-lg md:rounded-xl bg-slate-50">
+              <p className="text-xs md:text-sm text-slate-600 mb-1">Day Low</p>
+              <p className="text-base md:text-lg font-bold text-slate-900">Rwf {currentSecurity.low}</p>
             </div>
-            <div className="p-4 rounded-xl bg-slate-50">
-              <p className="text-sm text-slate-600 mb-1">Bid/Ask</p>
-              <p className="text-lg font-bold text-slate-900">{currentSecurity.bid}/{currentSecurity.ask}</p>
+            <div className="p-3 md:p-4 rounded-lg md:rounded-xl bg-slate-50">
+              <p className="text-xs md:text-sm text-slate-600 mb-1">Bid/Ask</p>
+              <p className="text-base md:text-lg font-bold text-slate-900">{currentSecurity.bid}/{currentSecurity.ask}</p>
             </div>
           </div>
         </Card>

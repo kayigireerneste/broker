@@ -6,6 +6,17 @@ import { ForbiddenError, UnauthorizedError, requireUserManagementRole } from "@/
 import { z } from "zod";
 import { companySelect } from "./companySelect";
 import { toDecimalOrUndefined } from "./utils";
+import { generateCompanyCsdNumber } from "@/lib/csdNumber";
+import bcrypt from "bcryptjs";
+
+// Helper function to serialize BigInt values to strings
+function serializeBigInt<T>(obj: T): T {
+  return JSON.parse(
+    JSON.stringify(obj, (key, value) =>
+      typeof value === "bigint" ? value.toString() : value
+    )
+  );
+}
 
 export async function GET(request: Request) {
   try {
@@ -27,7 +38,7 @@ export async function GET(request: Request) {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json({ data: companies });
+    return NextResponse.json({ data: serializeBigInt(companies) });
   } catch (error) {
     console.error("Failed to fetch companies", error);
     return NextResponse.json({ error: "Failed to fetch companies" }, { status: 500 });
@@ -36,10 +47,13 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const auth = await requireUserManagementRole(request, [Role.SUPER_ADMIN, Role.COMPANY]);
+    const auth = await requireUserManagementRole(request, [Role.SUPER_ADMIN, Role.ADMIN]);
 
     const json = await request.json();
     const parsed = companyCreateSchema.parse(json);
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(parsed.password, 10);
 
     const sharePrice = toDecimalOrUndefined(parsed.sharePrice);
     const closingPrice = toDecimalOrUndefined(parsed.closingPrice);
@@ -48,36 +62,60 @@ export async function POST(request: Request) {
     const tradedValue = toDecimalOrUndefined(parsed.tradedValue);
     const snapshotDate = parsed.snapshotDate ? new Date(parsed.snapshotDate) : undefined;
 
-    const company = await prisma.company.create({
-      data: {
-        name: parsed.name,
-        description: parsed.description ?? null,
-        sector: parsed.sector ?? null,
-        sharePrice,
-        totalShares: parsed.totalShares ?? undefined,
-        availableShares: parsed.availableShares ?? undefined,
-        closingPrice,
-        previousClosingPrice,
-        priceChange: parsed.priceChange?.trim() || null,
-        tradedVolume,
-        tradedValue,
-        snapshotDate,
-        contract: parsed.contract?.trim() || null,
-        createdBy: {
-          connect: { id: auth.id },
+    const company = await prisma.$transaction(async (tx) => {
+      // Generate CSD Number for company
+      const csdNumber = await generateCompanyCsdNumber(tx, parsed.country);
+
+      // Create company with all credentials
+      const newCompany = await tx.company.create({
+        data: {
+          name: parsed.name,
+          email: parsed.email,
+          phoneCountryCode: parsed.phoneCountryCode,
+          phone: parsed.phone,
+          password: hashedPassword,
+          csdNumber,
+          symbol: parsed.symbol?.trim() || null,
+          description: parsed.description ?? null,
+          sector: parsed.sector ?? null,
+          country: parsed.country,
+          city: parsed.city,
+          documents: parsed.documents ? JSON.parse(JSON.stringify(parsed.documents)) : Prisma.JsonNull,
+          sharePrice,
+          totalShares: parsed.totalShares !== undefined ? parsed.totalShares : null,
+          availableShares: parsed.availableShares !== undefined ? parsed.availableShares : null,
+          closingPrice,
+          previousClosingPrice,
+          priceChange: parsed.priceChange?.trim() || null,
+          tradedVolume,
+          tradedValue,
+          snapshotDate,
+          contract: parsed.contract?.trim() || null,
+          createdById: auth.id,
         },
-      },
-      select: companySelect,
+        select: companySelect,
+      });
+
+      // Create wallet for company
+      await tx.companyWallet.create({
+        data: {
+          companyId: newCompany.id,
+          balance: 0,
+          lockedBalance: 0,
+        },
+      });
+
+      return newCompany;
     });
 
-    return NextResponse.json({ data: company }, { status: 201 });
+    return NextResponse.json({ data: serializeBigInt(company) }, { status: 201 });
   } catch (error) {
     if (error instanceof UnauthorizedError || error instanceof ForbiddenError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
 
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-      return NextResponse.json({ error: "A company with these details already exists" }, { status: 409 });
+      return NextResponse.json({ error: "A company with this email, phone, or name already exists" }, { status: 409 });
     }
 
     if (error instanceof z.ZodError) {

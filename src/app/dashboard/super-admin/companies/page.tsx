@@ -37,12 +37,12 @@ const MODE_CONFIG: Record<ManagementMode, ModeConfig> = {
   },
   ADMIN: {
     dashboardRole: "admin",
-    title: "Company directory",
-    subtitle: "Review issuers available on the platform.",
-    canCreate: false,
-    canEdit: false,
-    canDelete: false,
-    emptyMessage: "No companies available yet. Super admins can add them from this view.",
+    title: "Companies",
+    subtitle: "Create and manage company listings.",
+    canCreate: true,
+    canEdit: true,
+    canDelete: true,
+    emptyMessage: "No companies listed yet. Use the form to add one.",
   },
   TELLER: {
     dashboardRole: "teller",

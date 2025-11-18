@@ -29,7 +29,7 @@ export async function POST(req: Request) {
         throw new Error("User vanished during verification");
       }
 
-      return ensureCsdNumberAssignment(
+      const assignedCsdNumber = await ensureCsdNumberAssignment(
         tx,
         {
           id: target.id,
@@ -39,6 +39,23 @@ export async function POST(req: Request) {
         },
         { now, extraData: { isVerified: true, otp: null, otpExpiresAt: null } },
       );
+
+      // Create wallet for user automatically
+      const existingWallet = await tx.wallet.findUnique({
+        where: { userId: user.id },
+      });
+
+      if (!existingWallet) {
+        await tx.wallet.create({
+          data: {
+            userId: user.id,
+            balance: 0,
+            lockedBalance: 0,
+          },
+        });
+      }
+
+      return assignedCsdNumber;
     });
 
     const firstName = user.fullName?.split(" ")[0] ?? "there";

@@ -11,6 +11,15 @@ import {
 import { toDecimalOrUndefined } from "../utils";
 import { z } from "zod";
 
+// Helper function to serialize BigInt values to strings
+function serializeBigInt<T>(obj: T): T {
+  return JSON.parse(
+    JSON.stringify(obj, (key, value) =>
+      typeof value === "bigint" ? value.toString() : value
+    )
+  );
+}
+
 type RouteParams = Promise<{ id: string }>;
 
 export async function GET(_request: Request, { params }: { params: RouteParams }) {
@@ -26,7 +35,7 @@ export async function GET(_request: Request, { params }: { params: RouteParams }
       return NextResponse.json({ error: "Company not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ data: company });
+    return NextResponse.json({ data: serializeBigInt(company) });
   } catch (error) {
     console.error("Failed to fetch company", error);
     return NextResponse.json(
@@ -57,7 +66,7 @@ export async function PATCH(request: Request, { params }: { params: RouteParams 
     const { id } = await params;
     const auth = await requireUserManagementRole(request, [
       Role.SUPER_ADMIN,
-      Role.COMPANY,
+      Role.ADMIN,
     ]);
 
     const ownership = await ensureOwnership(id, auth.id);
@@ -66,7 +75,7 @@ export async function PATCH(request: Request, { params }: { params: RouteParams 
       return NextResponse.json({ error: "Company not found" }, { status: 404 });
     }
 
-    if (auth.role === Role.COMPANY && !ownership.owns) {
+    if (auth.role === Role.ADMIN && !ownership.owns) {
       throw new ForbiddenError("You can only modify companies you created");
     }
 
@@ -84,9 +93,9 @@ export async function PATCH(request: Request, { params }: { params: RouteParams 
       data.description = parsed.description ?? null;
     if (parsed.sector !== undefined) data.sector = parsed.sector ?? null;
     if (sharePrice !== undefined) data.sharePrice = sharePrice;
-    if (parsed.totalShares !== undefined) data.totalShares = parsed.totalShares;
+    if (parsed.totalShares !== undefined) data.totalShares = parsed.totalShares ?? null;
     if (parsed.availableShares !== undefined)
-      data.availableShares = parsed.availableShares;
+      data.availableShares = parsed.availableShares !== null ? Number(parsed.availableShares) : null;
 
     const updated = await prisma.company.update({
       where: { id },
@@ -94,7 +103,7 @@ export async function PATCH(request: Request, { params }: { params: RouteParams 
       select: companySelect,
     });
 
-    return NextResponse.json({ data: updated });
+    return NextResponse.json({ data: serializeBigInt(updated) });
   } catch (error) {
     if (error instanceof UnauthorizedError || error instanceof ForbiddenError) {
       return NextResponse.json(
@@ -147,7 +156,7 @@ export async function DELETE(request: Request, { params }: { params: RouteParams
     const { id } = await params;
     const auth = await requireUserManagementRole(request, [
       Role.SUPER_ADMIN,
-      Role.COMPANY,
+      Role.ADMIN,
     ]);
 
     const ownership = await ensureOwnership(id, auth.id);
@@ -156,7 +165,7 @@ export async function DELETE(request: Request, { params }: { params: RouteParams
       return NextResponse.json({ error: "Company not found" }, { status: 404 });
     }
 
-    if (auth.role === Role.COMPANY && !ownership.owns) {
+    if (auth.role === Role.ADMIN && !ownership.owns) {
       throw new ForbiddenError("You can only remove companies you created");
     }
 

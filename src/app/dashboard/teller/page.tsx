@@ -6,6 +6,12 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { useAuth } from "@/hooks/useAuth";
 import { useMemo } from "react";
+import {
+  FiClock,
+  FiCheckCircle,
+  FiTrendingUp,
+  FiUsers,
+} from "react-icons/fi";
 
 export default function TellerDashboard() {
   const { user } = useAuth();
@@ -13,101 +19,88 @@ export default function TellerDashboard() {
   const { displayName, email, dashboardRole } = useMemo((): {
     displayName: string;
     email: string;
-    dashboardRole: "client" | "teller" | "admin";
+    dashboardRole: "teller";
   } => {
     const fullName = (user?.fullName as string | undefined)?.trim() ?? "";
     const fallbackName = user?.email ? user.email.split("@")[0] : "Teller";
-    const role = user?.role?.toLowerCase();
-    const normalizedRole: "client" | "teller" | "admin" =
-      role === "client" || role === "teller" || role === "admin"
-        ? (role as "client" | "teller" | "admin")
-        : "teller";
 
     return {
       displayName: fullName || fallbackName,
       email: user?.email ?? "Not provided",
-      dashboardRole: normalizedRole,
+      dashboardRole: "teller",
     };
-  }, [user?.email, user?.fullName, user?.role]);
+  }, [user?.email, user?.fullName]);
 
   return (
     <DashboardLayout userRole={dashboardRole} userName={displayName} userEmail={email}>
-      <div className="space-y-6">
+      <div className="space-y-2">
         {/* Welcome Section */}
-        <div className="animate-fadeInUp">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Teller Dashboard</h1>
-          <p className="text-gray-600">Manage client mandates, monitor trades, and keep portfolios aligned.</p>
+        <div className="animate-fadeInUp space-y-2">
+          <h1 className="text-2xl font-bold text-gray-600">Teller Dashboard</h1>
+          <p className="text-base text-gray-400">Manage client mandates, monitor trades, and keep portfolios aligned.</p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-slideInRight">
-          <Card className="p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 animate-slideInRight">
+          <Card className="p-6 hover:shadow-lg transition-all">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Pending Orders</p>
-                <p className="text-2xl font-bold text-orange-600">12</p>
-                <p className="text-sm text-gray-600">Awaiting execution</p>
+                <p className="text-base font-medium text-gray-500 mb-2">Pending Orders</p>
+                <p className="text-xl font-semibold text-orange-600">12</p>
+                <p className="text-sm text-gray-400">Awaiting execution</p>
               </div>
-              <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+              <div className="w-11 h-11 bg-orange-100 rounded-full flex items-center justify-center">
+                <FiClock className="w-6 h-6 text-orange-600" />
               </div>
             </div>
           </Card>
 
-          <Card className="p-6">
+          <Card className="p-6 hover:shadow-lg transition-all">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Executed Today</p>
-                <p className="text-2xl font-bold text-green-600">28</p>
+                <p className="text-base font-medium text-gray-500 mb-2">Executed Today</p>
+                <p className="text-xl font-semibold text-green-600">28</p>
                 <p className="text-sm text-green-600">+15% from yesterday</p>
               </div>
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+              <div className="w-11 h-11 bg-green-100 rounded-full flex items-center justify-center">
+                <FiCheckCircle className="w-6 h-6 text-green-600" />
               </div>
             </div>
           </Card>
 
-          <Card className="p-6">
+          <Card className="p-6 hover:shadow-lg transition-all">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Trade Volume</p>
-                <p className="text-2xl font-bold text-gray-900">Rwf 485K</p>
+                <p className="text-base font-medium text-gray-500 mb-2">Trade Volume</p>
+                <p className="text-xl font-semibold text-gray-700">Rwf 485K</p>
                 <p className="text-sm text-blue-600">Today's volume</p>
               </div>
-              <div className="w-12 h-12 gradient-primary rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
+              <div className="w-11 h-11 gradient-primary rounded-full flex items-center justify-center">
+                <FiTrendingUp className="w-6 h-6 text-white" />
               </div>
             </div>
           </Card>
 
-          <Card className="p-6">
+          <Card className="p-6 hover:shadow-lg transition-all">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Active Clients</p>
-                <p className="text-2xl font-bold text-gray-900">156</p>
-                <p className="text-sm text-gray-600">Total managed</p>
+                <p className="text-base font-medium text-gray-500 mb-2">Active Clients</p>
+                <p className="text-xl font-semibold text-gray-700">156</p>
+                <p className="text-sm text-gray-400">Total managed</p>
               </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
+              <div className="w-11 h-11 bg-blue-100 rounded-full flex items-center justify-center">
+                <FiUsers className="w-6 h-6 text-blue-600" />
               </div>
             </div>
           </Card>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid lg:grid-cols-3 gap-3">
           {/* Pending Orders */}
           <div className="lg:col-span-2">
             <Card className="p-6 animate-fadeInUp">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-gray-900">Pending Orders</h2>
+                <h2 className="text-xl font-semibold text-gray-700">Pending Orders</h2>
                 <Button size="sm">View All</Button>
               </div>
               <div className="overflow-x-auto">
@@ -186,10 +179,10 @@ export default function TellerDashboard() {
           </div>
 
           {/* Market Status & Quick Actions */}
-          <div className="space-y-6">
+          <div className="space-y-3">
             <Card className="p-6 animate-slideInRight">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Market Status</h3>
-              <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-700 mb-4">Market Status</h3>
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">RSE Status</span>
                   <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-sm">Open</span>
@@ -204,18 +197,9 @@ export default function TellerDashboard() {
                 </div>
               </div>
             </Card>
-          </div>
 
-          {/* Market Status & Quick Actions */}
-          <div className="space-y-6">
-            <Card className="p-6 animate-slideInRight">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Market Status</h3>
-              <div className="space-y-4">{/* ...unchanged... */}</div>
-            </Card>
-
-            {/* FIX: removed inline `style` because Card doesn’t accept it */}
             <Card className="p-6 animate-slideInRight delay-100">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+              <h3 className="text-lg font-semibold text-gray-700 mb-4">Quick Actions</h3>
               <div className="space-y-3">
                 <Button className="w-full justify-start" variant="outline">
                   <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -231,15 +215,15 @@ export default function TellerDashboard() {
                 </Button>
                 <Button className="w-full justify-start" variant="outline">
                   <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5zM9 7H4l5-5v5z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
                   Sync with RSE
                 </Button>
               </div>
             </Card>
 
-            <Card className="p-6 animate-slideInRight" style={{ animationDelay: "0.2s" }}>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Executions</h3>
+            <Card className="p-6 animate-slideInRight">
+              <h3 className="text-lg font-semibold text-gray-700 mb-4">Recent Executions</h3>
               <div className="space-y-3">
                 <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
                   <div>

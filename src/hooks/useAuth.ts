@@ -38,14 +38,29 @@ const normalizeRole = (role?: string | null): AuthRole | null => {
 const getStoredUser = (): AuthUser | null => {
   if (typeof window === "undefined") return null;
   try {
-    const storedUser = localStorage.getItem("user");
+    // Check for user first, then company
+    let storedUser = localStorage.getItem("user");
+    let isCompany = false;
+    
+    if (!storedUser) {
+      storedUser = localStorage.getItem("company");
+      isCompany = true;
+    }
+    
     if (!storedUser) return null;
+    
     const parsed = JSON.parse(storedUser) as AuthUser;
+    
+    // For companies, set role to COMPANY if not already set
+    if (isCompany && !parsed.role) {
+      parsed.role = "COMPANY";
+    }
+    
     const role = normalizeRole(parsed?.role as string | undefined);
     if (!role) return null;
     return { ...parsed, role };
   } catch (error) {
-    console.warn("Failed to parse stored user", error);
+    console.warn("Failed to parse stored user/company", error);
     return null;
   }
 };
@@ -82,7 +97,7 @@ export function useAuth() {
 
   useEffect(() => {
     const handleStorage = (event: StorageEvent) => {
-      if (event.key === "user" || event.key === "token") {
+      if (event.key === "user" || event.key === "company" || event.key === "token") {
         syncAuthState();
       }
     };
@@ -101,6 +116,7 @@ export function useAuth() {
 
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    localStorage.removeItem("company"); // Also remove company data
     document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     syncAuthState();
   }, [syncAuthState]);

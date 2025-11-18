@@ -78,19 +78,19 @@ export default function InvestmentsPage() {
 
   return (
     <DashboardLayout userRole={dashboardRole} userName={displayName} userEmail={email}>
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6 max-w-full overflow-hidden">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Investment Portfolio</h1>
-          <p className="text-base text-slate-600 mt-1">Track your holdings and performance across all securities</p>
+          <h1 className="text-xl md:text-2xl font-bold text-slate-900">Investment Portfolio</h1>
+          <p className="text-sm md:text-base text-slate-600 mt-1">Track your holdings and performance across all securities</p>
         </div>
 
         {/* Portfolio Summary */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="p-6" hover={false}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
+          <Card className="p-3 md:p-6" hover={false}>
             <div className="space-y-2">
               <p className="text-sm font-medium text-slate-600">Total Value</p>
-              <p className="text-2xl font-bold text-slate-900">Rwf {totalValue.toLocaleString()}</p>
+              <p className="text-xl md:text-2xl font-bold text-slate-900">Rwf {totalValue.toLocaleString()}</p>
               <div className="flex items-center gap-2 text-sm">
                 {Number.parseFloat(totalGainPercent) >= 0 ? (
                   <>
@@ -108,46 +108,46 @@ export default function InvestmentsPage() {
             </div>
           </Card>
 
-          <Card className="p-6" hover={false}>
+          <Card className="p-3 md:p-6" hover={false}>
             <div className="space-y-2">
               <p className="text-sm font-medium text-slate-600">Total Invested</p>
-              <p className="text-2xl font-bold text-slate-900">Rwf {totalInvested.toLocaleString()}</p>
+              <p className="text-xl md:text-2xl font-bold text-slate-900">Rwf {totalInvested.toLocaleString()}</p>
               <p className="text-sm text-slate-500">Initial capital deployed</p>
             </div>
           </Card>
 
-          <Card className="p-6" hover={false}>
+          <Card className="p-3 md:p-6" hover={false}>
             <div className="space-y-2">
               <p className="text-sm font-medium text-slate-600">Total Gain/Loss</p>
-              <p className={`text-2xl font-bold ${totalGain >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+              <p className={`text-xl md:text-2xl font-bold ${totalGain >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
                 {totalGain >= 0 ? "+" : ""}Rwf {totalGain.toLocaleString()}
               </p>
               <p className="text-sm text-slate-500">Unrealized P&L</p>
             </div>
           </Card>
 
-          <Card className="p-6" hover={false}>
+          <Card className="p-3 md:p-6" hover={false}>
             <div className="space-y-2">
               <p className="text-sm font-medium text-slate-600">Securities Held</p>
-              <p className="text-2xl font-bold text-slate-900">{holdings.length}</p>
+              <p className="text-xl md:text-2xl font-bold text-slate-900">{holdings.length}</p>
               <p className="text-sm text-slate-500">Across {assetAllocation.length} sectors</p>
             </div>
           </Card>
         </div>
 
         {/* Performance Chart Placeholder */}
-        <Card className="p-6" hover={false}>
-          <div className="flex items-center justify-between mb-6">
+        <Card className="p-3 md:p-6" hover={false}>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 md:mb-6">
             <div>
-              <h2 className="text-xl font-semibold text-slate-900">Portfolio Performance</h2>
-              <p className="text-base text-slate-600 mt-1">Value over time</p>
+              <h2 className="text-lg md:text-xl font-semibold text-slate-900">Portfolio Performance</h2>
+              <p className="text-sm md:text-base text-slate-600 mt-1">Value over time</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
               {(["1D", "1W", "1M", "3M", "1Y", "ALL"] as TimeRange[]).map((range) => (
                 <button
                   key={range}
                   onClick={() => setTimeRange(range)}
-                  className={`px-3 py-1.5 text-sm font-semibold rounded-full transition-all ${
+                  className={`px-3 py-1.5 text-sm font-semibold rounded-full transition-all whitespace-nowrap ${
                     timeRange === range
                       ? "bg-[#004B5B] text-white"
                       : "bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -158,80 +158,84 @@ export default function InvestmentsPage() {
               ))}
             </div>
           </div>
-          <div className="h-64 bg-slate-50 rounded-2xl flex items-center justify-center border border-slate-200">
-            <p className="text-slate-400 text-base">Performance chart visualization</p>
+          <div className="h-48 md:h-64 bg-slate-50 rounded-xl md:rounded-2xl flex items-center justify-center border border-slate-200">
+            <p className="text-slate-400 text-sm md:text-base">Performance chart visualization</p>
           </div>
         </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
           {/* Holdings Table */}
-          <Card className="p-6 lg:col-span-2" hover={false}>
-            <div className="flex items-center justify-between mb-6">
+          <Card className="p-3 md:p-6 lg:col-span-2" hover={false}>
+            <div className="flex items-center justify-between mb-4 md:mb-6">
               <div>
-                <h2 className="text-xl font-semibold text-slate-900">Current Holdings</h2>
-                <p className="text-base text-slate-600 mt-1">Your active positions</p>
+                <h2 className="text-lg md:text-xl font-semibold text-slate-900">Current Holdings</h2>
+                <p className="text-sm md:text-base text-slate-600 mt-1">Your active positions</p>
               </div>
-              <Button size="sm">View All</Button>
+              <Button size="sm" className="text-xs md:text-sm">View All</Button>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-slate-200">
-                    <th className="text-left py-3 px-2 text-sm font-semibold text-slate-700">Security</th>
-                    <th className="text-right py-3 px-2 text-sm font-semibold text-slate-700">Shares</th>
-                    <th className="text-right py-3 px-2 text-sm font-semibold text-slate-700">Avg Price</th>
-                    <th className="text-right py-3 px-2 text-sm font-semibold text-slate-700">Current</th>
-                    <th className="text-right py-3 px-2 text-sm font-semibold text-slate-700">Change</th>
-                    <th className="text-right py-3 px-2 text-sm font-semibold text-slate-700">Value</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {holdings.map((holding) => (
-                    <tr key={holding.symbol} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                      <td className="py-4 px-2">
-                        <div>
-                          <p className="text-base font-semibold text-slate-900">{holding.symbol}</p>
-                          <p className="text-sm text-slate-500">{holding.name}</p>
-                        </div>
-                      </td>
-                      <td className="text-right py-4 px-2 text-base text-slate-900">{holding.shares}</td>
-                      <td className="text-right py-4 px-2 text-base text-slate-900">Rwf {holding.avgPrice}</td>
-                      <td className="text-right py-4 px-2 text-base text-slate-900">Rwf {holding.currentPrice}</td>
-                      <td className="text-right py-4 px-2">
-                        <div className={`inline-flex items-center gap-1 ${holding.change >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
-                          {holding.change >= 0 ? (
-                            <TrendingUp className="h-4 w-4" />
-                          ) : (
-                            <TrendingDown className="h-4 w-4" />
-                          )}
-                          <span className="text-sm font-semibold">{holding.change >= 0 ? "+" : ""}{holding.change}%</span>
-                        </div>
-                      </td>
-                      <td className="text-right py-4 px-2 text-base font-semibold text-slate-900">
-                        Rwf {holding.value.toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="overflow-x-auto -mx-3 md:mx-0">
+              <div className="inline-block min-w-full align-middle px-3 md:px-0">
+                <div className="overflow-hidden">
+                  <table className="min-w-full">
+                    <thead>
+                      <tr className="border-b border-slate-200">
+                        <th className="text-left py-3 px-2 text-xs md:text-sm font-semibold text-slate-700">Security</th>
+                        <th className="text-right py-3 px-2 text-xs md:text-sm font-semibold text-slate-700">Shares</th>
+                        <th className="text-right py-3 px-2 text-xs md:text-sm font-semibold text-slate-700 hidden sm:table-cell">Avg Price</th>
+                        <th className="text-right py-3 px-2 text-xs md:text-sm font-semibold text-slate-700">Current</th>
+                        <th className="text-right py-3 px-2 text-xs md:text-sm font-semibold text-slate-700">Change</th>
+                        <th className="text-right py-3 px-2 text-xs md:text-sm font-semibold text-slate-700 hidden md:table-cell">Value</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {holdings.map((holding) => (
+                        <tr key={holding.symbol} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                          <td className="py-3 md:py-4 px-2">
+                            <div>
+                              <p className="text-sm md:text-base font-semibold text-slate-900">{holding.symbol}</p>
+                              <p className="text-xs md:text-sm text-slate-500 truncate max-w-[120px] md:max-w-none">{holding.name}</p>
+                            </div>
+                          </td>
+                          <td className="text-right py-3 md:py-4 px-2 text-sm md:text-base text-slate-900">{holding.shares}</td>
+                          <td className="text-right py-3 md:py-4 px-2 text-sm md:text-base text-slate-900 hidden sm:table-cell">Rwf {holding.avgPrice}</td>
+                          <td className="text-right py-3 md:py-4 px-2 text-sm md:text-base text-slate-900 whitespace-nowrap">Rwf {holding.currentPrice}</td>
+                          <td className="text-right py-3 md:py-4 px-2">
+                            <div className={`inline-flex items-center gap-1 ${holding.change >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                              {holding.change >= 0 ? (
+                                <TrendingUp className="h-3 w-3 md:h-4 md:w-4" />
+                              ) : (
+                                <TrendingDown className="h-3 w-3 md:h-4 md:w-4" />
+                              )}
+                              <span className="text-xs md:text-sm font-semibold">{holding.change >= 0 ? "+" : ""}{holding.change}%</span>
+                            </div>
+                          </td>
+                          <td className="text-right py-3 md:py-4 px-2 text-sm md:text-base font-semibold text-slate-900 whitespace-nowrap hidden md:table-cell">
+                            Rwf {holding.value.toLocaleString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </Card>
 
           {/* Asset Allocation */}
-          <Card className="p-6" hover={false}>
-            <div className="mb-6">
+          <Card className="p-3 md:p-6" hover={false}>
+            <div className="mb-4 md:mb-6">
               <div className="flex items-center gap-2 mb-2">
                 <PieChart className="h-5 w-5 text-[#004B5B]" />
-                <h2 className="text-xl font-semibold text-slate-900">Asset Allocation</h2>
+                <h2 className="text-lg md:text-xl font-semibold text-slate-900">Asset Allocation</h2>
               </div>
-              <p className="text-base text-slate-600">Portfolio distribution by sector</p>
+              <p className="text-sm md:text-base text-slate-600">Portfolio distribution by sector</p>
             </div>
             <div className="space-y-4">
               {assetAllocation.map((asset) => (
                 <div key={asset.name} className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-base font-medium text-slate-700">{asset.name}</span>
-                    <span className="text-base font-semibold text-slate-900">{asset.percentage}%</span>
+                    <span className="text-sm md:text-base font-medium text-slate-700">{asset.name}</span>
+                    <span className="text-sm md:text-base font-semibold text-slate-900">{asset.percentage}%</span>
                   </div>
                   <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
                     <div 
@@ -242,8 +246,8 @@ export default function InvestmentsPage() {
                 </div>
               ))}
             </div>
-            <div className="mt-6 pt-6 border-t border-slate-200">
-              <Button className="w-full" variant="outline">Rebalance Portfolio</Button>
+            <div className="mt-4 md:mt-6 pt-4 md:pt-6 border-t border-slate-200">
+              <Button className="w-full text-xs md:text-sm" variant="outline">Rebalance Portfolio</Button>
             </div>
           </Card>
         </div>

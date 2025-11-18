@@ -9,7 +9,7 @@ import MarketSummary from '@/components/market';
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen" id="home">
+    <div className="min-h-screen w-full overflow-x-hidden bg-white" id="home">
       <Header />
       <Hero />
       <MarketSummary />

@@ -1,21 +1,91 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import DashboardLayout from "@/components/ui/DashboardLayout";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { InputField } from "@/components/ui/InputField";
+import Toast from "@/components/ui/Toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Wallet, ArrowDownToLine, ArrowUpFromLine, CreditCard, Smartphone, Building2, Clock } from "lucide-react";
+import { Wallet, ArrowDownToLine, ArrowUpFromLine, CreditCard, Smartphone, Building2, Clock, Plus, Trash2, Loader2 } from "lucide-react";
+import axios from "@/lib/axios";
+import { isAxiosError } from "axios";
 
 type TransactionType = "deposit" | "withdraw";
-type PaymentMethod = "card" | "mobile" | "bank";
+type PaymentMethodType = "MOBILE_MONEY" | "BANK_ACCOUNT" | "CREDIT_CARD";
+
+interface PaymentMethod {
+  id: string;
+  type: PaymentMethodType;
+  provider: string | null;
+  accountNumber: string;
+  accountName: string | null;
+  isDefault: boolean;
+  isActive: boolean;
+}
+
+interface Transaction {
+  id: string;
+  type: string;
+  amount: string;
+  status: string;
+  paymentMethod: string | null;
+  reference: string | null;
+  description: string | null;
+  createdAt: string;
+}
+
+interface WalletApiResponse {
+  wallet: {
+    balance: string;
+    availableBalance: string;
+    lockedBalance: string;
+  };
+  transactions: Transaction[];
+  pagination: {
+    total: number;
+    limit: number;
+    offset: number;
+    hasMore: boolean;
+  };
+}
+
+interface PaymentMethodsResponse {
+  paymentMethods: PaymentMethod[];
+}
+
+interface TransactionActionResponse {
+  message: string;
+  transaction: Transaction;
+  newBalance: string;
+}
 
 export default function WalletPage() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [activeTab, setActiveTab] = useState<TransactionType>("deposit");
   const [amount, setAmount] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
+  const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string>("");
+  const [loading, setLoading] = useState(false);
+  const [walletData, setWalletData] = useState<{
+    balance: string;
+    availableBalance: string;
+    lockedBalance: string;
+  } | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [showAddPaymentMethod, setShowAddPaymentMethod] = useState(false);
+  const [newPaymentMethod, setNewPaymentMethod] = useState({
+    type: "MOBILE_MONEY" as PaymentMethodType,
+    provider: "",
+    accountNumber: "",
+    accountName: "",
+  });
+  const [toast, setToast] = useState<{
+    show: boolean;
+    type: "success" | "error";
+    title: string;
+    message: string;
+  } | null>(null);
 
   const { displayName, email, dashboardRole } = useMemo(() => {
     const fullName = (user?.fullName as string | undefined)?.trim() ?? "";
@@ -30,57 +100,173 @@ export default function WalletPage() {
     };
   }, [user?.email, user?.fullName, user?.role]);
 
-  const recentTransactions = [
-    {
-      id: "TXN001",
-      type: "deposit",
-      amount: 50000,
-      method: "Mobile Money",
-      status: "completed",
-      date: "2025-11-12 10:30",
-    },
-    {
-      id: "TXN002",
-      type: "withdraw",
-      amount: 15000,
-      method: "Bank Transfer",
-      status: "pending",
-      date: "2025-11-11 16:45",
-    },
-    {
-      id: "TXN003",
-      type: "deposit",
-      amount: 100000,
-      method: "Credit Card",
-      status: "completed",
-      date: "2025-11-10 09:15",
-    },
-    {
-      id: "TXN004",
-      type: "withdraw",
-      amount: 25000,
-      method: "Bank Transfer",
-      status: "completed",
-      date: "2025-11-09 14:20",
-    },
-    {
-      id: "TXN005",
-      type: "deposit",
-      amount: 75000,
-      method: "Mobile Money",
-      status: "completed",
-      date: "2025-11-08 11:00",
-    },
-  ];
+  // Fetch wallet data and payment methods on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      if (token) {
+        await fetchWalletData();
+        await fetchPaymentMethods();
+      }
+    };
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const fetchWalletData = async () => {
+    try {
+      const data = (await axios.get("/wallet", {
+        headers: { Authorization: `Bearer ${token}` },
+      })) as WalletApiResponse;
+      setWalletData(data.wallet);
+      setTransactions(data.transactions);
+    } catch (error) {
+      console.error("Error fetching wallet:", error);
+    }
+  };
+
+  const fetchPaymentMethods = async () => {
+    try {
+      const data = (await axios.get("/wallet/payment-methods", {
+        headers: { Authorization: `Bearer ${token}` },
+      })) as PaymentMethodsResponse;
+      setPaymentMethods(data.paymentMethods);
+      // Auto-select the default payment method
+      const defaultMethod = data.paymentMethods.find((m: PaymentMethod) => m.isDefault);
+      if (defaultMethod) {
+        setSelectedPaymentMethodId(defaultMethod.id);
+      } else if (data.paymentMethods.length > 0) {
+        setSelectedPaymentMethodId(data.paymentMethods[0].id);
+      }
+    } catch (error) {
+      console.error("Error fetching payment methods:", error);
+    }
+  };
+
+  const handleAddPaymentMethod = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Transaction:", { type: activeTab, amount, paymentMethod });
-    setAmount("");
+    setLoading(true);
+    try {
+      await axios.post(
+        "/wallet/payment-methods",
+        {
+          ...newPaymentMethod,
+          isDefault: paymentMethods.length === 0, // Make first method default
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      await fetchPaymentMethods();
+      setShowAddPaymentMethod(false);
+      setNewPaymentMethod({
+        type: "MOBILE_MONEY",
+        provider: "",
+        accountNumber: "",
+        accountName: "",
+      });
+      setToast({
+        show: true,
+        type: "success",
+        title: "Payment Method Added",
+        message: `${newPaymentMethod.provider || "Payment method"} has been added successfully`,
+      });
+    } catch (error) {
+      console.error("Error adding payment method:", error);
+      setToast({
+        show: true,
+        type: "error",
+        title: "Failed to Add Payment Method",
+        message: "Could not add payment method. Please try again.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeletePaymentMethod = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this payment method?")) return;
+    try {
+      await axios.delete(`/wallet/payment-methods?id=${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      await fetchPaymentMethods();
+      setToast({
+        show: true,
+        type: "success",
+        title: "Payment Method Deleted",
+        message: "Payment method has been removed successfully",
+      });
+    } catch (error) {
+      console.error("Error deleting payment method:", error);
+      setToast({
+        show: true,
+        type: "error",
+        title: "Failed to Delete",
+        message: "Could not delete payment method. Please try again.",
+      });
+    }
+  };
+
+  const handleTransaction = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPaymentMethodId) {
+      setToast({
+        show: true,
+        type: "error",
+        title: "Payment Method Required",
+        message: "Please select a payment method to continue",
+      });
+      return;
+    }
+    setLoading(true);
+    try {
+      const endpoint = activeTab === "deposit" ? "/wallet/deposit" : "/wallet/withdraw";
+      const data = (await axios.post(
+        endpoint,
+        {
+          amount: parseFloat(amount),
+          paymentMethodId: selectedPaymentMethodId,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      )) as TransactionActionResponse;
+      
+      // Show success notification with transaction details
+      const actionText = activeTab === "deposit" ? "Deposited" : "Withdrawn";
+      setToast({
+        show: true,
+        type: "success",
+        title: `${actionText} Successfully!`,
+        message: `${actionText} Rwf ${parseFloat(amount).toLocaleString()}. New balance: Rwf ${parseFloat(data.newBalance).toLocaleString()}`,
+      });
+      
+      setAmount("");
+      await fetchWalletData();
+    } catch (error: unknown) {
+      const actionText = activeTab === "deposit" ? "Deposit" : "Withdrawal";
+      if (isAxiosError(error)) {
+        setToast({
+          show: true,
+          type: "error",
+          title: `${actionText} Failed`,
+          message: error.response?.data?.error || `${actionText} could not be processed`,
+        });
+      } else {
+        setToast({
+          show: true,
+          type: "error",
+          title: `${actionText} Failed`,
+          message: `${actionText} could not be processed`,
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case "completed":
         return "bg-emerald-100 text-emerald-700";
       case "pending":
@@ -92,89 +278,117 @@ export default function WalletPage() {
     }
   };
 
+  const getPaymentMethodIcon = (type: PaymentMethodType) => {
+    switch (type) {
+      case "MOBILE_MONEY":
+        return <Smartphone className="h-4 w-4 md:h-5 md:w-5" />;
+      case "BANK_ACCOUNT":
+        return <Building2 className="h-4 w-4 md:h-5 md:w-5" />;
+      case "CREDIT_CARD":
+        return <CreditCard className="h-4 w-4 md:h-5 md:w-5" />;
+    }
+  };
+
+  const formatPaymentMethodName = (type: PaymentMethodType) => {
+    switch (type) {
+      case "MOBILE_MONEY":
+        return "Mobile Money";
+      case "BANK_ACCOUNT":
+        return "Bank Account";
+      case "CREDIT_CARD":
+        return "Credit Card";
+    }
+  };
+
   return (
     <DashboardLayout userRole={dashboardRole} userName={displayName} userEmail={email}>
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6 max-w-full overflow-hidden">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Wallet</h1>
-          <p className="text-base text-slate-600 mt-1">Manage your funds and payment methods</p>
+          <h1 className="text-xl md:text-2xl font-bold text-slate-900">Wallet</h1>
+          <p className="text-sm md:text-base text-slate-600 mt-1">Manage your funds and payment methods</p>
         </div>
 
         {/* Balance Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="p-6" hover={false}>
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
-                <Wallet className="h-6 w-6 text-blue-600" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-4">
+          <Card className="p-3 md:p-6" hover={false}>
+            <div className="flex items-center gap-2 md:gap-4">
+              <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                <Wallet className="h-5 w-5 md:h-6 md:w-6 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm font-medium text-slate-600">Available Balance</p>
-                <p className="text-2xl font-bold text-slate-900">Rwf 3,420</p>
+                <p className="text-xs md:text-sm font-medium text-slate-600">Available Balance</p>
+                <p className="text-lg md:text-2xl font-bold text-slate-900">
+                  Rwf {walletData ? parseFloat(walletData.availableBalance).toLocaleString() : "0"}
+                </p>
               </div>
             </div>
           </Card>
 
-          <Card className="p-6" hover={false}>
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center">
-                <ArrowDownToLine className="h-6 w-6 text-emerald-600" />
+          <Card className="p-3 md:p-6" hover={false}>
+            <div className="flex items-center gap-2 md:gap-4">
+              <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                <Wallet className="h-5 w-5 md:h-6 md:w-6 text-emerald-600" />
               </div>
               <div>
-                <p className="text-sm font-medium text-slate-600">Total Deposited</p>
-                <p className="text-2xl font-bold text-slate-900">Rwf 225,000</p>
+                <p className="text-xs md:text-sm font-medium text-slate-600">Total Balance</p>
+                <p className="text-lg md:text-2xl font-bold text-slate-900">
+                  Rwf {walletData ? parseFloat(walletData.balance).toLocaleString() : "0"}
+                </p>
               </div>
             </div>
           </Card>
 
-          <Card className="p-6" hover={false}>
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center">
-                <ArrowUpFromLine className="h-6 w-6 text-purple-600" />
+          <Card className="p-3 md:p-6" hover={false}>
+            <div className="flex items-center gap-2 md:gap-4">
+              <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-purple-100 flex items-center justify-center shrink-0">
+                <Clock className="h-5 w-5 md:h-6 md:w-6 text-purple-600" />
               </div>
               <div>
-                <p className="text-sm font-medium text-slate-600">Total Withdrawn</p>
-                <p className="text-2xl font-bold text-slate-900">Rwf 40,000</p>
+                <p className="text-xs md:text-sm font-medium text-slate-600">Locked Balance</p>
+                <p className="text-lg md:text-2xl font-bold text-slate-900">
+                  Rwf {walletData ? parseFloat(walletData.lockedBalance).toLocaleString() : "0"}
+                </p>
               </div>
             </div>
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
           {/* Transaction Form */}
-          <Card className="p-6 lg:col-span-2" hover={false}>
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold text-slate-900">Manage Funds</h2>
-              <p className="text-base text-slate-600 mt-1">Add or withdraw money from your wallet</p>
+          <Card className="p-3 md:p-6 lg:col-span-2" hover={false}>
+            <div className="mb-4 md:mb-6">
+              <h2 className="text-lg md:text-xl font-semibold text-slate-900">Manage Funds</h2>
+              <p className="text-sm md:text-base text-slate-600 mt-1">Add or withdraw money from your wallet</p>
             </div>
 
             {/* Tab Toggle */}
-            <div className="flex gap-3 mb-6">
+            <div className="flex gap-2 md:gap-3 mb-4 md:mb-6">
               <button
                 onClick={() => setActiveTab("deposit")}
-                className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
+                className={`flex-1 py-2.5 md:py-3 px-3 md:px-4 rounded-lg md:rounded-xl font-semibold text-sm md:text-base transition-all flex items-center justify-center gap-2 ${
                   activeTab === "deposit"
                     ? "bg-emerald-500 text-white shadow-md"
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
               >
-                <ArrowDownToLine className="h-5 w-5" />
+                <ArrowDownToLine className="h-4 w-4 md:h-5 md:w-5" />
                 Deposit
               </button>
               <button
                 onClick={() => setActiveTab("withdraw")}
-                className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
+                className={`flex-1 py-2.5 md:py-3 px-3 md:px-4 rounded-lg md:rounded-xl font-semibold text-sm md:text-base transition-all flex items-center justify-center gap-2 ${
                   activeTab === "withdraw"
                     ? "bg-blue-500 text-white shadow-md"
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
               >
-                <ArrowUpFromLine className="h-5 w-5" />
+                <ArrowUpFromLine className="h-4 w-4 md:h-5 md:w-5" />
                 Withdraw
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleTransaction} className="space-y-4 md:space-y-6">
               {/* Amount Input */}
               <InputField
                 name="amount"
@@ -183,217 +397,287 @@ export default function WalletPage() {
                 placeholder="Enter amount"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
+                required
               />
 
               {/* Payment Method Selection */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-3">
-                  {activeTab === "deposit" ? "Payment Method" : "Withdrawal Method"}
+                <label className="block text-sm font-medium text-slate-700 mb-2 md:mb-3">
+                  Select Payment Method
                 </label>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod("card")}
-                    className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
-                      paymentMethod === "card"
-                        ? "border-[#004B5B] bg-[#004B5B]/5"
-                        : "border-slate-200 hover:border-slate-300"
-                    }`}
-                  >
-                    <CreditCard className={`h-6 w-6 ${paymentMethod === "card" ? "text-[#004B5B]" : "text-slate-400"}`} />
-                    <span className={`text-sm font-semibold ${paymentMethod === "card" ? "text-[#004B5B]" : "text-slate-600"}`}>
-                      Credit/Debit Card
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod("mobile")}
-                    className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
-                      paymentMethod === "mobile"
-                        ? "border-[#004B5B] bg-[#004B5B]/5"
-                        : "border-slate-200 hover:border-slate-300"
-                    }`}
-                  >
-                    <Smartphone className={`h-6 w-6 ${paymentMethod === "mobile" ? "text-[#004B5B]" : "text-slate-400"}`} />
-                    <span className={`text-sm font-semibold ${paymentMethod === "mobile" ? "text-[#004B5B]" : "text-slate-600"}`}>
-                      Mobile Money
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod("bank")}
-                    className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
-                      paymentMethod === "bank"
-                        ? "border-[#004B5B] bg-[#004B5B]/5"
-                        : "border-slate-200 hover:border-slate-300"
-                    }`}
-                  >
-                    <Building2 className={`h-6 w-6 ${paymentMethod === "bank" ? "text-[#004B5B]" : "text-slate-400"}`} />
-                    <span className={`text-sm font-semibold ${paymentMethod === "bank" ? "text-[#004B5B]" : "text-slate-600"}`}>
-                      Bank Transfer
-                    </span>
-                  </button>
-                </div>
+                {paymentMethods.length > 0 ? (
+                  <div className="space-y-2">
+                    {paymentMethods.map((method) => (
+                      <div
+                        key={method.id}
+                        onClick={() => setSelectedPaymentMethodId(method.id)}
+                        className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                          selectedPaymentMethodId === method.id
+                            ? "border-[#004B5B] bg-[#004B5B]/5"
+                            : "border-slate-200 hover:border-slate-300"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={`h-10 w-10 rounded-lg ${
+                              method.type === "MOBILE_MONEY" ? "bg-purple-100" :
+                              method.type === "BANK_ACCOUNT" ? "bg-amber-100" : "bg-blue-100"
+                            } flex items-center justify-center`}>
+                              {getPaymentMethodIcon(method.type)}
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold text-slate-900">
+                                {method.provider || formatPaymentMethodName(method.type)}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                {method.accountNumber}
+                              </p>
+                            </div>
+                          </div>
+                          {method.isDefault && (
+                            <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
+                              Default
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500 py-4 text-center">
+                    No payment methods added yet. Please add one below.
+                  </p>
+                )}
               </div>
 
               {/* Transaction Summary */}
-              <div className="rounded-2xl bg-slate-50 p-4 space-y-3">
-                <div className="flex justify-between text-base">
+              <div className="rounded-xl md:rounded-2xl bg-slate-50 p-3 md:p-4 space-y-2 md:space-y-3">
+                <div className="flex justify-between text-sm md:text-base">
                   <span className="text-slate-600">Amount</span>
                   <span className="font-semibold text-slate-900">Rwf {amount || "0"}</span>
                 </div>
-                <div className="flex justify-between text-base">
+                <div className="flex justify-between text-sm md:text-base">
                   <span className="text-slate-600">Fee</span>
                   <span className="font-semibold text-slate-900">Rwf 0</span>
                 </div>
-                <div className="pt-3 border-t border-slate-200 flex justify-between text-lg">
+                <div className="pt-2 md:pt-3 border-t border-slate-200 flex justify-between text-base md:text-lg">
                   <span className="font-semibold text-slate-700">Total</span>
                   <span className="font-bold text-slate-900">Rwf {amount || "0"}</span>
-                </div>
-              </div>
-
-              {/* Info Box */}
-              <div className="rounded-xl bg-blue-50 border border-blue-200 p-4 flex gap-3">
-                <Clock className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
-                <div className="text-sm text-blue-900">
-                  <p className="font-semibold mb-1">Processing Time</p>
-                  <p className="text-blue-700">
-                    {activeTab === "deposit" 
-                      ? "Deposits are typically processed within 5-10 minutes." 
-                      : "Withdrawals may take 1-2 business days to process."}
-                  </p>
                 </div>
               </div>
 
               {/* Submit Button */}
               <Button
                 type="submit"
-                className={`w-full ${
+                className={`w-full text-sm md:text-base ${
                   activeTab === "deposit" ? "bg-emerald-500 hover:bg-emerald-600" : "bg-blue-500 hover:bg-blue-600"
                 }`}
-                disabled={!amount || Number.parseFloat(amount) < 1000}
+                disabled={loading || !amount || parseFloat(amount) < 500 || !selectedPaymentMethodId}
               >
-                {activeTab === "deposit" ? "Deposit Funds" : "Withdraw Funds"}
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Processing...
+                  </>
+                ) : (
+                  activeTab === "deposit" ? "Deposit Funds" : "Withdraw Funds"
+                )}
               </Button>
             </form>
           </Card>
 
           {/* Saved Payment Methods */}
-          <Card className="p-6" hover={false}>
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold text-slate-900">Payment Methods</h2>
-              <p className="text-base text-slate-600 mt-1">Your saved methods</p>
+          <Card className="p-3 md:p-6" hover={false}>
+            <div className="mb-4 md:mb-6">
+              <h2 className="text-lg md:text-xl font-semibold text-slate-900">Payment Methods</h2>
+              <p className="text-sm md:text-base text-slate-600 mt-1">Manage your payment methods</p>
             </div>
 
-            <div className="space-y-3">
-              <div className="p-4 rounded-xl border border-slate-200 hover:border-slate-300 transition-colors">
-                <div className="flex items-start gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
-                    <CreditCard className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-base font-semibold text-slate-900">Visa •••• 2480</p>
-                    <p className="text-sm text-slate-500">Expires 12/26</p>
-                    <span className="inline-block mt-2 text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
-                      Primary
-                    </span>
-                  </div>
+            {!showAddPaymentMethod ? (
+              <>
+                <div className="space-y-2 md:space-y-3">
+                  {paymentMethods.map((method) => (
+                    <div
+                      key={method.id}
+                      className="p-3 md:p-4 rounded-lg md:rounded-xl border border-slate-200 hover:border-slate-300 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start gap-2 md:gap-3 flex-1">
+                          <div className={`h-8 w-8 md:h-10 md:w-10 rounded-lg ${
+                            method.type === "MOBILE_MONEY" ? "bg-purple-100" :
+                            method.type === "BANK_ACCOUNT" ? "bg-amber-100" : "bg-blue-100"
+                          } flex items-center justify-center shrink-0`}>
+                            {getPaymentMethodIcon(method.type)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm md:text-base font-semibold text-slate-900">
+                              {method.provider || formatPaymentMethodName(method.type)}
+                            </p>
+                            <p className="text-xs md:text-sm text-slate-500">{method.accountNumber}</p>
+                            {method.isDefault && (
+                              <span className="inline-block mt-2 text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
+                                Default
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleDeletePaymentMethod(method.id)}
+                          className="text-rose-600 hover:text-rose-700 p-1"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
 
-              <div className="p-4 rounded-xl border border-slate-200 hover:border-slate-300 transition-colors">
-                <div className="flex items-start gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-purple-100 flex items-center justify-center shrink-0">
-                    <Smartphone className="h-5 w-5 text-purple-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-base font-semibold text-slate-900">MTN MoMo</p>
-                    <p className="text-sm text-slate-500">+250 78X XXX 789</p>
-                  </div>
+                <Button
+                  variant="outline"
+                  className="w-full mt-3 md:mt-4 text-xs md:text-sm"
+                  onClick={() => setShowAddPaymentMethod(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add New Method
+                </Button>
+              </>
+            ) : (
+              <form onSubmit={handleAddPaymentMethod} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Type</label>
+                  <select
+                    value={newPaymentMethod.type}
+                    onChange={(e) => setNewPaymentMethod({ ...newPaymentMethod, type: e.target.value as PaymentMethodType })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#004B5B] focus:border-transparent"
+                  >
+                    <option value="MOBILE_MONEY">Mobile Money</option>
+                    <option value="BANK_ACCOUNT">Bank Account</option>
+                    <option value="CREDIT_CARD">Credit Card</option>
+                  </select>
                 </div>
-              </div>
 
-              <div className="p-4 rounded-xl border border-slate-200 hover:border-slate-300 transition-colors">
-                <div className="flex items-start gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
-                    <Building2 className="h-5 w-5 text-amber-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-base font-semibold text-slate-900">Bank of Kigali</p>
-                    <p className="text-sm text-slate-500">•••• 4521</p>
-                  </div>
+                <InputField
+                    name="provider"
+                    label="Provider (e.g., MTN, Bank of Kigali)"
+                    value={newPaymentMethod.provider}
+                    onChange={(e) => setNewPaymentMethod({ ...newPaymentMethod, provider: e.target.value })}
+                    required type={""}                />
+
+                <InputField
+                    name="accountNumber"
+                    label={newPaymentMethod.type === "MOBILE_MONEY" ? "Phone Number" : "Account Number"}
+                    value={newPaymentMethod.accountNumber}
+                    onChange={(e) => setNewPaymentMethod({ ...newPaymentMethod, accountNumber: e.target.value })}
+                    required type={""}                />
+
+                <InputField
+                    name="accountName"
+                    label="Account Name (Optional)"
+                    value={newPaymentMethod.accountName}
+                    onChange={(e) => setNewPaymentMethod({ ...newPaymentMethod, accountName: e.target.value })} type={""}                />
+
+                <div className="flex gap-2">
+                  <Button type="submit" className="flex-1" disabled={loading}>
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                    Add Method
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowAddPaymentMethod(false)}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
                 </div>
-              </div>
-            </div>
-
-            <Button variant="outline" className="w-full mt-4">
-              Add New Method
-            </Button>
+              </form>
+            )}
           </Card>
         </div>
 
         {/* Recent Transactions */}
-        <Card className="p-6" hover={false}>
-          <div className="flex items-center justify-between mb-6">
+        <Card className="p-3 md:p-6" hover={false}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 md:mb-6">
             <div>
-              <h2 className="text-xl font-semibold text-slate-900">Recent Transactions</h2>
-              <p className="text-base text-slate-600 mt-1">Your latest wallet activity</p>
+              <h2 className="text-lg md:text-xl font-semibold text-slate-900">Recent Transactions</h2>
+              <p className="text-sm md:text-base text-slate-600 mt-1">Your latest wallet activity</p>
             </div>
-            <Button variant="outline" size="sm">View All</Button>
+            <Button variant="outline" size="sm" className="text-xs md:text-sm">View All</Button>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-slate-200">
-                  <th className="text-left py-3 px-2 text-sm font-semibold text-slate-700">Transaction ID</th>
-                  <th className="text-left py-3 px-2 text-sm font-semibold text-slate-700">Type</th>
-                  <th className="text-left py-3 px-2 text-sm font-semibold text-slate-700">Method</th>
-                  <th className="text-right py-3 px-2 text-sm font-semibold text-slate-700">Amount</th>
-                  <th className="text-left py-3 px-2 text-sm font-semibold text-slate-700">Status</th>
-                  <th className="text-left py-3 px-2 text-sm font-semibold text-slate-700">Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentTransactions.map((txn) => (
-                  <tr key={txn.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                    <td className="py-4 px-2 text-base font-medium text-slate-900">{txn.id}</td>
-                    <td className="py-4 px-2">
-                      <div className="flex items-center gap-2">
-                        {txn.type === "deposit" ? (
-                          <>
-                            <ArrowDownToLine className="h-4 w-4 text-emerald-600" />
-                            <span className="text-base text-slate-900 capitalize">{txn.type}</span>
-                          </>
-                        ) : (
-                          <>
-                            <ArrowUpFromLine className="h-4 w-4 text-blue-600" />
-                            <span className="text-base text-slate-900 capitalize">{txn.type}</span>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-4 px-2 text-base text-slate-600">{txn.method}</td>
-                    <td className={`text-right py-4 px-2 text-base font-semibold ${
-                      txn.type === "deposit" ? "text-emerald-600" : "text-blue-600"
-                    }`}>
-                      {txn.type === "deposit" ? "+" : "-"}Rwf {txn.amount.toLocaleString()}
-                    </td>
-                    <td className="py-4 px-2">
-                      <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold capitalize ${getStatusColor(txn.status)}`}>
-                        {txn.status}
-                      </span>
-                    </td>
-                    <td className="py-4 px-2 text-sm text-slate-600">{txn.date}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="overflow-x-auto -mx-3 md:mx-0">
+            <div className="inline-block min-w-full align-middle px-3 md:px-0">
+              <div className="overflow-hidden">
+                <table className="min-w-full">
+                  <thead>
+                    <tr className="border-b border-slate-200">
+                      <th className="text-left py-3 px-2 text-xs md:text-sm font-semibold text-slate-700">Transaction ID</th>
+                      <th className="text-left py-3 px-2 text-xs md:text-sm font-semibold text-slate-700">Type</th>
+                      <th className="text-left py-3 px-2 text-xs md:text-sm font-semibold text-slate-700 hidden sm:table-cell">Method</th>
+                      <th className="text-right py-3 px-2 text-xs md:text-sm font-semibold text-slate-700">Amount</th>
+                      <th className="text-left py-3 px-2 text-xs md:text-sm font-semibold text-slate-700">Status</th>
+                      <th className="text-left py-3 px-2 text-xs md:text-sm font-semibold text-slate-700 hidden md:table-cell">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {transactions.map((txn) => (
+                      <tr key={txn.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td className="py-3 md:py-4 px-2 text-xs md:text-sm font-medium text-slate-900">{txn.reference}</td>
+                        <td className="py-3 md:py-4 px-2">
+                          <div className="flex items-center gap-1 md:gap-2">
+                            {txn.type === "DEPOSIT" ? (
+                              <>
+                                <ArrowDownToLine className="h-3 w-3 md:h-4 md:w-4 text-emerald-600" />
+                                <span className="text-xs md:text-sm text-slate-900">Deposit</span>
+                              </>
+                            ) : (
+                              <>
+                                <ArrowUpFromLine className="h-3 w-3 md:h-4 md:w-4 text-blue-600" />
+                                <span className="text-xs md:text-sm text-slate-900">Withdraw</span>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 md:py-4 px-2 text-xs md:text-sm text-slate-600 hidden sm:table-cell">{txn.paymentMethod || "N/A"}</td>
+                        <td className={`text-right py-3 md:py-4 px-2 text-xs md:text-sm font-semibold whitespace-nowrap ${
+                          txn.type === "DEPOSIT" ? "text-emerald-600" : "text-blue-600"
+                        }`}>
+                          {txn.type === "DEPOSIT" ? "+" : "-"}Rwf {parseFloat(txn.amount).toLocaleString()}
+                        </td>
+                        <td className="py-3 md:py-4 px-2">
+                          <span className={`inline-block px-2 md:px-3 py-1 rounded-full text-xs font-semibold capitalize ${getStatusColor(txn.status)}`}>
+                            {txn.status.toLowerCase()}
+                          </span>
+                        </td>
+                        <td className="py-3 md:py-4 px-2 text-xs md:text-sm text-slate-600 whitespace-nowrap hidden md:table-cell">
+                          {new Date(txn.createdAt).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                    {transactions.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-sm text-slate-500">
+                          No transactions yet
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </Card>
       </div>
+
+      {/* Toast Notification */}
+      {toast?.show && (
+        <Toast
+          type={toast.type}
+          title={toast.title}
+          message={toast.message}
+          onClose={() => setToast(null)}
+        />
+      )}
     </DashboardLayout>
   );
 }

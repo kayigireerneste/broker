@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server";
 import axios from "axios";
 import * as cheerio from "cheerio";
+import https from "https";
 
 const MARKET_URLS = [
 	"https://rse.rw/",
 	"https://www.rse.rw/market-data/market-summary",
 ];
 const CACHE_TTL_MS = 5 * 60 * 1000;
+
+// HTTPS agent to bypass SSL certificate verification for scraping
+const httpsAgent = new https.Agent({
+	rejectUnauthorized: false,
+});
 
 interface CachedPayload {
 	data: MarketSummaryPayload;
@@ -265,7 +271,15 @@ const fetchMarketSummary = async (): Promise<MarketSummaryPayload> => {
 
 	for (const url of MARKET_URLS) {
 		try {
-			const response = await axios.get(url, { timeout: 15000 });
+			console.log(`Attempting to fetch market data from: ${url}`);
+			const response = await axios.get(url, { 
+				timeout: 15000,
+				httpsAgent,
+				headers: {
+					'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+				}
+			});
+			console.log(`Successfully fetched data from: ${url}`);
 			const $ = cheerio.load(response.data);
 
 			const snapshotDate =
@@ -287,6 +301,7 @@ const fetchMarketSummary = async (): Promise<MarketSummaryPayload> => {
 				fetchedAt: new Date().toISOString(),
 			};
 		} catch (error) {
+			console.error(`Failed to fetch from ${url}:`, error instanceof Error ? error.message : error);
 			lastError = error;
 		}
 	}

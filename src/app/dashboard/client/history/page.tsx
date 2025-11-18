@@ -240,69 +240,69 @@ export default function HistoryPage() {
 
   return (
     <DashboardLayout userRole={dashboardRole} userName={displayName} userEmail={email}>
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6 max-w-full overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">Transaction History</h1>
-            <p className="text-base text-slate-600 mt-1">View and manage all your account activity</p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl md:text-2xl font-bold text-slate-900">Transaction History</h1>
+            <p className="text-sm md:text-base text-slate-600 mt-1">View and manage all your account activity</p>
           </div>
-          <Button onClick={exportHistory} variant="outline" className="flex items-center gap-2">
+          <Button onClick={exportHistory} variant="outline" className="flex items-center gap-2 text-xs md:text-sm shrink-0">
             <Download className="h-4 w-4" />
             Export
           </Button>
         </div>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="p-4" hover={false}>
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">
-                <History className="h-5 w-5 text-slate-600" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
+          <Card className="p-2 md:p-4" hover={false}>
+            <div className="flex items-center gap-1.5 md:gap-3">
+              <div className="h-7 w-7 md:h-10 md:w-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+                <History className="h-3.5 w-3.5 md:h-5 md:w-5 text-slate-600" />
               </div>
-              <div>
-                <p className="text-sm font-medium text-slate-600">Total Transactions</p>
-                <p className="text-xl font-bold text-slate-900">{allHistory.length}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] md:text-sm font-medium text-slate-600 truncate">Total</p>
+                <p className="text-sm md:text-xl font-bold text-slate-900">{allHistory.length}</p>
               </div>
             </div>
           </Card>
 
-          <Card className="p-4" hover={false}>
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center">
-                <ShoppingCart className="h-5 w-5 text-emerald-600" />
+          <Card className="p-2 md:p-4" hover={false}>
+            <div className="flex items-center gap-1.5 md:gap-3">
+              <div className="h-7 w-7 md:h-10 md:w-10 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                <ShoppingCart className="h-3.5 w-3.5 md:h-5 md:w-5 text-emerald-600" />
               </div>
-              <div>
-                <p className="text-sm font-medium text-slate-600">Total Trades</p>
-                <p className="text-xl font-bold text-slate-900">
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] md:text-sm font-medium text-slate-600 truncate">Trades</p>
+                <p className="text-sm md:text-xl font-bold text-slate-900">
                   {allHistory.filter((h) => h.category === "trade").length}
                 </p>
               </div>
             </div>
           </Card>
 
-          <Card className="p-4" hover={false}>
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                <ArrowDownToLine className="h-5 w-5 text-blue-600" />
+          <Card className="p-2 md:p-4" hover={false}>
+            <div className="flex items-center gap-1.5 md:gap-3">
+              <div className="h-7 w-7 md:h-10 md:w-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                <ArrowDownToLine className="h-3.5 w-3.5 md:h-5 md:w-5 text-blue-600" />
               </div>
-              <div>
-                <p className="text-sm font-medium text-slate-600">Total Deposits</p>
-                <p className="text-xl font-bold text-slate-900">
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] md:text-sm font-medium text-slate-600 truncate">Deposits</p>
+                <p className="text-sm md:text-xl font-bold text-slate-900">
                   {allHistory.filter((h) => h.category === "deposit").length}
                 </p>
               </div>
             </div>
           </Card>
 
-          <Card className="p-4" hover={false}>
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
-                <ArrowUpFromLine className="h-5 w-5 text-purple-600" />
+          <Card className="p-2 md:p-4" hover={false}>
+            <div className="flex items-center gap-1.5 md:gap-3">
+              <div className="h-7 w-7 md:h-10 md:w-10 rounded-full bg-purple-100 flex items-center justify-center shrink-0">
+                <ArrowUpFromLine className="h-3.5 w-3.5 md:h-5 md:w-5 text-purple-600" />
               </div>
-              <div>
-                <p className="text-sm font-medium text-slate-600">Total Withdrawals</p>
-                <p className="text-xl font-bold text-slate-900">
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] md:text-sm font-medium text-slate-600 truncate">Withdrawals</p>
+                <p className="text-sm md:text-xl font-bold text-slate-900">
                   {allHistory.filter((h) => h.category === "withdrawal").length}
                 </p>
               </div>
@@ -311,20 +311,20 @@ export default function HistoryPage() {
         </div>
 
         {/* Filters */}
-        <Card className="p-6" hover={false}>
-          <div className="flex items-center gap-2 mb-4">
-            <Filter className="h-5 w-5 text-slate-600" />
-            <h2 className="text-lg font-semibold text-slate-900">Filters</h2>
+        <Card className="p-3 md:p-6" hover={false}>
+          <div className="flex items-center gap-2 mb-3 md:mb-4">
+            <Filter className="h-4 w-4 md:h-5 md:w-5 text-slate-600" />
+            <h2 className="text-sm md:text-lg font-semibold text-slate-900">Filters</h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 md:gap-4">
             {/* Category Filter */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Category</label>
+              <label className="block text-xs md:text-sm font-medium text-slate-700 mb-1.5 md:mb-2">Category</label>
               <select
                 value={historyFilter}
                 onChange={(e) => setHistoryFilter(e.target.value as HistoryFilter)}
-                className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-900 focus:border-[#004B5B] focus:outline-none focus:ring-2 focus:ring-[#004B5B]/20"
+                className="w-full rounded-lg md:rounded-xl border border-slate-300 px-2 md:px-3 py-1.5 md:py-2.5 text-xs md:text-sm text-slate-900 focus:border-[#004B5B] focus:outline-none focus:ring-2 focus:ring-[#004B5B]/20"
               >
                 <option value="all">All</option>
                 <option value="trades">Trades Only</option>
@@ -335,11 +335,11 @@ export default function HistoryPage() {
 
             {/* Status Filter */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Status</label>
+              <label className="block text-xs md:text-sm font-medium text-slate-700 mb-1.5 md:mb-2">Status</label>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-                className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-900 focus:border-[#004B5B] focus:outline-none focus:ring-2 focus:ring-[#004B5B]/20"
+                className="w-full rounded-lg md:rounded-xl border border-slate-300 px-2 md:px-3 py-1.5 md:py-2.5 text-xs md:text-sm text-slate-900 focus:border-[#004B5B] focus:outline-none focus:ring-2 focus:ring-[#004B5B]/20"
               >
                 <option value="all">All</option>
                 <option value="completed">Completed</option>
@@ -349,44 +349,44 @@ export default function HistoryPage() {
             </div>
 
             {/* Search */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Search</label>
+            <div className="sm:col-span-2 lg:col-span-1">
+              <label className="block text-xs md:text-sm font-medium text-slate-700 mb-1.5 md:mb-2">Search</label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Search className="absolute left-2 md:left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <input
                   type="text"
                   placeholder="ID or description..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm focus:border-[#004B5B] focus:outline-none focus:ring-2 focus:ring-[#004B5B]/20"
+                  className="w-full pl-8 md:pl-10 pr-2 md:pr-3 py-1.5 md:py-2.5 rounded-lg md:rounded-xl border border-slate-300 text-xs md:text-sm focus:border-[#004B5B] focus:outline-none focus:ring-2 focus:ring-[#004B5B]/20"
                 />
               </div>
             </div>
 
             {/* Date From */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">From</label>
+              <label className="block text-xs md:text-sm font-medium text-slate-700 mb-1.5 md:mb-2">From</label>
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                <Calendar className="absolute left-2 md:left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
                 <input
                   type="date"
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm focus:border-[#004B5B] focus:outline-none focus:ring-2 focus:ring-[#004B5B]/20"
+                  className="w-full pl-8 md:pl-10 pr-2 md:pr-3 py-1.5 md:py-2.5 rounded-lg md:rounded-xl border border-slate-300 text-xs md:text-sm focus:border-[#004B5B] focus:outline-none focus:ring-2 focus:ring-[#004B5B]/20"
                 />
               </div>
             </div>
 
             {/* Date To */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">To</label>
+              <label className="block text-xs md:text-sm font-medium text-slate-700 mb-1.5 md:mb-2">To</label>
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                <Calendar className="absolute left-2 md:left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
                 <input
                   type="date"
                   value={dateTo}
                   onChange={(e) => setDateTo(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm focus:border-[#004B5B] focus:outline-none focus:ring-2 focus:ring-[#004B5B]/20"
+                  className="w-full pl-8 md:pl-10 pr-2 md:pr-3 py-1.5 md:py-2.5 rounded-lg md:rounded-xl border border-slate-300 text-xs md:text-sm focus:border-[#004B5B] focus:outline-none focus:ring-2 focus:ring-[#004B5B]/20"
                 />
               </div>
             </div>
@@ -394,8 +394,8 @@ export default function HistoryPage() {
 
           {/* Active Filters Count */}
           {(historyFilter !== "all" || statusFilter !== "all" || searchQuery || dateFrom || dateTo) && (
-            <div className="mt-4 flex items-center justify-between">
-              <p className="text-sm text-slate-600">
+            <div className="mt-3 md:mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <p className="text-xs md:text-sm text-slate-600">
                 Showing {filteredHistory.length} of {allHistory.length} transactions
               </p>
               <button
@@ -406,7 +406,7 @@ export default function HistoryPage() {
                   setDateFrom("");
                   setDateTo("");
                 }}
-                className="text-sm font-medium text-[#004B5B] hover:underline"
+                className="text-xs md:text-sm font-medium text-[#004B5B] hover:underline"
               >
                 Clear Filters
               </button>
@@ -415,87 +415,91 @@ export default function HistoryPage() {
         </Card>
 
         {/* History Table */}
-        <Card className="p-6" hover={false}>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-slate-200">
-                  <th className="text-left py-3 px-2 text-sm font-semibold text-slate-700">ID</th>
-                  <th className="text-left py-3 px-2 text-sm font-semibold text-slate-700">Type</th>
-                  <th className="text-left py-3 px-2 text-sm font-semibold text-slate-700">Description</th>
-                  <th className="text-right py-3 px-2 text-sm font-semibold text-slate-700">Amount</th>
-                  <th className="text-left py-3 px-2 text-sm font-semibold text-slate-700">Status</th>
-                  <th className="text-left py-3 px-2 text-sm font-semibold text-slate-700">Date</th>
-                  <th className="text-center py-3 px-2 text-sm font-semibold text-slate-700">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredHistory.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-12 text-center">
-                      <div className="flex flex-col items-center gap-3">
-                        <History className="h-12 w-12 text-slate-300" />
-                        <p className="text-base text-slate-500">No transactions found</p>
-                        <p className="text-sm text-slate-400">Try adjusting your filters</p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredHistory.map((item) => (
-                    <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                      <td className="py-4 px-2 text-base font-medium text-slate-900">{item.id}</td>
-                      <td className="py-4 px-2">
-                        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold ${getTypeColor(item.category, item.type)}`}>
-                          {getTypeIcon(item.category, item.type)}
-                          <span className="capitalize">{item.type}</span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-2">
-                        <p className="text-base text-slate-900">{item.description}</p>
-                        {item.security && (
-                          <p className="text-sm text-slate-500">
-                            {item.quantity} shares @ Rwf {item.price}
-                          </p>
-                        )}
-                      </td>
-                      <td className={`text-right py-4 px-2 text-base font-semibold ${
-                        item.type === "deposit" || item.type === "sell"
-                          ? "text-emerald-600"
-                          : "text-slate-900"
-                      }`}>
-                        {item.type === "deposit" || item.type === "sell" ? "+" : ""}
-                        Rwf {item.amount.toLocaleString()}
-                      </td>
-                      <td className="py-4 px-2">
-                        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold ${getStatusColor(item.status)}`}>
-                          {getStatusIcon(item.status)}
-                          <span className="capitalize">{item.status}</span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-2 text-sm text-slate-600">{item.date}</td>
-                      <td className="py-4 px-2 text-center">
-                        <Button size="sm" variant="outline">
-                          View
-                        </Button>
-                      </td>
+        <Card className="p-3 md:p-6 overflow-hidden" hover={false}>
+          <div className="overflow-x-auto -mx-3 md:mx-0">
+            <div className="inline-block min-w-full align-middle px-3 md:px-0">
+              <div className="overflow-hidden">
+                <table className="min-w-full">
+                  <thead>
+                    <tr className="border-b border-slate-200">
+                      <th className="text-left py-2 md:py-3 px-1.5 md:px-2 text-xs md:text-sm font-semibold text-slate-700">ID</th>
+                      <th className="text-left py-2 md:py-3 px-1.5 md:px-2 text-xs md:text-sm font-semibold text-slate-700">Type</th>
+                      <th className="text-left py-2 md:py-3 px-1.5 md:px-2 text-xs md:text-sm font-semibold text-slate-700 hidden lg:table-cell">Description</th>
+                      <th className="text-right py-2 md:py-3 px-1.5 md:px-2 text-xs md:text-sm font-semibold text-slate-700">Amount</th>
+                      <th className="text-left py-2 md:py-3 px-1.5 md:px-2 text-xs md:text-sm font-semibold text-slate-700">Status</th>
+                      <th className="text-left py-2 md:py-3 px-1.5 md:px-2 text-xs md:text-sm font-semibold text-slate-700 hidden md:table-cell">Date</th>
+                      <th className="text-center py-2 md:py-3 px-1.5 md:px-2 text-xs md:text-sm font-semibold text-slate-700 hidden sm:table-cell">Actions</th>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody>
+                    {filteredHistory.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="py-12 text-center">
+                          <div className="flex flex-col items-center gap-3">
+                            <History className="h-10 w-10 md:h-12 md:w-12 text-slate-300" />
+                            <p className="text-sm md:text-base text-slate-500">No transactions found</p>
+                            <p className="text-xs md:text-sm text-slate-400">Try adjusting your filters</p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredHistory.map((item) => (
+                        <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                          <td className="py-2 md:py-4 px-1.5 md:px-2 text-xs md:text-base font-medium text-slate-900">{item.id}</td>
+                          <td className="py-2 md:py-4 px-1.5 md:px-2">
+                            <div className={`inline-flex items-center gap-1 md:gap-2 px-1.5 md:px-3 py-0.5 md:py-1.5 rounded-full text-[10px] md:text-xs font-semibold ${getTypeColor(item.category, item.type)}`}>
+                              <span className="hidden sm:inline">{getTypeIcon(item.category, item.type)}</span>
+                              <span className="capitalize">{item.type}</span>
+                            </div>
+                          </td>
+                          <td className="py-2 md:py-4 px-1.5 md:px-2 hidden lg:table-cell">
+                            <p className="text-sm md:text-base text-slate-900">{item.description}</p>
+                            {item.security && (
+                              <p className="text-xs md:text-sm text-slate-500">
+                                {item.quantity} shares @ Rwf {item.price}
+                              </p>
+                            )}
+                          </td>
+                          <td className={`text-right py-2 md:py-4 px-1.5 md:px-2 text-xs md:text-base font-semibold whitespace-nowrap ${
+                            item.type === "deposit" || item.type === "sell"
+                              ? "text-emerald-600"
+                              : "text-slate-900"
+                          }`}>
+                            {item.type === "deposit" || item.type === "sell" ? "+" : ""}
+                            Rwf {item.amount.toLocaleString()}
+                          </td>
+                          <td className="py-2 md:py-4 px-1.5 md:px-2">
+                            <div className={`inline-flex items-center gap-1 md:gap-2 px-1.5 md:px-3 py-0.5 md:py-1.5 rounded-full text-[10px] md:text-xs font-semibold ${getStatusColor(item.status)}`}>
+                              <span className="hidden sm:inline">{getStatusIcon(item.status)}</span>
+                              <span className="capitalize">{item.status}</span>
+                            </div>
+                          </td>
+                          <td className="py-2 md:py-4 px-1.5 md:px-2 text-xs md:text-sm text-slate-600 whitespace-nowrap hidden md:table-cell">{item.date}</td>
+                          <td className="py-2 md:py-4 px-1.5 md:px-2 text-center hidden sm:table-cell">
+                            <Button size="sm" variant="outline" className="text-[10px] md:text-xs px-2 md:px-3 py-1">
+                              View
+                            </Button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
           {/* Pagination placeholder */}
           {filteredHistory.length > 0 && (
-            <div className="mt-6 flex items-center justify-between border-t border-slate-200 pt-4">
-              <p className="text-sm text-slate-600">
+            <div className="mt-4 md:mt-6 flex flex-col sm:flex-row sm:items-center justify-between border-t border-slate-200 pt-4 gap-3">
+              <p className="text-xs md:text-sm text-slate-600">
                 Showing 1-{filteredHistory.length} of {filteredHistory.length} transactions
               </p>
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" disabled>
+                <Button size="sm" variant="outline" disabled className="text-xs md:text-sm">
                   Previous
                 </Button>
-                <Button size="sm" variant="outline" disabled>
+                <Button size="sm" variant="outline" disabled className="text-xs md:text-sm">
                   Next
                 </Button>
               </div>

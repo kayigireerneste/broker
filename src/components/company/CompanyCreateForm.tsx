@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, type ChangeEvent, type FormEvent } from "react";
+import { useState, useMemo, type ChangeEvent, type FormEvent } from "react";
 import Button from "@/components/ui/Button";
 import { InputField } from "@/components/ui/InputField";
 import Card from "@/components/ui/Card";
 import RichTextEditor from "@/components/ui/RichTextEditor";
 import toast from "react-hot-toast";
+import { getData } from "country-list";
+import { CountryCode, getCountryCallingCode } from "libphonenumber-js";
 
 export interface CompanySummary {
   id: string;
@@ -34,6 +36,13 @@ interface CompanyCreateFormProps {
 
 interface FormState {
   name: string;
+  email: string;
+  phoneCountryCode: string;
+  phone: string;
+  password: string;
+  country: string;
+  city: string;
+  symbol: string;
   description: string;
   sector: string;
   sharePrice: string;
@@ -63,6 +72,13 @@ const toIntegerOrUndefined = (value: string) => {
 
 const INITIAL_STATE: FormState = {
   name: "",
+  email: "",
+  phoneCountryCode: "+250",
+  phone: "",
+  password: "",
+  country: "Rwanda",
+  city: "",
+  symbol: "",
   description: "",
   sector: "",
   sharePrice: "",
@@ -81,11 +97,33 @@ export function CompanyCreateForm({ authToken, onCreated, withCard = true }: Com
   const [formState, setFormState] = useState<FormState>(INITIAL_STATE);
   const [submitting, setSubmitting] = useState(false);
 
+  const countryOptions = useMemo(() => {
+    return getData()
+      .map(({ name, code }) => {
+        try {
+          const dialCode = getCountryCallingCode(code as CountryCode);
+          return {
+            name,
+            code,
+            dialCode: `+${dialCode}`,
+          };
+        } catch {
+          return null;
+        }
+      })
+      .filter((item): item is { name: string; code: string; dialCode: string } => Boolean(item))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, []);
+
   const handleChange = (field: keyof FormState) => (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormState((prev) => ({ ...prev, [field]: event.target.value }));
   };
 
   const handleInputChange = (field: keyof FormState) => (event: ChangeEvent<HTMLInputElement>) => {
+    setFormState((prev) => ({ ...prev, [field]: event.target.value }));
+  };
+
+  const handleSelectChange = (field: keyof FormState) => (event: ChangeEvent<HTMLSelectElement>) => {
     setFormState((prev) => ({ ...prev, [field]: event.target.value }));
   };
 
@@ -128,6 +166,13 @@ export function CompanyCreateForm({ authToken, onCreated, withCard = true }: Com
 
     const payload = {
       name: formState.name.trim(),
+      email: formState.email.trim(),
+      phoneCountryCode: formState.phoneCountryCode.trim(),
+      phone: formState.phone.trim(),
+      password: formState.password,
+      country: formState.country.trim(),
+      city: formState.city.trim(),
+      symbol: formState.symbol.trim() || undefined,
       description: formState.description.trim() || undefined,
       sector: formState.sector.trim() || undefined,
       sharePrice: formState.sharePrice.trim() || undefined,
@@ -188,6 +233,104 @@ export function CompanyCreateForm({ authToken, onCreated, withCard = true }: Com
             required
             type="text"
           />
+          <InputField
+            label="Stock Symbol"
+            name="symbol"
+            value={formState.symbol}
+            onChange={handleInputChange("symbol")}
+            placeholder="e.g. MTN"
+            type="text"
+          />
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <InputField
+            label="Email"
+            name="email"
+            value={formState.email}
+            onChange={handleInputChange("email")}
+            required
+            type="email"
+            placeholder="company@example.com"
+          />
+          <InputField
+            label="Password"
+            name="password"
+            value={formState.password}
+            onChange={handleInputChange("password")}
+            required
+            type="password"
+            placeholder="Min 8 chars with uppercase, lowercase, number"
+            showVisibilityToggle={true}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-600">
+            Phone Number <span className="text-red-500">*</span>
+          </label>
+          <div className="grid md:grid-cols-3 gap-4">
+            <select
+              name="phoneCountryCode"
+              value={formState.phoneCountryCode}
+              onChange={handleSelectChange("phoneCountryCode")}
+              disabled={submitting}
+              required
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#004B5B] disabled:opacity-50"
+            >
+              {countryOptions.map(({ name, dialCode, code }) => (
+                <option key={code} value={dialCode}>
+                  {name} ({dialCode})
+                </option>
+              ))}
+            </select>
+            <div className="md:col-span-2">
+              <input
+                type="tel"
+                name="phone"
+                value={formState.phone}
+                onChange={handleInputChange("phone")}
+                disabled={submitting}
+                required
+                placeholder="788123456"
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004B5B] disabled:opacity-50"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-600">
+              Country <span className="text-red-500">*</span>
+            </label>
+            <select
+              name="country"
+              value={formState.country}
+              onChange={handleSelectChange("country")}
+              disabled={submitting}
+              required
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#004B5B] disabled:opacity-50"
+            >
+              {countryOptions.map(({ name, code }) => (
+                <option key={code} value={code}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <InputField
+            label="City"
+            name="city"
+            value={formState.city}
+            onChange={handleInputChange("city")}
+            required
+            type="text"
+            placeholder="Kigali"
+          />
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4">
           <InputField
             label="Sector"
             name="sector"
