@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
 import { getAuthenticatedUser } from "@/lib/apiAuth";
 import { paypackClient } from "@/lib/paypack";
 
@@ -31,7 +30,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Transaction not found or already processed" }, { status: 404 });
     }
 
-    const metadata = transaction.metadata as any;
+    const metadata = transaction.metadata as Record<string, unknown>;
     const externalReference = metadata?.externalReference || transaction.reference;
 
     try {
