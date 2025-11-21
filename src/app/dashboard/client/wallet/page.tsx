@@ -57,7 +57,8 @@ interface PaymentMethodsResponse {
 interface TransactionActionResponse {
   message: string;
   transaction: Transaction;
-  newBalance: string;
+  newBalance?: string;
+  status?: string;
 }
 
 export default function WalletPage() {
@@ -207,6 +208,48 @@ export default function WalletPage() {
     }
   };
 
+  const checkPaymentStatus = async (transactionId: string) => {
+    try {
+      const response = await axios.post(
+        "/wallet/check-payment",
+        { transactionId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (response.data.status === "COMPLETED") {
+        setToast({
+          show: true,
+          type: "success",
+          title: "Payment Confirmed",
+          message: response.data.message,
+        });
+        await fetchWalletData();
+      } else if (response.data.status === "FAILED") {
+        setToast({
+          show: true,
+          type: "error",
+          title: "Payment Failed",
+          message: response.data.message,
+        });
+        await fetchWalletData();
+      } else {
+        setToast({
+          show: true,
+          type: "success",
+          title: "Still Pending",
+          message: response.data.message,
+        });
+      }
+    } catch (error) {
+      setToast({
+        show: true,
+        type: "error",
+        title: "Check Failed",
+        message: "Could not check payment status",
+      });
+    }
+  };
+
   const handleTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedPaymentMethodId) {
@@ -232,17 +275,27 @@ export default function WalletPage() {
         }
       )) as TransactionActionResponse;
       
-      // Show success notification with transaction details
-      const actionText = activeTab === "deposit" ? "Deposited" : "Withdrawn";
-      setToast({
-        show: true,
-        type: "success",
-        title: `${actionText} Successfully!`,
-        message: `${actionText} Rwf ${parseFloat(amount).toLocaleString()}. New balance: Rwf ${parseFloat(data.newBalance).toLocaleString()}`,
-      });
+      // Show notification based on status
+      if (data.status === "PENDING") {
+        setToast({
+          show: true,
+          type: "success",
+          title: "Payment Initiated",
+          message: data.message || "Please complete payment on your phone. Your wallet will be updated automatically.",
+        });
+      } else {
+        // Refresh wallet data for completed transactions
+        await fetchWalletData();
+        const actionText = activeTab === "deposit" ? "Deposited" : "Withdrawn";
+        setToast({
+          show: true,
+          type: "success",
+          title: `${actionText} Successfully!`,
+          message: data.message || `${actionText} Rwf ${parseFloat(amount).toLocaleString()}`,
+        });
+      }
       
       setAmount("");
-      await fetchWalletData();
     } catch (error: unknown) {
       const actionText = activeTab === "deposit" ? "Deposit" : "Withdrawal";
       if (isAxiosError(error)) {
@@ -472,7 +525,7 @@ export default function WalletPage() {
                 className={`w-full text-sm md:text-base ${
                   activeTab === "deposit" ? "bg-emerald-500 hover:bg-emerald-600" : "bg-blue-500 hover:bg-blue-600"
                 }`}
-                disabled={loading || !amount || parseFloat(amount) < 500 || !selectedPaymentMethodId}
+                disabled={loading || !amount || parseFloat(amount) < 100 || !selectedPaymentMethodId}
               >
                 {loading ? (
                   <>
@@ -645,9 +698,19 @@ export default function WalletPage() {
                           {txn.type === "DEPOSIT" ? "+" : "-"}Rwf {parseFloat(txn.amount).toLocaleString()}
                         </td>
                         <td className="py-3 md:py-4 px-2">
-                          <span className={`inline-block px-2 md:px-3 py-1 rounded-full text-xs font-semibold capitalize ${getStatusColor(txn.status)}`}>
-                            {txn.status.toLowerCase()}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className={`inline-block px-2 md:px-3 py-1 rounded-full text-xs font-semibold capitalize ${getStatusColor(txn.status)}`}>
+                              {txn.status.toLowerCase()}
+                            </span>
+                            {txn.status === "PENDING" && (
+                              <button
+                                onClick={() => checkPaymentStatus(txn.id)}
+                                className="text-xs bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
+                              >
+                                Check
+                              </button>
+                            )}
+                          </div>
                         </td>
                         <td className="py-3 md:py-4 px-2 text-xs md:text-sm text-slate-600 whitespace-nowrap hidden md:table-cell">
                           {new Date(txn.createdAt).toLocaleString()}

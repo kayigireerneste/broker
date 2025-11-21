@@ -154,9 +154,9 @@ export default function ClientDashboard() {
             <Card className="p-3 md:p-5 cursor-pointer hover:shadow-lg transition-shadow">
               <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1 mr-2">
-                  <p className="text-[10px] md:text-xs font-medium text-gray-600 truncate">Today&apos;s P&L</p>
-                  <p className="text-base md:text-xl font-bold text-green-600">+Rwf 127</p>
-                  <p className="text-xs text-gray-600">+0.52%</p>
+                  <p className="text-[10px] md:text-xs font-medium text-gray-600 truncate">Total Shares Bought</p>
+                  <p className="text-base md:text-xl font-bold text-green-600">1,200</p>
+                  <p className="text-xs text-gray-600">3 companies</p>
                 </div>
                 <div className="w-8 h-8 md:w-12 md:h-12 bg-green-100 rounded-full flex items-center justify-center shrink-0">
                   <svg className="w-4 h-4 md:w-6 md:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -171,13 +171,13 @@ export default function ClientDashboard() {
             <Card className="p-3 md:p-5 cursor-pointer hover:shadow-lg transition-shadow">
               <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1 mr-2">
-                  <p className="text-[10px] md:text-xs font-medium text-gray-600 truncate">Active Orders</p>
-                  <p className="text-base md:text-xl font-bold text-gray-900">3</p>
-                  <p className="text-xs text-orange-600">2 pending</p>
+                  <p className="text-[10px] md:text-xs font-medium text-gray-600 truncate">Total Shares Sold</p>
+                  <p className="text-base md:text-xl font-bold text-gray-900">500</p>
+                  <p className="text-xs text-orange-600">2 companies</p>
                 </div>
                 <div className="w-8 h-8 md:w-12 md:h-12 bg-orange-100 rounded-full flex items-center justify-center shrink-0">
                   <svg className="w-4 h-4 md:w-6 md:h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 13l-5 5m0 0l-5-5m5 5V6" />
                   </svg>
                 </div>
               </div>

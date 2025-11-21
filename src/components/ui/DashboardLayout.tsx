@@ -174,7 +174,7 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-gray-50 flex overflow-x-hidden w-full">
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 gradient-primary transform transition-transform duration-300 
+        className={`fixed inset-y-0 left-0 z-50 w-64 gradient-primary transform transition-transform duration-300 flex flex-col
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} 
         md:translate-x-0`}
       >
@@ -198,7 +198,7 @@ export default function DashboardLayout({
           </button>
         </div>
 
-        <nav className="mt-8 px-4 overflow-y-auto h-[calc(100vh-10rem)]">
+        <nav className="flex-1 mt-8 px-4 overflow-y-auto scrollbar-hide">
           {getNavItems().map((item, index) => {
             const Icon = item.icon;
             return (
@@ -216,7 +216,7 @@ export default function DashboardLayout({
           })}
         </nav>
 
-        <div className="absolute bottom-4 left-4 right-4">
+        <div className="shrink-0 mx-4 mb-4">
           <div className="bg-white/10 rounded-lg p-4 text-white">
             <div className="flex flex-col items-center space-y-2 text-center">
               <div className="w-16 h-16 rounded-full overflow-hidden bg-white/25 flex items-center justify-center border border-white/40 shadow-inner">

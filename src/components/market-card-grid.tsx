@@ -55,11 +55,60 @@ function parseNumeric(value: string): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-export function MarketCardGrid(): JSX.Element {
-  const { data, loading, error } = useMarketSummary();
-  const [sortKey, setSortKey] = useState<SortKey>("change");
+interface Security {
+  symbol: string;
+  name: string;
+  price: number;
+  change: number;
+  volume: string;
+  high: number;
+  low: number;
+  source: "rse" | "database";
+  sector?: string;
+}
 
-  const snapshot = useMemo(() => data?.dailySnapshot ?? [], [data?.dailySnapshot]);
+export function MarketCardGrid(): JSX.Element {
+  const { data, loading: marketLoading, error: marketError } = useMarketSummary();
+  const [sortKey, setSortKey] = useState<SortKey>("change");
+  const [securities, setSecurities] = useState<Security[]>([]);
+  const [securitiesLoading, setSecuritiesLoading] = useState(true);
+
+  // Fetch combined securities from API
+  useMemo(() => {
+    const fetchSecurities = async () => {
+      try {
+        const response = await fetch("/api/securities");
+        if (!response.ok) throw new Error("Failed to fetch securities");
+        const result = await response.json();
+        setSecurities(result.data || []);
+      } catch (err) {
+        console.error("Error fetching securities:", err);
+      } finally {
+        setSecuritiesLoading(false);
+      }
+    };
+    fetchSecurities();
+  }, []);
+
+  // Combine market summary data with securities API
+  const snapshot = useMemo(() => {
+    // If we have securities from API, use them
+    if (securities.length > 0) {
+      return securities.map((sec) => ({
+        security: sec.symbol,
+        closing: sec.price.toString(),
+        previous: ((sec.price / (1 + sec.change / 100)) || sec.price).toFixed(2),
+        change: sec.change >= 0 ? `+${sec.change}%` : `${sec.change}%`,
+        volume: sec.volume,
+        value: (parseNumeric(sec.volume) * sec.price).toString(),
+      }));
+    }
+    // Otherwise fallback to market summary
+    return data?.dailySnapshot ?? [];
+  }, [securities, data?.dailySnapshot]);
+
+  const loading = marketLoading || securitiesLoading;
+  const error = marketError;
 
   const enriched = useMemo(() => {
     return snapshot.map((row, idx) => {

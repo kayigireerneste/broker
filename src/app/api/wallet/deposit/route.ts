@@ -2,41 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { getAuthenticatedUser } from "@/lib/apiAuth";
-
-// Mock MTN Mobile Money Integration
-// In production, replace this with actual MTN MoMo API calls
-async function mockMTNDeposit(
-  phoneNumber: string,
-  amount: number,
-  reference: string
-): Promise<{ success: boolean; transactionId?: string; error?: string }> {
-  // Simulate API delay
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-
-  // Mock validation
-  if (amount < 500) {
-    return { success: false, error: "Minimum deposit amount is 500 RWF" };
-  }
-
-  if (amount > 5000000) {
-    return { success: false, error: "Maximum deposit amount is 5,000,000 RWF" };
-  }
-
-  // Simulate 95% success rate
-  const isSuccess = Math.random() > 0.05;
-
-  if (isSuccess) {
-    return {
-      success: true,
-      transactionId: `MTN${reference}${Math.floor(Math.random() * 1000)}`,
-    };
-  } else {
-    return {
-      success: false,
-      error: "Transaction failed. Please try again.",
-    };
-  }
-}
+import { paypackClient, PaypackClient, PaypackError } from "@/lib/paypack";
 
 // POST /api/wallet/deposit - Deposit money to wallet
 export async function POST(req: NextRequest) {
@@ -52,10 +18,10 @@ export async function POST(req: NextRequest) {
     const { amount, paymentMethodId } = body;
     const numericAmount = Number(amount);
 
-    // Validate amount
-    if (!numericAmount || Number.isNaN(numericAmount) || numericAmount <= 0) {
+    // Validate amount - Paypack requires minimum 100 RWF
+    if (!numericAmount || Number.isNaN(numericAmount) || numericAmount < 100) {
       return NextResponse.json(
-        { error: "Invalid amount" },
+        { error: "Invalid amount. Minimum deposit is 100 RWF" },
         { status: 400 }
       );
     }
@@ -83,104 +49,168 @@ export async function POST(req: NextRequest) {
     // Generate unique reference
     const reference = `DEP${Date.now()}${Math.floor(Math.random() * 10000)}`;
 
-    // Process payment based on payment method type
-    let paymentResult: { success: boolean; transactionId?: string; error?: string };
+    // Process payment via Paypack for mobile money
+    let paypackResponse: Record<string, unknown> | null = null;
+    let externalStatus: string | undefined;
+    let externalReference: string | undefined;
+
+    const isTestMode = process.env.NODE_ENV === 'development' && process.env.PAYPACK_TEST_MODE === 'true';
+    
+    console.log("Paypack environment check:", {
+      hasBaseUrl: !!process.env.PAYPACK_BASE_URL,
+      hasAppId: !!process.env.PAYPACK_APP_ID,
+      hasAppSecret: !!process.env.PAYPACK_APP_SECRET,
+      baseUrl: process.env.PAYPACK_BASE_URL,
+      isTestMode,
+    });
 
     if (paymentMethod.type === "MOBILE_MONEY") {
-      paymentResult = await mockMTNDeposit(
-        paymentMethod.accountNumber,
-        numericAmount,
-        reference
-      );
-    } else {
-      // For other payment types, simulate instant success
-      paymentResult = {
-        success: true,
-        transactionId: `${paymentMethod.type}${Date.now()}`,
-      };
-    }
+      // Use phone number exactly as stored (Paypack expects the whitelisted format)
+      const formattedPhone = paymentMethod.accountNumber.trim();
 
-    if (!paymentResult.success) {
-      // Create failed transaction record
-      await prisma.transaction.create({
-        data: {
-          userId: userId,
-          type: "DEPOSIT",
-          amount: new Prisma.Decimal(numericAmount),
-          status: "FAILED",
-          paymentMethod: `${paymentMethod.type} - ${paymentMethod.provider || ""}`,
+      if (isTestMode) {
+        console.log("Test mode: Simulating successful Paypack response");
+        paypackResponse = {
+          ref: reference,
+          status: "SUCCESS",
+          amount: numericAmount,
+          number: formattedPhone,
+          currency: "RWF",
+          description: `Wallet deposit for ${userId}`,
+          processor_message: "Test mode - payment simulated",
+        };
+        externalStatus = "SUCCESS";
+        externalReference = reference;
+      } else {
+        try {
+
+        console.log("Initiating Paypack cashIn with:", {
+          amount: numericAmount,
+          phone: formattedPhone,
           reference,
-          description: paymentResult.error || "Deposit failed",
-          metadata: {
-            paymentMethodId,
-            accountNumber: paymentMethod.accountNumber,
-            error: paymentResult.error,
-          },
-        },
-      });
+          description: `Wallet deposit for ${userId}`,
+        });
 
-      return NextResponse.json(
-        { error: paymentResult.error || "Deposit failed" },
-        { status: 400 }
-      );
-    }
+        console.log("Final Paypack cashIn request:", {
+          amount: numericAmount,
+          phone: formattedPhone,
+          reference,
+          description: `Wallet deposit for ${userId}`,
+        });
 
-    // Start a transaction to update wallet and create transaction record
-    const result = await prisma.$transaction(async (tx) => {
-      // Get or create wallet
-      let wallet = await tx.wallet.findUnique({
-        where: { userId: userId },
-      });
+        const response = await paypackClient.cashIn({
+          amount: numericAmount,
+          phone: formattedPhone,
+          reference,
+          description: `Wallet deposit for ${userId}`,
+        });
 
-      if (!wallet) {
-        wallet = await tx.wallet.create({
+        console.log("Paypack cashIn response:", response);
+
+        paypackResponse = response;
+        externalStatus = typeof response.status === "string" ? response.status : undefined;
+        externalReference = (response.ref as string | undefined) ?? reference;
+
+        console.log("Processed Paypack response:", {
+          externalStatus,
+          externalReference,
+          isFailed: PaypackClient.isFailed(externalStatus),
+        });
+
+        // Set status as PENDING - will be updated via webhook when user completes payment
+        externalStatus = "PENDING";
+
+        if (PaypackClient.isFailed(externalStatus)) {
+          await prisma.transaction.create({
+            data: {
+              userId: userId,
+              type: "DEPOSIT",
+              amount: new Prisma.Decimal(numericAmount),
+              status: "FAILED",
+              paymentMethod: `${paymentMethod.type} - ${paymentMethod.provider || ""}`,
+              reference,
+              description: response.processor_message || "Deposit declined by Paypack",
+              metadata: {
+                paymentMethodId,
+                accountNumber: paymentMethod.accountNumber,
+                paypack: JSON.parse(JSON.stringify(response)),
+              },
+            },
+          });
+
+          return NextResponse.json(
+            { error: response.processor_message || "Deposit declined" },
+            { status: 400 }
+          );
+        }
+      } catch (error) {
+        console.error("Paypack cashIn error details:", {
+          error,
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+          isPaypackError: error instanceof PaypackError,
+        });
+        
+        let message = error instanceof PaypackError ? error.message : "Paypack deposit failed";
+        
+        // Provide helpful message for unsupported provider error
+        if (message.includes('unsupported provider')) {
+          message = `Phone number ${formattedPhone} is not whitelisted in your Paypack dashboard. Please add this number to your Paypack merchant account's whitelist before attempting payment.`;
+        }
+
+        await prisma.transaction.create({
           data: {
             userId: userId,
-            balance: new Prisma.Decimal(0),
-            lockedBalance: new Prisma.Decimal(0),
+            type: "DEPOSIT",
+            amount: new Prisma.Decimal(numericAmount),
+            status: "FAILED",
+            paymentMethod: `${paymentMethod.type} - ${paymentMethod.provider || ""}`,
+            reference,
+            description: message,
+            metadata: {
+              paymentMethodId,
+              accountNumber: paymentMethod.accountNumber,
+              error: error instanceof Error ? error.message : String(error),
+            },
           },
         });
+
+        return NextResponse.json({ error: message }, { status: 400 });
+        }
       }
+    }
 
-      // Update wallet balance
-      const updatedWallet = await tx.wallet.update({
-        where: { userId: userId },
-        data: {
-          balance: {
-            increment: new Prisma.Decimal(numericAmount),
-          },
+    // Create PENDING transaction - will be updated when payment is completed
+    const transaction = await prisma.transaction.create({
+      data: {
+        userId: userId,
+        type: "DEPOSIT",
+        amount: new Prisma.Decimal(numericAmount),
+        status: "PENDING",
+        paymentMethod: `${paymentMethod.type} - ${paymentMethod.provider || ""}`,
+        reference,
+        description: `Deposit via ${paymentMethod.provider || paymentMethod.type}`,
+        metadata: {
+          paymentMethodId,
+          accountNumber: paymentMethod.accountNumber,
+          externalStatus,
+          externalReference: externalReference || reference,
+          paypack: paypackResponse ? JSON.parse(JSON.stringify(paypackResponse)) : null,
         },
-      });
-
-      // Create transaction record
-      const transaction = await tx.transaction.create({
-        data: {
-          userId: userId,
-          type: "DEPOSIT",
-          amount: new Prisma.Decimal(numericAmount),
-          status: "COMPLETED",
-          paymentMethod: `${paymentMethod.type} - ${paymentMethod.provider || ""}`,
-          reference,
-          description: `Deposit via ${paymentMethod.provider || paymentMethod.type}`,
-          metadata: {
-            paymentMethodId,
-            accountNumber: paymentMethod.accountNumber,
-            externalTransactionId: paymentResult.transactionId,
-          },
-        },
-      });
-
-      return { wallet: updatedWallet, transaction };
+      },
     });
 
     return NextResponse.json(
       {
-        message: "Deposit successful",
-        transaction: result.transaction,
-        newBalance: result.wallet.balance.toString(),
+        message: "Payment initiated. Please complete payment on your phone.",
+        transaction,
+        status: "PENDING",
+        providerReference: externalReference || reference,
       },
       { status: 200 }
     );
+
+
   } catch (error) {
     console.error("Error processing deposit:", error);
     return NextResponse.json(

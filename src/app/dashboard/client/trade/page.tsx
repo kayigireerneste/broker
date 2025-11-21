@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import DashboardLayout from "@/components/ui/DashboardLayout";
 import Card from "@/components/ui/Card";
@@ -10,16 +10,81 @@ import { useAuth } from "@/hooks/useAuth";
 import { TrendingUp, Activity, Search, ArrowUpRight, ArrowDownRight } from "lucide-react";
 
 type OrderType = "buy" | "sell";
-type PriceType = "market" | "limit";
+
+interface Security {
+  symbol: string;
+  name: string;
+  price: number;
+  change: number;
+  volume: string;
+  high: number;
+  low: number;
+  bid: number;
+  ask: number;
+  source: "rse" | "database";
+  sector?: string;
+}
 
 export default function TradePage() {
   const { user } = useAuth();
   const [orderType, setOrderType] = useState<OrderType>("buy");
-  const [priceType, setPriceType] = useState<PriceType>("market");
-  const [selectedSecurity, setSelectedSecurity] = useState("BK");
+  const [selectedSecurity, setSelectedSecurity] = useState("");
   const [quantity, setQuantity] = useState("");
-  const [limitPrice, setLimitPrice] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [quantityError, setQuantityError] = useState("");
+  const [securities, setSecurities] = useState<Security[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [processing, setProcessing] = useState(false);
+  const [toast, setToast] = useState<{
+    show: boolean;
+    message: string;
+    type: "success" | "error";
+  }>({ show: false, message: "", type: "success" });
+
+  // Fetch securities from API
+  useEffect(() => {
+    const fetchSecurities = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch("/api/securities");
+        if (!response.ok) throw new Error("Failed to fetch securities");
+        const data = await response.json();
+        setSecurities(data.data || []);
+        // Set first security as default if available
+        if (data.data && data.data.length > 0) {
+          setSelectedSecurity(data.data[0].symbol);
+        }
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching securities:", err);
+        setError("Failed to load securities");
+        // Set fallback empty array
+        setSecurities([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSecurities();
+  }, []);
+
+  // Validate quantity is multiple of 100
+  const validateQuantity = (value: string) => {
+    const qty = Number.parseInt(value, 10);
+    if (value && qty % 100 !== 0) {
+      setQuantityError("Quantity must be in multiples of 100 (100, 200, 300, etc.)");
+      return false;
+    }
+    setQuantityError("");
+    return true;
+  };
+
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setQuantity(value);
+    validateQuantity(value);
+  };
 
   const { displayName, email, dashboardRole } = useMemo(() => {
     const fullName = (user?.fullName as string | undefined)?.trim() ?? "";
@@ -34,92 +99,109 @@ export default function TradePage() {
     };
   }, [user?.email, user?.fullName, user?.role]);
 
-  const securities = [
-    { 
-      symbol: "BK", 
-      name: "Bank of Kigali", 
-      price: 268, 
-      change: 2.3, 
-      volume: "15,420",
-      high: 272,
-      low: 265,
-      bid: 267,
-      ask: 268
-    },
-    { 
-      symbol: "EQTY", 
-      name: "Equity Bank Rwanda", 
-      price: 195, 
-      change: 1.5, 
-      volume: "8,930",
-      high: 198,
-      low: 192,
-      bid: 194,
-      ask: 195
-    },
-    { 
-      symbol: "MTN", 
-      name: "MTN Rwanda", 
-      price: 305, 
-      change: -1.2, 
-      volume: "12,150",
-      high: 310,
-      low: 303,
-      bid: 304,
-      ask: 305
-    },
-    { 
-      symbol: "BRALIRWA", 
-      name: "Bralirwa Ltd", 
-      price: 448, 
-      change: 0.8, 
-      volume: "5,680",
-      high: 450,
-      low: 445,
-      bid: 447,
-      ask: 448
-    },
-    { 
-      symbol: "KCB", 
-      name: "KCB Rwanda", 
-      price: 182, 
-      change: -0.5, 
-      volume: "6,200",
-      high: 185,
-      low: 181,
-      bid: 181,
-      ask: 182
-    },
-  ];
-
   const filteredSecurities = securities.filter(
     (sec) =>
       sec.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
       sec.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const currentSecurity = securities.find((s) => s.symbol === selectedSecurity) || securities[0];
+  const currentSecurity = securities.find((s) => s.symbol === selectedSecurity) || securities[0] || {
+    symbol: "",
+    name: "No securities available",
+    price: 0,
+    change: 0,
+    volume: "0",
+    high: 0,
+    low: 0,
+    bid: 0,
+    ask: 0,
+    source: "database" as const,
+  };
 
   const estimatedTotal = useMemo(() => {
     const qty = Number.parseInt(quantity, 10) || 0;
-    const price = priceType === "market" 
-      ? currentSecurity.price 
-      : Number.parseFloat(limitPrice) || 0;
+    const price = currentSecurity.price;
     return qty * price;
-  }, [quantity, limitPrice, priceType, currentSecurity.price]);
+  }, [quantity, currentSecurity.price]);
 
-  const handleSubmitOrder = (e: React.FormEvent) => {
+  const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Order submitted:", {
-      orderType,
-      priceType,
-      security: selectedSecurity,
-      quantity,
-      limitPrice: priceType === "limit" ? limitPrice : undefined,
-    });
-    // Reset form
-    setQuantity("");
-    setLimitPrice("");
+    
+    if (!selectedSecurity || !quantity) {
+      return;
+    }
+
+    // Only allow buy orders for now
+    if (orderType === "sell") {
+      setToast({
+        show: true,
+        message: "Sell functionality is not yet available. Coming soon!",
+        type: "error",
+      });
+      setTimeout(() => {
+        setToast({ show: false, message: "", type: "error" });
+      }, 5000);
+      return;
+    }
+
+    setProcessing(true);
+    
+    try {
+      const response = await fetch("/api/trade/buy", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          companySymbol: selectedSecurity,
+          quantity: Number.parseInt(quantity, 10),
+          priceType: "MARKET",
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to execute trade");
+      }
+
+      // Show success message
+      setToast({
+        show: true,
+        message: data.message || `Successfully purchased ${quantity} shares`,
+        type: "success",
+      });
+
+      // Reset form
+      setQuantity("");
+      setQuantityError("");
+
+      // Auto-hide toast after 5 seconds
+      setTimeout(() => {
+        setToast({ show: false, message: "", type: "success" });
+      }, 5000);
+
+      // Refresh securities data
+      const securitiesResponse = await fetch("/api/securities");
+      if (securitiesResponse.ok) {
+        const securitiesData = await securitiesResponse.json();
+        setSecurities(securitiesData.data || []);
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to execute trade";
+      setToast({
+        show: true,
+        message: errorMessage,
+        type: "error",
+      });
+
+      // Auto-hide toast after 5 seconds
+      setTimeout(() => {
+        setToast({ show: false, message: "", type: "error" });
+      }, 5000);
+    } finally {
+      setProcessing(false);
+    }
   };
 
   return (
@@ -182,6 +264,22 @@ export default function TradePage() {
           </Card>
         </div>
 
+        {/* Loading State */}
+        {loading && (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#004B5B] mx-auto"></div>
+            <p className="mt-4 text-slate-600">Loading securities...</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="rounded-lg bg-rose-50 border border-rose-200 p-4">
+            <p className="text-rose-700 text-sm">{error}</p>
+          </div>
+        )}
+
+        {!loading && !error && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
           {/* Trading Form */}
           <Card className="p-4 md:p-6 lg:col-span-2" hover={false}>
@@ -235,78 +333,70 @@ export default function TradePage() {
                 </select>
               </div>
 
-              {/* Price Type */}
+              {/* Quantity */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Order Type
-                </label>
-                <div className="flex gap-2 md:gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setPriceType("market")}
-                    className={`flex-1 py-2 md:py-2.5 px-3 md:px-4 rounded-lg text-xs md:text-sm font-semibold transition-all ${
-                      priceType === "market"
-                        ? "bg-[#004B5B] text-white"
-                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                    }`}
-                  >
-                    Market
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPriceType("limit")}
-                    className={`flex-1 py-2 md:py-2.5 px-3 md:px-4 rounded-lg text-xs md:text-sm font-semibold transition-all ${
-                      priceType === "limit"
-                        ? "bg-[#004B5B] text-white"
-                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                    }`}
-                  >
-                    Limit
-                  </button>
+                <InputField
+                  name="quantity"
+                  label="Quantity (Shares - Multiples of 100)"
+                  type="number"
+                  placeholder="Enter number of shares"
+                  value={quantity}
+                  onChange={handleQuantityChange}
+                />
+                {quantityError && (
+                  <p className="mt-1 text-xs text-rose-600">{quantityError}</p>
+                )}
+                
+                {/* Quick Quantity Buttons */}
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <p className="w-full text-xs text-slate-600 mb-1">Quick select:</p>
+                  {[100, 200, 300, 500, 1000].map((qty) => (
+                    <button
+                      key={qty}
+                      type="button"
+                      onClick={() => {
+                        setQuantity(qty.toString());
+                        setQuantityError("");
+                      }}
+                      className="px-3 py-1 text-xs font-medium rounded-md bg-slate-100 text-slate-700 hover:bg-[#004B5B] hover:text-white transition-colors"
+                    >
+                      {qty}
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              {/* Quantity */}
-              <InputField
-                name="quantity"
-                label="Quantity (Shares)"
-                type="number"
-                placeholder="Enter number of shares"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-              />
-
-              {/* Limit Price (conditional) */}
-              {/* Limit Price (conditional) */}
-              {priceType === "limit" && (
-                <InputField
-                  name="limitPrice"
-                  label="Limit Price (Rwf)"
-                  type="number"
-                  placeholder="Enter your limit price"
-                  value={limitPrice}
-                  onChange={(e) => setLimitPrice(e.target.value)}
-                />
-              )}
               {/* Order Summary */}
               <div className="rounded-xl md:rounded-2xl bg-slate-50 p-3 md:p-4 space-y-2 md:space-y-3">
                 <div className="flex justify-between text-sm md:text-base">
-                  <span className="text-slate-600">Current Price</span>
+                  <span className="text-slate-600">Market Price</span>
                   <span className="font-semibold text-slate-900">Rwf {currentSecurity.price}</span>
                 </div>
                 <div className="flex justify-between text-sm md:text-base">
                   <span className="text-slate-600">Quantity</span>
                   <span className="font-semibold text-slate-900">{quantity || 0} shares</span>
                 </div>
-                {priceType === "limit" && (
-                  <div className="flex justify-between text-sm md:text-base">
-                    <span className="text-slate-600">Limit Price</span>
-                    <span className="font-semibold text-slate-900">Rwf {limitPrice || 0}</span>
-                  </div>
-                )}
                 <div className="pt-2 md:pt-3 border-t border-slate-200 flex justify-between text-base md:text-lg">
-                  <span className="font-semibold text-slate-700">Estimated Total</span>
+                  <span className="font-semibold text-slate-700">Total Amount</span>
                   <span className="font-bold text-slate-900">Rwf {estimatedTotal.toLocaleString()}</span>
+                </div>
+              </div>
+
+              {/* Rwanda Trading Rules Info */}
+              <div className="rounded-lg md:rounded-xl bg-blue-50 border border-blue-200 p-3 md:p-4">
+                <div className="flex gap-2 md:gap-3">
+                  <div className="shrink-0">
+                    <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="text-xs md:text-sm text-blue-900">
+                    <p className="font-semibold mb-1">Rwanda Stock Exchange Rules</p>
+                    <p className="text-blue-700">
+                      Shares must be traded in multiples of 100 only (100, 200, 300, 400, 500, etc.). 
+                      Minimum order size is 100 shares.
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -317,11 +407,19 @@ export default function TradePage() {
                   className={`flex-1 text-sm md:text-base ${
                     orderType === "buy" ? "bg-emerald-500 hover:bg-emerald-600" : "bg-rose-500 hover:bg-rose-600"
                   }`}
-                  disabled={!quantity || (priceType === "limit" && !limitPrice)}
+                  disabled={!quantity || quantityError !== "" || processing || !currentSecurity.symbol}
                 >
-                  {orderType === "buy" ? "Place Buy Order" : "Place Sell Order"}
+                  {processing ? "Processing..." : (orderType === "buy" ? "Place Buy Order" : "Place Sell Order")}
                 </Button>
-                <Button type="button" variant="outline" className="px-4 md:px-6 text-sm md:text-base">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="px-4 md:px-6 text-sm md:text-base"
+                  onClick={() => {
+                    setQuantity("");
+                    setQuantityError("");
+                  }}
+                >
                   Reset
                 </Button>
               </div>
@@ -413,17 +511,27 @@ export default function TradePage() {
               >
                 View Full Market →
               </Link>
-            </div>
-          </Card>
+          </div>
+        </Card>
         </div>
+        )}
 
         {/* Selected Security Details */}
+        {!loading && !error && currentSecurity.symbol && (
         <Card className="p-4 md:p-6" hover={false}>
-          <div className="mb-4">
-            <h2 className="text-lg md:text-xl font-semibold text-slate-900">{currentSecurity.name} ({currentSecurity.symbol})</h2>
-            <p className="text-sm md:text-base text-slate-600 mt-1">Current market data</p>
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h2 className="text-lg md:text-xl font-semibold text-slate-900">{currentSecurity.name} ({currentSecurity.symbol})</h2>
+              <p className="text-sm md:text-base text-slate-600 mt-1">Current market data and trading information</p>
+            </div>
+            <div className={`px-3 py-1 rounded-full text-sm font-semibold ${
+              currentSecurity.change >= 0 ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
+            }`}>
+              {currentSecurity.change >= 0 ? "↑" : "↓"} {currentSecurity.change >= 0 ? "+" : ""}{currentSecurity.change}%
+            </div>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 mb-6">
             <div className="p-3 md:p-4 rounded-lg md:rounded-xl bg-slate-50">
               <p className="text-xs md:text-sm text-slate-600 mb-1">Last Price</p>
               <p className="text-base md:text-lg font-bold text-slate-900">Rwf {currentSecurity.price}</p>
@@ -451,8 +559,116 @@ export default function TradePage() {
               <p className="text-base md:text-lg font-bold text-slate-900">{currentSecurity.bid}/{currentSecurity.ask}</p>
             </div>
           </div>
+
+          {/* Additional Share Information */}
+          <div className="border-t border-slate-200 pt-4">
+            <h3 className="text-sm font-semibold text-slate-900 mb-3">Share Purchase Calculator</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              {[100, 200, 500, 1000].map((shares) => {
+                const cost = shares * currentSecurity.price;
+                return (
+                  <div key={shares} className="p-3 rounded-lg bg-linear-to-br from-slate-50 to-slate-100 border border-slate-200">
+                    <p className="text-xs text-slate-600 mb-1">{shares} shares</p>
+                    <p className="text-lg font-bold text-[#004B5B]">Rwf {cost.toLocaleString()}</p>
+                    <p className="text-xs text-slate-500 mt-1">@ Rwf {currentSecurity.price}/share</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Trading Rules */}
+          <div className="mt-4 pt-4 border-t border-slate-200">
+            <h3 className="text-sm font-semibold text-slate-900 mb-3">Trading Guidelines</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
+                <p className="text-xs font-semibold text-blue-900 mb-1">Minimum Order</p>
+                <p className="text-sm text-blue-700">100 shares</p>
+              </div>
+              <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200">
+                <p className="text-xs font-semibold text-emerald-900 mb-1">Lot Size</p>
+                <p className="text-sm text-emerald-700">Multiples of 100</p>
+              </div>
+              <div className="p-3 rounded-lg bg-purple-50 border border-purple-200">
+                <p className="text-xs font-semibold text-purple-900 mb-1">Settlement</p>
+                <p className="text-sm text-purple-700">T+3 days</p>
+              </div>
+            </div>
+          </div>
         </Card>
+        )}
       </div>
+
+      {/* Toast Notification */}
+      {toast.show && (
+        <div className="fixed top-24 left-1/2 transform -translate-x-1/2 z-50 animate-fadeInUp">
+          <div
+            className={`max-w-md rounded-xl shadow-2xl p-4 border ${
+              toast.type === "success"
+                ? "bg-emerald-50 border-emerald-200"
+                : "bg-rose-50 border-rose-200"
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <div className="shrink-0">
+                {toast.type === "success" ? (
+                  <svg
+                    className="h-6 w-6 text-emerald-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    className="h-6 w-6 text-rose-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                )}
+              </div>
+              <div className="flex-1">
+                <p
+                  className={`text-sm font-medium ${
+                    toast.type === "success" ? "text-emerald-900" : "text-rose-900"
+                  }`}
+                >
+                  {toast.message}
+                </p>
+              </div>
+              <button
+                onClick={() => setToast({ show: false, message: "", type: "success" })}
+                className={`shrink-0 ${
+                  toast.type === "success" ? "text-emerald-600" : "text-rose-600"
+                }`}
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

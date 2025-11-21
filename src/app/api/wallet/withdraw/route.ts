@@ -2,41 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { getAuthenticatedUser } from "@/lib/apiAuth";
-
-// Mock MTN Mobile Money Withdrawal Integration
-// In production, replace this with actual MTN MoMo API calls
-async function mockMTNWithdraw(
-  phoneNumber: string,
-  amount: number,
-  reference: string
-): Promise<{ success: boolean; transactionId?: string; error?: string }> {
-  // Simulate API delay
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-
-  // Mock validation
-  if (amount < 500) {
-    return { success: false, error: "Minimum withdrawal amount is 500 RWF" };
-  }
-
-  if (amount > 5000000) {
-    return { success: false, error: "Maximum withdrawal amount is 5,000,000 RWF" };
-  }
-
-  // Simulate 95% success rate
-  const isSuccess = Math.random() > 0.05;
-
-  if (isSuccess) {
-    return {
-      success: true,
-      transactionId: `MTNWD${reference}${Math.floor(Math.random() * 1000)}`,
-    };
-  } else {
-    return {
-      success: false,
-      error: "Withdrawal failed. Please try again.",
-    };
-  }
-}
+import {
+  paypackClient,
+  PaypackClient,
+  PaypackError,
+  PaypackTransactionDetails,
+} from "@/lib/paypack";
 
 // POST /api/wallet/withdraw - Withdraw money from wallet
 export async function POST(req: NextRequest) {
@@ -53,9 +24,9 @@ export async function POST(req: NextRequest) {
     const numericAmount = Number(amount);
 
     // Validate amount
-    if (!numericAmount || Number.isNaN(numericAmount) || numericAmount <= 0) {
+    if (!numericAmount || Number.isNaN(numericAmount) || numericAmount < 10) {
       return NextResponse.json(
-        { error: "Invalid amount" },
+        { error: "Invalid amount. Minimum withdrawal is 10 RWF" },
         { status: 400 }
       );
     }
@@ -103,46 +74,72 @@ export async function POST(req: NextRequest) {
     // Generate unique reference
     const reference = `WDR${Date.now()}${Math.floor(Math.random() * 10000)}`;
 
-    // Process withdrawal based on payment method type
-    let withdrawalResult: { success: boolean; transactionId?: string; error?: string };
+    // Process withdrawal via Paypack for mobile money
+    let paypackResponse: PaypackTransactionDetails | null = null;
+    let externalStatus: string | undefined;
+    let externalReference: string | undefined;
 
     if (paymentMethod.type === "MOBILE_MONEY") {
-      withdrawalResult = await mockMTNWithdraw(
-        paymentMethod.accountNumber,
-        numericAmount,
-        reference
-      );
-    } else {
-      // For other payment types, simulate instant success
-      withdrawalResult = {
-        success: true,
-        transactionId: `${paymentMethod.type}WD${Date.now()}`,
-      };
-    }
-
-    if (!withdrawalResult.success) {
-      // Create failed transaction record
-      await prisma.transaction.create({
-        data: {
-          userId: userId,
-          type: "WITHDRAW",
-          amount: new Prisma.Decimal(numericAmount),
-          status: "FAILED",
-          paymentMethod: `${paymentMethod.type} - ${paymentMethod.provider || ""}`,
+      // Call Paypack cash-out API for mobile money withdrawals
+      try {
+        const response = await paypackClient.cashOut({
+          amount: numericAmount,
+          phone: paymentMethod.accountNumber,
           reference,
-          description: withdrawalResult.error || "Withdrawal failed",
-          metadata: {
-            paymentMethodId,
-            accountNumber: paymentMethod.accountNumber,
-            error: withdrawalResult.error,
-          },
-        },
-      });
+          description: `Wallet withdrawal for ${userId}`,
+        });
 
-      return NextResponse.json(
-        { error: withdrawalResult.error || "Withdrawal failed" },
-        { status: 400 }
-      );
+        paypackResponse = response;
+        externalStatus = typeof response.status === "string" ? response.status : undefined;
+        externalReference = response.ref ?? reference;
+
+        if (PaypackClient.isFailed(externalStatus)) {
+          await prisma.transaction.create({
+            data: {
+              userId: userId,
+              type: "WITHDRAW",
+              amount: new Prisma.Decimal(numericAmount),
+              status: "FAILED",
+              paymentMethod: `${paymentMethod.type} - ${paymentMethod.provider || ""}`,
+              reference,
+              description: response.processor_message || "Withdrawal declined by Paypack",
+              metadata: {
+                paymentMethodId,
+                accountNumber: paymentMethod.accountNumber,
+                paypack: JSON.parse(JSON.stringify(response)),
+              },
+            },
+          });
+
+          return NextResponse.json(
+            { error: response.processor_message || "Withdrawal declined" },
+            { status: 400 }
+          );
+        }
+      } catch (error) {
+        const message = error instanceof PaypackError ? error.message : "Paypack withdrawal failed";
+
+        await prisma.transaction.create({
+          data: {
+            userId: userId,
+            type: "WITHDRAW",
+            amount: new Prisma.Decimal(numericAmount),
+            status: "FAILED",
+            paymentMethod: `${paymentMethod.type} - ${paymentMethod.provider || ""}`,
+            reference,
+            description: message,
+            metadata: {
+              paymentMethodId,
+              accountNumber: paymentMethod.accountNumber,
+            },
+          },
+        });
+
+        return NextResponse.json({ error: message }, { status: 400 });
+      }
+    } else {
+      externalStatus = "COMPLETED";
+      externalReference = reference;
     }
 
     // Start a transaction to update wallet and create transaction record
@@ -170,7 +167,9 @@ export async function POST(req: NextRequest) {
           metadata: {
             paymentMethodId,
             accountNumber: paymentMethod.accountNumber,
-            externalTransactionId: withdrawalResult.transactionId,
+            externalStatus,
+            externalReference: externalReference || reference,
+            paypack: paypackResponse ? JSON.parse(JSON.stringify(paypackResponse)) : null,
           },
         },
       });

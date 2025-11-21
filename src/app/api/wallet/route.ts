@@ -5,7 +5,7 @@ import { getAuthenticatedUser } from "@/lib/apiAuth";
 // GET /api/wallet - Get wallet balance and recent transactions
 export async function GET(req: NextRequest) {
   try {
-    const auth = await getAuthenticatedUser(req);
+    const auth: Awaited<ReturnType<typeof getAuthenticatedUser>> = await getAuthenticatedUser(req);
     if (!auth || !auth.userId) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
