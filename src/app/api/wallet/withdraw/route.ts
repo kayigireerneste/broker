@@ -24,9 +24,9 @@ export async function POST(req: NextRequest) {
     const numericAmount = Number(amount);
 
     // Validate amount
-    if (!numericAmount || Number.isNaN(numericAmount) || numericAmount < 10) {
+    if (!numericAmount || Number.isNaN(numericAmount) || numericAmount < 10000) {
       return NextResponse.json(
-        { error: "Invalid amount. Minimum withdrawal is 10 RWF" },
+        { error: "Invalid amount. Minimum withdrawal is 10,000 RWF" },
         { status: 400 }
       );
     }
