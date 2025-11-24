@@ -113,6 +113,19 @@ export default function WalletPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
+  // Auto-refresh wallet when there are pending transactions
+  useEffect(() => {
+    const hasPending = transactions.some(t => t.status === "PENDING");
+    if (!hasPending || !token) return;
+
+    const interval = setInterval(() => {
+      fetchWalletData();
+    }, 5000); // Refresh every 5 seconds
+
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transactions, token]);
+
   const fetchWalletData = async () => {
     try {
       const data = (await axios.get("/wallet", {

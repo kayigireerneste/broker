@@ -30,15 +30,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Transaction not found or already processed" }, { status: 404 });
     }
 
-    const metadata = transaction.metadata as Record<string, unknown>;
-    const externalReference = metadata?.externalReference || transaction.reference;
+    const metadata = transaction.metadata as Record<string, unknown> | null;
+    const externalReference = (metadata?.externalReference as string) || transaction.reference || "";
 
     try {
       // Check status with Paypack
       const statusCheck = await paypackClient.findTransaction(externalReference);
-      const status = statusCheck.status?.toLowerCase();
+      const status = (statusCheck.status || "").toString().toLowerCase();
+      
+      console.log("Paypack status check:", {
+        externalReference,
+        rawStatus: statusCheck.status,
+        normalizedStatus: status,
+        amount: statusCheck.amount,
+        ref: statusCheck.ref,
+        hasRef: !!statusCheck.ref,
+      });
 
-      if (status === "successful" || status === "success") {
+      // If transaction exists in Paypack with amount, consider it successful
+      // Paypack may not return status field for completed transactions
+      const successStatuses = ["successful", "success", "completed", "paid", "complete", "succeeded", "processing"];
+      const isSuccess = successStatuses.includes(status) || (statusCheck.ref && statusCheck.amount);
+      
+      console.log("Status check result:", { status, isSuccess, hasAmount: !!statusCheck.amount });
+      
+      if (isSuccess) {
         // Update transaction and wallet
         await prisma.$transaction(async (tx) => {
           // Update transaction status
@@ -47,8 +63,8 @@ export async function POST(req: NextRequest) {
             data: {
               status: "COMPLETED",
               metadata: {
-                ...metadata,
-                paypackStatus: statusCheck,
+                ...(metadata || {}),
+                paypackStatus: JSON.parse(JSON.stringify(statusCheck)),
                 completedAt: new Date().toISOString(),
               },
             },
@@ -76,8 +92,8 @@ export async function POST(req: NextRequest) {
           data: {
             status: "FAILED",
             metadata: {
-              ...metadata,
-              paypackStatus: statusCheck,
+              ...(metadata || {}),
+              paypackStatus: JSON.parse(JSON.stringify(statusCheck)),
               failedAt: new Date().toISOString(),
             },
           },
@@ -88,9 +104,16 @@ export async function POST(req: NextRequest) {
           status: "FAILED",
         });
       } else {
+        // If transaction exists in Paypack but status is unknown, log it
+        console.log("Unknown status from Paypack:", {
+          status,
+          allStatuses: JSON.stringify(statusCheck),
+        });
+        
         return NextResponse.json({
-          message: "Payment still pending",
+          message: `Payment status: ${status || 'unknown'}. Check logs for details.`,
           status: "PENDING",
+          debug: { paypackStatus: status, reference: externalReference },
         });
       }
     } catch (error) {

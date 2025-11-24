@@ -64,9 +64,17 @@ export async function POST(req: NextRequest) {
     }
 
     const availableBalance = wallet.balance.minus(wallet.lockedBalance);
+    console.log("Withdrawal check:", {
+      requestedAmount: numericAmount,
+      walletBalance: wallet.balance.toString(),
+      lockedBalance: wallet.lockedBalance.toString(),
+      availableBalance: availableBalance.toString(),
+      hasEnough: !availableBalance.lessThan(new Prisma.Decimal(numericAmount)),
+    });
+    
     if (availableBalance.lessThan(new Prisma.Decimal(numericAmount))) {
       return NextResponse.json(
-        { error: "Insufficient balance" },
+        { error: `Insufficient balance. Available: ${availableBalance.toString()} RWF, Requested: ${numericAmount} RWF` },
         { status: 400 }
       );
     }
