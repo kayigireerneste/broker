@@ -26,7 +26,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if payment was successful
-    const isSuccess = status?.toUpperCase() === "SUCCESS" || status?.toUpperCase() === "SUCCESSFUL";
+    const statusUpper = status?.toUpperCase();
+    const isSuccess = statusUpper === "SUCCESS" || statusUpper === "SUCCESSFUL" || statusUpper === "COMPLETED" || statusUpper === "PAID";
 
     if (isSuccess && transaction.status === "PENDING") {
       // Update transaction and wallet in a database transaction

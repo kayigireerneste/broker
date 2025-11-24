@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
         fullResponse: statusCheck,
       });
 
-      if (status === "successful" || status === "success") {
+      if (status === "successful" || status === "success" || status === "completed" || status === "paid") {
         // Update transaction and wallet
         await prisma.$transaction(async (tx) => {
           // Update transaction status
