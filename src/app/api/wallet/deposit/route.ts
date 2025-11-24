@@ -18,10 +18,10 @@ export async function POST(req: NextRequest) {
     const { amount, paymentMethodId } = body;
     const numericAmount = Number(amount);
 
-    // Validate amount - Paypack requires minimum 100 RWF
-    if (!numericAmount || Number.isNaN(numericAmount) || numericAmount < 100) {
+    // Validate amount
+    if (!numericAmount || Number.isNaN(numericAmount) || numericAmount < 1) {
       return NextResponse.json(
-        { error: "Invalid amount. Minimum deposit is 100 RWF" },
+        { error: "Invalid amount. Minimum deposit is 1 RWF" },
         { status: 400 }
       );
     }

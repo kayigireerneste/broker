@@ -525,7 +525,7 @@ export default function WalletPage() {
                 className={`w-full text-sm md:text-base ${
                   activeTab === "deposit" ? "bg-emerald-500 hover:bg-emerald-600" : "bg-blue-500 hover:bg-blue-600"
                 }`}
-                disabled={loading || !amount || parseFloat(amount) < 100 || !selectedPaymentMethodId}
+                disabled={loading || !amount || parseFloat(amount) < 1 || !selectedPaymentMethodId}
               >
                 {loading ? (
                   <>

@@ -37,6 +37,13 @@ export async function POST(req: NextRequest) {
       // Check status with Paypack
       const statusCheck = await paypackClient.findTransaction(externalReference);
       const status = statusCheck.status?.toLowerCase();
+      
+      console.log("Paypack status check:", {
+        externalReference,
+        rawStatus: statusCheck.status,
+        normalizedStatus: status,
+        fullResponse: statusCheck,
+      });
 
       if (status === "successful" || status === "success") {
         // Update transaction and wallet
