@@ -30,8 +30,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Transaction not found or already processed" }, { status: 404 });
     }
 
-    const metadata = transaction.metadata as Record<string, unknown>;
-    const externalReference = metadata?.externalReference || transaction.reference;
+    const metadata = transaction.metadata as Record<string, unknown> | null;
+    const externalReference = (metadata?.externalReference as string) || transaction.reference || "";
 
     try {
       // Check status with Paypack
@@ -47,8 +47,8 @@ export async function POST(req: NextRequest) {
             data: {
               status: "COMPLETED",
               metadata: {
-                ...metadata,
-                paypackStatus: statusCheck,
+                ...(metadata || {}),
+                paypackStatus: JSON.parse(JSON.stringify(statusCheck)),
                 completedAt: new Date().toISOString(),
               },
             },
@@ -76,8 +76,8 @@ export async function POST(req: NextRequest) {
           data: {
             status: "FAILED",
             metadata: {
-              ...metadata,
-              paypackStatus: statusCheck,
+              ...(metadata || {}),
+              paypackStatus: JSON.parse(JSON.stringify(statusCheck)),
               failedAt: new Date().toISOString(),
             },
           },
