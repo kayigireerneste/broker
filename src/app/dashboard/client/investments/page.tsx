@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import DashboardLayout from "@/components/ui/DashboardLayout";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -9,9 +9,44 @@ import { TrendingUp, TrendingDown, PieChart, ArrowUpRight, ArrowDownRight } from
 
 type TimeRange = "1D" | "1W" | "1M" | "3M" | "1Y" | "ALL";
 
+interface Holding {
+  id: string;
+  companyName: string;
+  sector: string | null;
+  quantity: number;
+  averageBuyPrice: number;
+  currentPrice: number;
+  totalInvested: number;
+  currentValue: number;
+  profitLoss: number;
+  profitLossPercentage: number;
+}
+
 export default function InvestmentsPage() {
   const { user } = useAuth();
   const [timeRange, setTimeRange] = useState<TimeRange>("1M");
+  const [holdings, setHoldings] = useState<Holding[]>([]);
+  const [summary, setSummary] = useState({ totalInvested: 0, totalCurrentValue: 0, totalProfitLoss: 0, totalProfitLossPercentage: 0, totalHoldings: 0 });
+  const [sectorAllocation, setSectorAllocation] = useState<Array<{ sector: string; percentage: number; value: number }>>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPortfolio = async () => {
+      if (!user?.id) return;
+      try {
+        const res = await fetch(`/api/portfolio?userId=${user.id}`);
+        const data = await res.json();
+        setHoldings(data.portfolio || []);
+        setSummary(data.summary || { totalInvested: 0, totalCurrentValue: 0, totalProfitLoss: 0, totalProfitLossPercentage: 0, totalHoldings: 0 });
+        setSectorAllocation(data.sectorAllocation || []);
+      } catch (err) {
+        console.error("Error fetching portfolio:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPortfolio();
+  }, [user?.id]);
 
   const { displayName, email, dashboardRole } = useMemo(() => {
     const fullName = (user?.fullName as string | undefined)?.trim() ?? "";
@@ -26,55 +61,10 @@ export default function InvestmentsPage() {
     };
   }, [user?.email, user?.fullName, user?.role]);
 
-  const holdings = [
-    { 
-      symbol: "BK", 
-      name: "Bank of Kigali", 
-      shares: 150, 
-      avgPrice: 245, 
-      currentPrice: 268, 
-      change: 9.39,
-      value: 40200 
-    },
-    { 
-      symbol: "EQTY", 
-      name: "Equity Bank Rwanda", 
-      shares: 200, 
-      avgPrice: 180, 
-      currentPrice: 195, 
-      change: 8.33,
-      value: 39000 
-    },
-    { 
-      symbol: "MTN", 
-      name: "MTN Rwanda", 
-      shares: 100, 
-      avgPrice: 320, 
-      currentPrice: 305, 
-      change: -4.69,
-      value: 30500 
-    },
-    { 
-      symbol: "BRALIRWA", 
-      name: "Bralirwa Ltd", 
-      shares: 80, 
-      avgPrice: 425, 
-      currentPrice: 448, 
-      change: 5.41,
-      value: 35840 
-    },
-  ];
-
-  const totalValue = holdings.reduce((sum, h) => sum + h.value, 0);
-  const totalInvested = holdings.reduce((sum, h) => sum + (h.shares * h.avgPrice), 0);
-  const totalGain = totalValue - totalInvested;
-  const totalGainPercent = ((totalGain / totalInvested) * 100).toFixed(2);
-
-  const assetAllocation = [
-    { name: "Banking", percentage: 54.5, color: "bg-blue-500" },
-    { name: "Telecom", percentage: 21.0, color: "bg-purple-500" },
-    { name: "Beverages", percentage: 24.5, color: "bg-amber-500" },
-  ];
+  const getSectorColor = (index: number) => {
+    const colors = ["bg-blue-500", "bg-purple-500", "bg-amber-500", "bg-emerald-500", "bg-rose-500", "bg-indigo-500"];
+    return colors[index % colors.length];
+  };
 
   return (
     <DashboardLayout userRole={dashboardRole} userName={displayName} userEmail={email}>
@@ -90,17 +80,17 @@ export default function InvestmentsPage() {
           <Card className="p-3 md:p-6" hover={false}>
             <div className="space-y-2">
               <p className="text-sm font-medium text-slate-600">Total Value</p>
-              <p className="text-xl md:text-2xl font-bold text-slate-900">Rwf {totalValue.toLocaleString()}</p>
+              <p className="text-xl md:text-2xl font-bold text-slate-900">Rwf {summary.totalCurrentValue.toLocaleString()}</p>
               <div className="flex items-center gap-2 text-sm">
-                {Number.parseFloat(totalGainPercent) >= 0 ? (
+                {summary.totalProfitLossPercentage >= 0 ? (
                   <>
                     <ArrowUpRight className="h-4 w-4 text-emerald-500" />
-                    <span className="text-emerald-600 font-semibold">+{totalGainPercent}%</span>
+                    <span className="text-emerald-600 font-semibold">+{summary.totalProfitLossPercentage.toFixed(2)}%</span>
                   </>
                 ) : (
                   <>
                     <ArrowDownRight className="h-4 w-4 text-rose-500" />
-                    <span className="text-rose-600 font-semibold">{totalGainPercent}%</span>
+                    <span className="text-rose-600 font-semibold">{summary.totalProfitLossPercentage.toFixed(2)}%</span>
                   </>
                 )}
                 <span className="text-slate-500">All time</span>
@@ -111,7 +101,7 @@ export default function InvestmentsPage() {
           <Card className="p-3 md:p-6" hover={false}>
             <div className="space-y-2">
               <p className="text-sm font-medium text-slate-600">Total Invested</p>
-              <p className="text-xl md:text-2xl font-bold text-slate-900">Rwf {totalInvested.toLocaleString()}</p>
+              <p className="text-xl md:text-2xl font-bold text-slate-900">Rwf {summary.totalInvested.toLocaleString()}</p>
               <p className="text-sm text-slate-500">Initial capital deployed</p>
             </div>
           </Card>
@@ -119,8 +109,8 @@ export default function InvestmentsPage() {
           <Card className="p-3 md:p-6" hover={false}>
             <div className="space-y-2">
               <p className="text-sm font-medium text-slate-600">Total Gain/Loss</p>
-              <p className={`text-xl md:text-2xl font-bold ${totalGain >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
-                {totalGain >= 0 ? "+" : ""}Rwf {totalGain.toLocaleString()}
+              <p className={`text-xl md:text-2xl font-bold ${summary.totalProfitLoss >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                {summary.totalProfitLoss >= 0 ? "+" : ""}Rwf {summary.totalProfitLoss.toLocaleString()}
               </p>
               <p className="text-sm text-slate-500">Unrealized P&L</p>
             </div>
@@ -129,8 +119,8 @@ export default function InvestmentsPage() {
           <Card className="p-3 md:p-6" hover={false}>
             <div className="space-y-2">
               <p className="text-sm font-medium text-slate-600">Securities Held</p>
-              <p className="text-xl md:text-2xl font-bold text-slate-900">{holdings.length}</p>
-              <p className="text-sm text-slate-500">Across {assetAllocation.length} sectors</p>
+              <p className="text-xl md:text-2xl font-bold text-slate-900">{summary.totalHoldings}</p>
+              <p className="text-sm text-slate-500">Across {sectorAllocation.length} sectors</p>
             </div>
           </Card>
         </div>
@@ -188,32 +178,38 @@ export default function InvestmentsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {holdings.map((holding) => (
-                        <tr key={holding.symbol} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                          <td className="py-3 md:py-4 px-2">
-                            <div>
-                              <p className="text-sm md:text-base font-semibold text-slate-900">{holding.symbol}</p>
-                              <p className="text-xs md:text-sm text-slate-500 truncate max-w-[120px] md:max-w-none">{holding.name}</p>
-                            </div>
-                          </td>
-                          <td className="text-right py-3 md:py-4 px-2 text-sm md:text-base text-slate-900">{holding.shares}</td>
-                          <td className="text-right py-3 md:py-4 px-2 text-sm md:text-base text-slate-900 hidden sm:table-cell">Rwf {holding.avgPrice}</td>
-                          <td className="text-right py-3 md:py-4 px-2 text-sm md:text-base text-slate-900 whitespace-nowrap">Rwf {holding.currentPrice}</td>
-                          <td className="text-right py-3 md:py-4 px-2">
-                            <div className={`inline-flex items-center gap-1 ${holding.change >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
-                              {holding.change >= 0 ? (
-                                <TrendingUp className="h-3 w-3 md:h-4 md:w-4" />
-                              ) : (
-                                <TrendingDown className="h-3 w-3 md:h-4 md:w-4" />
-                              )}
-                              <span className="text-xs md:text-sm font-semibold">{holding.change >= 0 ? "+" : ""}{holding.change}%</span>
-                            </div>
-                          </td>
-                          <td className="text-right py-3 md:py-4 px-2 text-sm md:text-base font-semibold text-slate-900 whitespace-nowrap hidden md:table-cell">
-                            Rwf {holding.value.toLocaleString()}
-                          </td>
-                        </tr>
-                      ))}
+                      {loading ? (
+                        <tr><td colSpan={6} className="py-8 text-center text-slate-500">Loading...</td></tr>
+                      ) : holdings.length === 0 ? (
+                        <tr><td colSpan={6} className="py-8 text-center text-slate-500">No holdings yet</td></tr>
+                      ) : (
+                        holdings.map((holding) => (
+                          <tr key={holding.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                            <td className="py-3 md:py-4 px-2">
+                              <div>
+                                <p className="text-sm md:text-base font-semibold text-slate-900">{holding.companyName}</p>
+                                <p className="text-xs md:text-sm text-slate-500 truncate max-w-[120px] md:max-w-none">{holding.sector || "N/A"}</p>
+                              </div>
+                            </td>
+                            <td className="text-right py-3 md:py-4 px-2 text-sm md:text-base text-slate-900">{holding.quantity}</td>
+                            <td className="text-right py-3 md:py-4 px-2 text-sm md:text-base text-slate-900 hidden sm:table-cell">Rwf {holding.averageBuyPrice.toFixed(2)}</td>
+                            <td className="text-right py-3 md:py-4 px-2 text-sm md:text-base text-slate-900 whitespace-nowrap">Rwf {holding.currentPrice.toFixed(2)}</td>
+                            <td className="text-right py-3 md:py-4 px-2">
+                              <div className={`inline-flex items-center gap-1 ${holding.profitLossPercentage >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                                {holding.profitLossPercentage >= 0 ? (
+                                  <TrendingUp className="h-3 w-3 md:h-4 md:w-4" />
+                                ) : (
+                                  <TrendingDown className="h-3 w-3 md:h-4 md:w-4" />
+                                )}
+                                <span className="text-xs md:text-sm font-semibold">{holding.profitLossPercentage >= 0 ? "+" : ""}{holding.profitLossPercentage.toFixed(2)}%</span>
+                              </div>
+                            </td>
+                            <td className="text-right py-3 md:py-4 px-2 text-sm md:text-base font-semibold text-slate-900 whitespace-nowrap hidden md:table-cell">
+                              Rwf {holding.currentValue.toLocaleString()}
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -231,20 +227,26 @@ export default function InvestmentsPage() {
               <p className="text-sm md:text-base text-slate-600">Portfolio distribution by sector</p>
             </div>
             <div className="space-y-4">
-              {assetAllocation.map((asset) => (
-                <div key={asset.name} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm md:text-base font-medium text-slate-700">{asset.name}</span>
-                    <span className="text-sm md:text-base font-semibold text-slate-900">{asset.percentage}%</span>
+              {loading ? (
+                <p className="text-center text-slate-500 py-4">Loading...</p>
+              ) : sectorAllocation.length === 0 ? (
+                <p className="text-center text-slate-500 py-4">No data available</p>
+              ) : (
+                sectorAllocation.map((asset, index) => (
+                  <div key={asset.sector} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm md:text-base font-medium text-slate-700">{asset.sector}</span>
+                      <span className="text-sm md:text-base font-semibold text-slate-900">{asset.percentage.toFixed(1)}%</span>
+                    </div>
+                    <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full ${getSectorColor(index)} rounded-full transition-all duration-500`}
+                        style={{ width: `${asset.percentage}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full ${asset.color} rounded-full transition-all duration-500`}
-                      style={{ width: `${asset.percentage}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
             <div className="mt-4 md:mt-6 pt-4 md:pt-6 border-t border-slate-200">
               <Button className="w-full text-xs md:text-sm" variant="outline">Rebalance Portfolio</Button>

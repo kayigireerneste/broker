@@ -6,6 +6,8 @@ import Join from '@/components/Join';
 import Partners from '@/components/partners';
 import ContactUs from '@/components/contactUs';
 import MarketSummary from '@/components/market';
+import { MarketHero } from '@/components/market-hero';
+import MarketCardGrid from '@/components/market-card-grid';
 
 export default function LandingPage() {
   return (
@@ -13,6 +15,10 @@ export default function LandingPage() {
       <Header />
       <Hero />
       <MarketSummary />
+      <MarketHero />
+      <div id="securities" className="-mt-12 relative z-10">
+        <MarketCardGrid />
+      </div>
       <OurServices />
       <Join />
       <Partners />

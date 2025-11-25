@@ -1,15 +1,27 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import DashboardLayout from '@/components/ui/DashboardLayout';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { useAuth } from '@/hooks/useAuth';
+import axios from '@/lib/axios';
 import { AlertCircle } from 'lucide-react';
 
 export default function ClientDashboard() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
+  const [dashboardData, setDashboardData] = useState({
+    walletBalance: 0,
+    portfolioValue: 0,
+    portfolioChange: 0,
+    totalShares: 0,
+    companiesCount: 0,
+    totalSharesSold: 0,
+    companiesSold: 0,
+    holdings: [] as Array<{ id: string; companyName: string; quantity: number; currentPrice: number; currentValue: number; profitLoss: number; profitLossPercentage: number }>,
+  });
+  const [loading, setLoading] = useState(true);
 
   const profileReminder = useMemo(() => {
     if (!user) {
@@ -79,6 +91,47 @@ export default function ClientDashboard() {
     };
   }, [user?.email, user?.fullName, user?.role]);
 
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      if (!user?.id || !token) return;
+      try {
+        const [walletData, portfolioRes, tradesData] = await Promise.all([
+          axios.get('/wallet', { headers: { Authorization: `Bearer ${token}` } }) as Promise<{ wallet: { balance: string } }>,
+          fetch(`/api/portfolio?userId=${user.id}`).then(r => r.json()),
+          axios.get('/trade/history?limit=1000', { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ trades: [] })) as Promise<{ trades: Array<{ type: string; status: string; executedQuantity?: number; quantity: number; companyId: string }> }>,
+        ]);
+        
+        const walletBalance = parseFloat(walletData.wallet?.balance || '0');
+        const portfolioValue = portfolioRes.summary?.totalCurrentValue || 0;
+        const portfolioChange = portfolioRes.summary?.totalProfitLossPercentage || 0;
+        const totalShares = portfolioRes.portfolio?.reduce((sum: number, h: { quantity: number }) => sum + h.quantity, 0) || 0;
+        const companiesCount = portfolioRes.portfolio?.length || 0;
+        const holdings = portfolioRes.portfolio?.slice(0, 3) || [];
+
+        // Calculate sold shares from trade history
+        const sellTrades = (tradesData.trades || []).filter((t) => t.type === 'SELL' && t.status === 'EXECUTED');
+        const totalSharesSold = sellTrades.reduce((sum: number, t: { executedQuantity?: number; quantity: number }) => sum + (t.executedQuantity || t.quantity), 0);
+        const companiesSold = new Set(sellTrades.map((t: { companyId: string }) => t.companyId)).size;
+
+        setDashboardData({
+          walletBalance,
+          portfolioValue,
+          portfolioChange,
+          totalShares,
+          companiesCount,
+          totalSharesSold,
+          companiesSold,
+          holdings,
+        });
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboardData();
+  }, [user?.id, token]);
+
   const formatTaskList = (tasks: string[]) => {
     if (tasks.length <= 1) return tasks[0] ?? '';
     const leading = tasks.slice(0, -1).join(', ');
@@ -121,8 +174,10 @@ export default function ClientDashboard() {
               <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1 mr-2">
                   <p className="text-[10px] md:text-xs font-medium text-gray-600 truncate">Portfolio Value</p>
-                  <p className="text-base md:text-xl font-bold text-gray-900">Rwf 24,580</p>
-                  <p className="text-xs text-green-600">+5.2%</p>
+                  <p className="text-base md:text-xl font-bold text-gray-900">Rwf {dashboardData.portfolioValue.toLocaleString()}</p>
+                  <p className={`text-xs ${dashboardData.portfolioChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {dashboardData.portfolioChange >= 0 ? '+' : ''}{dashboardData.portfolioChange.toFixed(2)}%
+                  </p>
                 </div>
                 <div className="w-8 h-8 md:w-12 md:h-12 gradient-primary rounded-full flex items-center justify-center shrink-0">
                   <svg className="w-4 h-4 md:w-6 md:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -138,7 +193,7 @@ export default function ClientDashboard() {
               <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1 mr-2">
                   <p className="text-[10px] md:text-xs font-medium text-gray-600 truncate">Wallet Balance</p>
-                  <p className="text-base md:text-xl font-bold text-gray-900">Rwf 3,420</p>
+                  <p className="text-base md:text-xl font-bold text-gray-900">Rwf {dashboardData.walletBalance.toLocaleString()}</p>
                   <p className="text-xs text-blue-600">Available</p>
                 </div>
                 <div className="w-8 h-8 md:w-12 md:h-12 gradient-primary rounded-full flex items-center justify-center shrink-0">
@@ -155,8 +210,8 @@ export default function ClientDashboard() {
               <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1 mr-2">
                   <p className="text-[10px] md:text-xs font-medium text-gray-600 truncate">Total Shares Bought</p>
-                  <p className="text-base md:text-xl font-bold text-green-600">1,200</p>
-                  <p className="text-xs text-gray-600">3 companies</p>
+                  <p className="text-base md:text-xl font-bold text-green-600">{dashboardData.totalShares}</p>
+                  <p className="text-xs text-gray-600">{dashboardData.companiesCount} companies</p>
                 </div>
                 <div className="w-8 h-8 md:w-12 md:h-12 bg-green-100 rounded-full flex items-center justify-center shrink-0">
                   <svg className="w-4 h-4 md:w-6 md:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -172,8 +227,8 @@ export default function ClientDashboard() {
               <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1 mr-2">
                   <p className="text-[10px] md:text-xs font-medium text-gray-600 truncate">Total Shares Sold</p>
-                  <p className="text-base md:text-xl font-bold text-gray-900">500</p>
-                  <p className="text-xs text-orange-600">2 companies</p>
+                  <p className="text-base md:text-xl font-bold text-gray-900">{dashboardData.totalSharesSold}</p>
+                  <p className="text-xs text-orange-600">{dashboardData.companiesSold} companies</p>
                 </div>
                 <div className="w-8 h-8 md:w-12 md:h-12 bg-orange-100 rounded-full flex items-center justify-center shrink-0">
                   <svg className="w-4 h-4 md:w-6 md:h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -301,48 +356,30 @@ export default function ClientDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-2 px-1.5 md:px-3">
-                        <div className="flex items-center">
-                          <div className="w-5 h-5 md:w-6 md:h-6 bg-blue-100 rounded-full flex items-center justify-center mr-1.5 md:mr-2 shrink-0">
-                            <span className="text-blue-600 font-semibold text-[10px] md:text-xs">BK</span>
-                          </div>
-                          <span className="font-medium text-xs md:text-sm truncate">BK Group</span>
-                        </div>
-                      </td>
-                      <td className="py-2 px-1.5 md:px-3">150</td>
-                      <td className="py-2 px-1.5 md:px-3 whitespace-nowrap">Rwf 85.50</td>
-                      <td className="py-2 px-1.5 md:px-3 whitespace-nowrap hidden sm:table-cell">Rwf 12,825</td>
-                      <td className="py-2 px-1.5 md:px-3 text-green-600 whitespace-nowrap text-[10px] md:text-sm">+Rwf 325 (+2.6%)</td>
-                    </tr>
-                    <tr className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-2 px-1.5 md:px-3">
-                        <div className="flex items-center">
-                          <div className="w-5 h-5 md:w-6 md:h-6 bg-green-100 rounded-full flex items-center justify-center mr-1.5 md:mr-2 shrink-0">
-                            <span className="text-green-600 font-semibold text-[10px] md:text-xs">EQ</span>
-                          </div>
-                          <span className="font-medium text-xs md:text-sm truncate">Equity Bank</span>
-                        </div>
-                      </td>
-                      <td className="py-2 px-1.5 md:px-3">75</td>
-                      <td className="py-2 px-1.5 md:px-3 whitespace-nowrap">Rwf 42.30</td>
-                      <td className="py-2 px-1.5 md:px-3 whitespace-nowrap hidden sm:table-cell">Rwf 3,172</td>
-                      <td className="py-2 px-1.5 md:px-3 text-green-600 whitespace-nowrap text-[10px] md:text-sm">+Rwf 127 (+4.2%)</td>
-                    </tr>
-                    <tr className="hover:bg-gray-50">
-                      <td className="py-2 px-1.5 md:px-3">
-                        <div className="flex items-center">
-                          <div className="w-5 h-5 md:w-6 md:h-6 bg-yellow-100 rounded-full flex items-center justify-center mr-1.5 md:mr-2 shrink-0">
-                            <span className="text-yellow-600 font-semibold text-[10px] md:text-xs">MT</span>
-                          </div>
-                          <span className="font-medium text-xs md:text-sm truncate">MTN Rwanda</span>
-                        </div>
-                      </td>
-                      <td className="py-2 px-1.5 md:px-3">200</td>
-                      <td className="py-2 px-1.5 md:px-3 whitespace-nowrap">Rwf 28.75</td>
-                      <td className="py-2 px-1.5 md:px-3 whitespace-nowrap hidden sm:table-cell">Rwf 5,750</td>
-                      <td className="py-2 px-1.5 md:px-3 text-red-600 whitespace-nowrap text-[10px] md:text-sm">-Rwf 50 (-0.9%)</td>
-                    </tr>
+                    {loading ? (
+                      <tr><td colSpan={5} className="py-8 text-center text-slate-500 text-xs">Loading...</td></tr>
+                    ) : dashboardData.holdings.length === 0 ? (
+                      <tr><td colSpan={5} className="py-8 text-center text-slate-500 text-xs">No holdings yet</td></tr>
+                    ) : (
+                      dashboardData.holdings.map((holding, index) => (
+                        <tr key={holding.id} className={`${index < dashboardData.holdings.length - 1 ? 'border-b border-gray-100' : ''} hover:bg-gray-50`}>
+                          <td className="py-2 px-1.5 md:px-3">
+                            <div className="flex items-center">
+                              <div className="w-5 h-5 md:w-6 md:h-6 bg-blue-100 rounded-full flex items-center justify-center mr-1.5 md:mr-2 shrink-0">
+                                <span className="text-blue-600 font-semibold text-[10px] md:text-xs">{holding.companyName.substring(0, 2).toUpperCase()}</span>
+                              </div>
+                              <span className="font-medium text-xs md:text-sm truncate">{holding.companyName}</span>
+                            </div>
+                          </td>
+                          <td className="py-2 px-1.5 md:px-3">{holding.quantity}</td>
+                          <td className="py-2 px-1.5 md:px-3 whitespace-nowrap">Rwf {holding.currentPrice.toFixed(2)}</td>
+                          <td className="py-2 px-1.5 md:px-3 whitespace-nowrap hidden sm:table-cell">Rwf {holding.currentValue.toLocaleString()}</td>
+                          <td className={`py-2 px-1.5 md:px-3 whitespace-nowrap text-[10px] md:text-sm ${holding.profitLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {holding.profitLoss >= 0 ? '+' : ''}Rwf {holding.profitLoss.toFixed(0)} ({holding.profitLossPercentage >= 0 ? '+' : ''}{holding.profitLossPercentage.toFixed(1)}%)
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>

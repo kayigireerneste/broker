@@ -6,6 +6,7 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { InputField } from "@/components/ui/InputField";
 import Toast from "@/components/ui/Toast";
+import Modal from "@/components/ui/Modal";
 import { useAuth } from "@/hooks/useAuth";
 import { Wallet, ArrowDownToLine, ArrowUpFromLine, CreditCard, Smartphone, Building2, Clock, Plus, Trash2, Loader2 } from "lucide-react";
 import axios from "@/lib/axios";
@@ -87,6 +88,10 @@ export default function WalletPage() {
     title: string;
     message: string;
   } | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const transactionsPerPage = 10;
+  const [deleteModal, setDeleteModal] = useState<{ show: boolean; id: string; name: string }>({ show: false, id: "", name: "" });
 
   const { displayName, email, dashboardRole } = useMemo(() => {
     const fullName = (user?.fullName as string | undefined)?.trim() ?? "";
@@ -126,13 +131,16 @@ export default function WalletPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transactions, token]);
 
-  const fetchWalletData = async () => {
+  const fetchWalletData = async (page = 1) => {
     try {
-      const data = (await axios.get("/wallet", {
+      const offset = (page - 1) * transactionsPerPage;
+      const data = (await axios.get(`/wallet?limit=${transactionsPerPage}&offset=${offset}`, {
         headers: { Authorization: `Bearer ${token}` },
       })) as WalletApiResponse;
       setWalletData(data.wallet);
       setTransactions(data.transactions);
+      setTotalPages(Math.ceil(data.pagination.total / transactionsPerPage));
+      setCurrentPage(page);
     } catch (error) {
       console.error("Error fetching wallet:", error);
     }
@@ -197,10 +205,9 @@ export default function WalletPage() {
     }
   };
 
-  const handleDeletePaymentMethod = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this payment method?")) return;
+  const handleDeletePaymentMethod = async () => {
     try {
-      await axios.delete(`/wallet/payment-methods?id=${id}`, {
+      await axios.delete(`/wallet/payment-methods?id=${deleteModal.id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       await fetchPaymentMethods();
@@ -210,6 +217,7 @@ export default function WalletPage() {
         title: "Payment Method Deleted",
         message: "Payment method has been removed successfully",
       });
+      setDeleteModal({ show: false, id: "", name: "" });
     } catch (error) {
       console.error("Error deleting payment method:", error);
       setToast({
@@ -588,7 +596,7 @@ export default function WalletPage() {
                           </div>
                         </div>
                         <button
-                          onClick={() => handleDeletePaymentMethod(method.id)}
+                          onClick={() => setDeleteModal({ show: true, id: method.id, name: method.provider || formatPaymentMethodName(method.type) })}
                           className="text-rose-600 hover:text-rose-700 p-1"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -668,7 +676,6 @@ export default function WalletPage() {
               <h2 className="text-lg md:text-xl font-semibold text-slate-900">Recent Transactions</h2>
               <p className="text-sm md:text-base text-slate-600 mt-1">Your latest wallet activity</p>
             </div>
-            <Button variant="outline" size="sm" className="text-xs md:text-sm">View All</Button>
           </div>
 
           <div className="overflow-x-auto -mx-3 md:mx-0">
@@ -742,6 +749,35 @@ export default function WalletPage() {
               </div>
             </div>
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-3 md:px-0 pt-4 border-t border-slate-200">
+              <p className="text-sm text-slate-600">
+                Page {currentPage} of {totalPages}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fetchWalletData(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="text-xs md:text-sm"
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fetchWalletData(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="text-xs md:text-sm"
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </Card>
       </div>
 
@@ -754,6 +790,18 @@ export default function WalletPage() {
           onClose={() => setToast(null)}
         />
       )}
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={deleteModal.show}
+        onClose={() => setDeleteModal({ show: false, id: "", name: "" })}
+        onConfirm={handleDeletePaymentMethod}
+        title="Delete Payment Method"
+        message={`Are you sure you want to delete ${deleteModal.name}? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        confirmVariant="danger"
+      />
     </DashboardLayout>
   );
 }

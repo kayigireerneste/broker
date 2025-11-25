@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Hero() {
+  const { isAuthenticated, dashboardPath } = useAuth();
   const slides = [
     {
       image: "/imgs/hero.jpg",
@@ -138,8 +140,8 @@ export default function Hero() {
       </div>
 
       <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 z-30">
-        <Link href="/market" className="bg-gradient-to-r from-[#2d94b0] to-[#004f64] relative flex items-center gap-2 text-white text-lg font-semibold px-8 py-4 rounded-full shadow-[2px_2px_0_#A9E2EB] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#A9E2EB] transition-all duration-300">
-          Get Started
+        <Link href={isAuthenticated ? dashboardPath : "/auth/login"} className="bg-gradient-to-r from-[#2d94b0] to-[#004f64] relative flex items-center gap-2 text-white text-lg font-semibold px-8 py-4 rounded-full shadow-[2px_2px_0_#A9E2EB] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#A9E2EB] transition-all duration-300">
+          {isAuthenticated ? "Go to Dashboard" : "Get Started"}
         </Link>
       </div>
     </section>

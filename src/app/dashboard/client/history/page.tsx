@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import DashboardLayout from "@/components/ui/DashboardLayout";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { useAuth } from "@/hooks/useAuth";
+import axios from "@/lib/axios";
 import { 
   History, 
   ArrowDownToLine, 
@@ -23,13 +24,30 @@ import {
 type HistoryFilter = "all" | "trades" | "deposits" | "withdrawals";
 type StatusFilter = "all" | "completed" | "pending" | "failed";
 
+interface HistoryItem {
+  id: string;
+  type: string;
+  category: string;
+  security?: string;
+  description: string;
+  amount: number;
+  quantity?: number;
+  price?: number;
+  status: string;
+  date: string;
+}
+
 export default function HistoryPage() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [historyFilter, setHistoryFilter] = useState<HistoryFilter>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [allHistory, setAllHistory] = useState<HistoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const { displayName, email, dashboardRole } = useMemo(() => {
     const fullName = (user?.fullName as string | undefined)?.trim() ?? "";
@@ -44,116 +62,54 @@ export default function HistoryPage() {
     };
   }, [user?.email, user?.fullName, user?.role]);
 
-  const allHistory = useMemo(() => [
-    {
-      id: "TRD001",
-      type: "buy",
-      category: "trade",
-      security: "BK",
-      description: "Bought 50 shares of Bank of Kigali",
-      amount: 13400,
-      quantity: 50,
-      price: 268,
-      status: "completed",
-      date: "2025-11-12 14:30",
-    },
-    {
-      id: "DEP001",
-      type: "deposit",
-      category: "deposit",
-      description: "Mobile Money deposit",
-      amount: 50000,
-      status: "completed",
-      date: "2025-11-12 10:30",
-    },
-    {
-      id: "TRD002",
-      type: "sell",
-      category: "trade",
-      security: "MTN",
-      description: "Sold 30 shares of MTN Rwanda",
-      amount: 9150,
-      quantity: 30,
-      price: 305,
-      status: "completed",
-      date: "2025-11-11 16:20",
-    },
-    {
-      id: "WTH001",
-      type: "withdraw",
-      category: "withdrawal",
-      description: "Bank transfer withdrawal",
-      amount: 15000,
-      status: "pending",
-      date: "2025-11-11 09:15",
-    },
-    {
-      id: "TRD003",
-      type: "buy",
-      category: "trade",
-      security: "EQTY",
-      description: "Bought 100 shares of Equity Bank",
-      amount: 19500,
-      quantity: 100,
-      price: 195,
-      status: "completed",
-      date: "2025-11-10 11:45",
-    },
-    {
-      id: "DEP002",
-      type: "deposit",
-      category: "deposit",
-      description: "Credit card deposit",
-      amount: 100000,
-      status: "completed",
-      date: "2025-11-10 09:15",
-    },
-    {
-      id: "TRD004",
-      type: "buy",
-      category: "trade",
-      security: "BRALIRWA",
-      description: "Bought 40 shares of Bralirwa Ltd",
-      amount: 17920,
-      quantity: 40,
-      price: 448,
-      status: "completed",
-      date: "2025-11-09 15:30",
-    },
-    {
-      id: "WTH002",
-      type: "withdraw",
-      category: "withdrawal",
-      description: "Bank transfer withdrawal",
-      amount: 25000,
-      status: "completed",
-      date: "2025-11-09 14:20",
-    },
-    {
-      id: "TRD005",
-      type: "sell",
-      category: "trade",
-      security: "BK",
-      description: "Sold 20 shares of Bank of Kigali",
-      amount: 5360,
-      quantity: 20,
-      price: 268,
-      status: "failed",
-      date: "2025-11-08 13:10",
-    },
-    {
-      id: "DEP003",
-      type: "deposit",
-      category: "deposit",
-      description: "Mobile Money deposit",
-      amount: 75000,
-      status: "completed",
-      date: "2025-11-08 11:00",
-    },
-  ], []);
+  useEffect(() => {
+    const fetchHistory = async () => {
+      if (!user?.id || !token) return;
+      try {
+        const [walletData, tradesData] = await Promise.all([
+          axios.get('/wallet?limit=100', { headers: { Authorization: `Bearer ${token}` } }) as Promise<{ transactions: Array<{ id: string; type: string; amount: string; status: string; description: string; createdAt: string }> }>,
+          axios.get('/trade/history?limit=100', { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ trades: [] })) as Promise<{ trades: Array<{ id: string; type: string; status: string; quantity: number; executedPrice?: number; totalAmount: string; createdAt: string; company?: { name: string; symbol?: string } }> }>,
+        ]);
+
+        const walletTransactions = (walletData.transactions || []).map(t => ({
+          id: t.id,
+          type: t.type.toLowerCase(),
+          category: t.type === 'DEPOSIT' ? 'deposit' : 'withdrawal',
+          description: t.description || `${t.type} transaction`,
+          amount: parseFloat(t.amount),
+          status: t.status.toLowerCase(),
+          date: new Date(t.createdAt).toLocaleString(),
+        }));
+
+        const tradeTransactions = (tradesData.trades || []).map(t => ({
+          id: t.id,
+          type: t.type.toLowerCase(),
+          category: 'trade',
+          security: t.company?.symbol || t.company?.name || 'N/A',
+          description: `${t.type === 'BUY' ? 'Bought' : 'Sold'} ${t.quantity} shares${t.company?.name ? ` of ${t.company.name}` : ''}`,
+          amount: parseFloat(t.totalAmount),
+          quantity: t.quantity,
+          price: t.executedPrice,
+          status: t.status === 'EXECUTED' ? 'completed' : t.status.toLowerCase(),
+          date: new Date(t.createdAt).toLocaleString(),
+        }));
+
+        const combined = [...walletTransactions, ...tradeTransactions].sort((a, b) => 
+          new Date(b.date).getTime() - new Date(a.date).getTime()
+        );
+
+        setAllHistory(combined);
+      } catch (err) {
+        console.error('Error fetching history:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchHistory();
+  }, [user?.id, token]);
 
   const filteredHistory = useMemo(() => {
-    return allHistory.filter((item) => {
+    const filtered = allHistory.filter((item) => {
       // Filter by category
       if (historyFilter !== "all") {
         if (historyFilter === "trades" && item.category !== "trade") return false;
@@ -179,7 +135,34 @@ export default function HistoryPage() {
 
       return true;
     });
+    
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filtered.slice(startIndex, endIndex);
+  }, [allHistory, historyFilter, statusFilter, searchQuery, dateFrom, dateTo, currentPage]);
+
+  const totalFilteredCount = useMemo(() => {
+    return allHistory.filter((item) => {
+      if (historyFilter !== "all") {
+        if (historyFilter === "trades" && item.category !== "trade") return false;
+        if (historyFilter === "deposits" && item.category !== "deposit") return false;
+        if (historyFilter === "withdrawals" && item.category !== "withdrawal") return false;
+      }
+      if (statusFilter !== "all" && item.status !== statusFilter) return false;
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matchesId = item.id.toLowerCase().includes(query);
+        const matchesDesc = item.description.toLowerCase().includes(query);
+        const matchesSecurity = item.security?.toLowerCase().includes(query);
+        if (!matchesId && !matchesDesc && !matchesSecurity) return false;
+      }
+      if (dateFrom && new Date(item.date) < new Date(dateFrom)) return false;
+      if (dateTo && new Date(item.date) > new Date(dateTo)) return false;
+      return true;
+    }).length;
   }, [allHistory, historyFilter, statusFilter, searchQuery, dateFrom, dateTo]);
+
+  const totalPages = Math.ceil(totalFilteredCount / itemsPerPage);
 
   const getTypeIcon = (category: string, type: string) => {
     switch (category) {
@@ -396,7 +379,7 @@ export default function HistoryPage() {
           {(historyFilter !== "all" || statusFilter !== "all" || searchQuery || dateFrom || dateTo) && (
             <div className="mt-3 md:mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <p className="text-xs md:text-sm text-slate-600">
-                Showing {filteredHistory.length} of {allHistory.length} transactions
+                Showing {totalFilteredCount} of {allHistory.length} transactions
               </p>
               <button
                 onClick={() => {
@@ -405,6 +388,7 @@ export default function HistoryPage() {
                   setSearchQuery("");
                   setDateFrom("");
                   setDateTo("");
+                  setCurrentPage(1);
                 }}
                 className="text-xs md:text-sm font-medium text-[#004B5B] hover:underline"
               >
@@ -489,17 +473,32 @@ export default function HistoryPage() {
             </div>
           </div>
 
-          {/* Pagination placeholder */}
-          {filteredHistory.length > 0 && (
+          {/* Pagination */}
+          {totalFilteredCount > 0 && (
             <div className="mt-4 md:mt-6 flex flex-col sm:flex-row sm:items-center justify-between border-t border-slate-200 pt-4 gap-3">
               <p className="text-xs md:text-sm text-slate-600">
-                Showing 1-{filteredHistory.length} of {filteredHistory.length} transactions
+                Showing {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, totalFilteredCount)} of {totalFilteredCount} transactions
               </p>
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" disabled className="text-xs md:text-sm">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(p => p - 1)}
+                  className="text-xs md:text-sm"
+                >
                   Previous
                 </Button>
-                <Button size="sm" variant="outline" disabled className="text-xs md:text-sm">
+                <span className="text-xs md:text-sm text-slate-600 px-3 py-2">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(p => p + 1)}
+                  className="text-xs md:text-sm"
+                >
                   Next
                 </Button>
               </div>

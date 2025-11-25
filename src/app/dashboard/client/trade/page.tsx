@@ -7,6 +7,7 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { InputField } from "@/components/ui/InputField";
 import { useAuth } from "@/hooks/useAuth";
+import axios from "@/lib/axios";
 import { TrendingUp, Activity, Search, ArrowUpRight, ArrowDownRight } from "lucide-react";
 
 type OrderType = "buy" | "sell";
@@ -41,33 +42,68 @@ export default function TradePage() {
     message: string;
     type: "success" | "error";
   }>({ show: false, message: "", type: "success" });
+  const [tradeStats, setTradeStats] = useState({
+    walletBalance: 0,
+    buyingPower: 0,
+    openOrders: 0,
+    todayTrades: 0,
+  });
 
-  // Fetch securities from API
+  const { token } = useAuth();
+
+  // Fetch securities and trade stats from API
   useEffect(() => {
-    const fetchSecurities = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await fetch("/api/securities");
-        if (!response.ok) throw new Error("Failed to fetch securities");
-        const data = await response.json();
-        setSecurities(data.data || []);
-        // Set first security as default if available
-        if (data.data && data.data.length > 0) {
-          setSelectedSecurity(data.data[0].symbol);
+        
+        // Fetch securities
+        const securitiesRes = await fetch("/api/securities");
+        if (!securitiesRes.ok) throw new Error("Failed to fetch securities");
+        const securitiesData = await securitiesRes.json();
+        setSecurities(securitiesData.data || []);
+        if (securitiesData.data && securitiesData.data.length > 0) {
+          setSelectedSecurity(securitiesData.data[0].symbol);
         }
+
+        // Fetch wallet data
+        const walletData = await axios.get("/wallet", { headers: { Authorization: `Bearer ${token}` } }) as { wallet: { balance: string; availableBalance: string } };
+        const walletBalance = parseFloat(walletData.wallet?.balance || "0");
+        const buyingPower = parseFloat(walletData.wallet?.availableBalance || "0");
+
+        // Fetch trades
+        let todayTrades = 0;
+        let openOrders = 0;
+        try {
+          const tradesData = await axios.get("/trade/history?limit=100", { headers: { Authorization: `Bearer ${token}` } }) as { trades: Array<{ createdAt: string; status: string }> };
+          const trades = tradesData.trades || [];
+          const today = new Date().toDateString();
+          todayTrades = trades.filter((t) => 
+            new Date(t.createdAt).toDateString() === today
+          ).length;
+          openOrders = trades.filter((t) => t.status === "PENDING").length;
+        } catch (tradeErr) {
+          console.error("Error fetching trades:", tradeErr);
+        }
+
+        setTradeStats({
+          walletBalance,
+          buyingPower,
+          openOrders,
+          todayTrades,
+        });
         setError(null);
       } catch (err) {
-        console.error("Error fetching securities:", err);
-        setError("Failed to load securities");
-        // Set fallback empty array
+        console.error("Error fetching data:", err);
+        setError("Failed to load data");
         setSecurities([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchSecurities();
-  }, []);
+    if (token) fetchData();
+  }, [token]);
 
   // Validate quantity is multiple of 100
   const validateQuantity = (value: string) => {
@@ -219,7 +255,7 @@ export default function TradePage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs md:text-sm font-medium text-slate-600">Wallet Balance</p>
-                <p className="text-base md:text-xl font-bold text-slate-900">Rwf 3,420</p>
+                <p className="text-base md:text-xl font-bold text-slate-900">Rwf {tradeStats.walletBalance.toLocaleString()}</p>
               </div>
               <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
                 <Activity className="h-4 w-4 md:h-5 md:w-5 text-blue-600" />
@@ -231,7 +267,7 @@ export default function TradePage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs md:text-sm font-medium text-slate-600">Buying Power</p>
-                <p className="text-base md:text-xl font-bold text-slate-900">Rwf 3,420</p>
+                <p className="text-base md:text-xl font-bold text-slate-900">Rwf {tradeStats.buyingPower.toLocaleString()}</p>
               </div>
               <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
                 <TrendingUp className="h-4 w-4 md:h-5 md:w-5 text-emerald-600" />
@@ -243,7 +279,7 @@ export default function TradePage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs md:text-sm font-medium text-slate-600">Open Orders</p>
-                <p className="text-base md:text-xl font-bold text-slate-900">3</p>
+                <p className="text-base md:text-xl font-bold text-slate-900">{tradeStats.openOrders}</p>
               </div>
               <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
                 <Activity className="h-4 w-4 md:h-5 md:w-5 text-amber-600" />
@@ -255,7 +291,7 @@ export default function TradePage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs md:text-sm font-medium text-slate-600">Today&apos;s Trades</p>
-                <p className="text-base md:text-xl font-bold text-slate-900">0</p>
+                <p className="text-base md:text-xl font-bold text-slate-900">{tradeStats.todayTrades}</p>
               </div>
               <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-purple-100 flex items-center justify-center shrink-0">
                 <Activity className="h-4 w-4 md:h-5 md:w-5 text-purple-600" />
@@ -391,7 +427,7 @@ export default function TradePage() {
                     </svg>
                   </div>
                   <div className="text-xs md:text-sm text-blue-900">
-                    <p className="font-semibold mb-1">Rwanda Stock Exchange Rules</p>
+                    <p className="font-semibold mb-1">Stock Rules</p>
                     <p className="text-blue-700">
                       Shares must be traded in multiples of 100 only (100, 200, 300, 400, 500, etc.). 
                       Minimum order size is 100 shares.

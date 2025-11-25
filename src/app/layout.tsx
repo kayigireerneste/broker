@@ -24,6 +24,9 @@ export const metadata: Metadata = {
   title: "Broker - Rwanda's Premier Broker Platform",
   description:
     "Trade smarter with Rwanda's leading digital broker platform. Secure trading, real-time market access, and professional investment tools.",
+  icons: {
+    icon: "/logo.svg",
+  },
 };
 
 export default function RootLayout({

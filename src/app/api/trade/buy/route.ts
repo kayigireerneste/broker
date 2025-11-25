@@ -12,14 +12,14 @@ export async function POST(request: NextRequest) {
   try {
     // Authenticate user
     const authResult = await getAuthenticatedUser(request);
-    if (!authResult || !authResult.user) {
+    if (!authResult) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
       );
     }
 
-    const userId = (authResult.user as AuthUser).userId || (authResult.user as AuthUser).id;
+    const userId = authResult.userId || authResult.id;
     
     if (!userId) {
       return NextResponse.json(
