@@ -17,12 +17,7 @@ export interface CompanySummary {
   sharePrice: string | null;
   totalShares: number | null;
   availableShares: number | null;
-  closingPrice: string | null;
-  previousClosingPrice: string | null;
-  priceChange: string | null;
-  tradedVolume: string | null;
-  tradedValue: string | null;
-  snapshotDate: string | null;
+
   contract: string | null;
   createdAt: string;
   updatedAt: string;
@@ -45,15 +40,11 @@ interface FormState {
   symbol: string;
   description: string;
   sector: string;
+  sectorOther: string;
   sharePrice: string;
   totalShares: string;
   availableShares: string;
-  closingPrice: string;
-  previousClosingPrice: string;
-  priceChange: string;
-  tradedVolume: string;
-  tradedValue: string;
-  snapshotDate: string;
+
   contract: string;
 }
 
@@ -81,15 +72,11 @@ const INITIAL_STATE: FormState = {
   symbol: "",
   description: "",
   sector: "",
+  sectorOther: "",
   sharePrice: "",
   totalShares: "",
   availableShares: "",
-  closingPrice: "",
-  previousClosingPrice: "",
-  priceChange: "",
-  tradedVolume: "",
-  tradedValue: "",
-  snapshotDate: "",
+
   contract: "",
 };
 
@@ -174,16 +161,13 @@ export function CompanyCreateForm({ authToken, onCreated, withCard = true }: Com
       city: formState.city.trim(),
       symbol: formState.symbol.trim() || undefined,
       description: formState.description.trim() || undefined,
-      sector: formState.sector.trim() || undefined,
+      sector: formState.sector === "Other" && formState.sectorOther.trim() 
+        ? formState.sectorOther.trim() 
+        : formState.sector.trim() || undefined,
       sharePrice: formState.sharePrice.trim() || undefined,
       totalShares: toIntegerOrUndefined(formState.totalShares),
       availableShares: toIntegerOrUndefined(formState.availableShares),
-      closingPrice: formState.closingPrice.trim() || undefined,
-      previousClosingPrice: formState.previousClosingPrice.trim() || undefined,
-      priceChange: formState.priceChange.trim() || undefined,
-      tradedVolume: formState.tradedVolume.trim() || undefined,
-      tradedValue: formState.tradedValue.trim() || undefined,
-      snapshotDate: toIsoDate(formState.snapshotDate) || undefined,
+
       contract: normalizeRichText(formState.contract),
     };
 
@@ -331,23 +315,61 @@ export function CompanyCreateForm({ authToken, onCreated, withCard = true }: Com
         </div>
 
         <div className="grid md:grid-cols-2 gap-4">
-          <InputField
-            label="Sector"
-            name="sector"
-            value={formState.sector}
-            onChange={handleInputChange("sector")}
-            placeholder="e.g. Technology"
-            type="text"
-          />
-          <InputField
-            label="Share Price"
-            name="sharePrice"
-            value={formState.sharePrice}
-            onChange={handleInputChange("sharePrice")}
-            placeholder="e.g. 125.50"
-            type="number"
-          />
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-600">Sector</label>
+            <select
+              name="sector"
+              value={formState.sector}
+              onChange={handleSelectChange("sector")}
+              disabled={submitting}
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#004B5B] disabled:opacity-50"
+            >
+              <option value="">Select sector</option>
+              <option value="Technology">Technology</option>
+              <option value="Finance">Finance</option>
+              <option value="Healthcare">Healthcare</option>
+              <option value="Energy">Energy</option>
+              <option value="Manufacturing">Manufacturing</option>
+              <option value="Telecommunications">Telecommunications</option>
+              <option value="Real Estate">Real Estate</option>
+              <option value="Consumer Goods">Consumer Goods</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          {formState.sector === "Other" && (
+            <InputField
+              label="Specify Sector"
+              name="sectorOther"
+              value={formState.sectorOther}
+              onChange={handleInputChange("sectorOther")}
+              placeholder="Enter sector name"
+              type="text"
+            />
+          )}
+          {formState.sector !== "Other" ? (
+            <InputField
+              label="Share Price"
+              name="sharePrice"
+              value={formState.sharePrice}
+              onChange={handleInputChange("sharePrice")}
+              placeholder="e.g. 125.50"
+              type="number"
+            />
+          ) : null}
         </div>
+
+        {formState.sector === "Other" && (
+          <div className="grid md:grid-cols-2 gap-4">
+            <InputField
+              label="Share Price"
+              name="sharePrice"
+              value={formState.sharePrice}
+              onChange={handleInputChange("sharePrice")}
+              placeholder="e.g. 125.50"
+              type="number"
+            />
+          </div>
+        )}
 
         <div className="grid md:grid-cols-2 gap-4">
           <InputField
@@ -365,62 +387,6 @@ export function CompanyCreateForm({ authToken, onCreated, withCard = true }: Com
             onChange={handleInputChange("availableShares")}
             placeholder="e.g. 250000"
             type="number"
-          />
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-4">
-          <InputField
-            label="Closing Price"
-            name="closingPrice"
-            value={formState.closingPrice}
-            onChange={handleInputChange("closingPrice")}
-            placeholder="e.g. 130.75"
-            type="number"
-          />
-          <InputField
-            label="Previous Close"
-            name="previousClosingPrice"
-            value={formState.previousClosingPrice}
-            onChange={handleInputChange("previousClosingPrice")}
-            placeholder="e.g. 129.90"
-            type="number"
-          />
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-4">
-          <InputField
-            label="Price Change"
-            name="priceChange"
-            value={formState.priceChange}
-            onChange={handleInputChange("priceChange")}
-            placeholder="e.g. +0.65%"
-            type="text"
-          />
-          <InputField
-            label="Traded Volume"
-            name="tradedVolume"
-            value={formState.tradedVolume}
-            onChange={handleInputChange("tradedVolume")}
-            placeholder="e.g. 42000"
-            type="number"
-          />
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-4">
-          <InputField
-            label="Traded Value"
-            name="tradedValue"
-            value={formState.tradedValue}
-            onChange={handleInputChange("tradedValue")}
-            placeholder="e.g. 25000000"
-            type="number"
-          />
-          <InputField
-            label="Snapshot Date"
-            name="snapshotDate"
-            value={formState.snapshotDate}
-            onChange={handleInputChange("snapshotDate")}
-            type="date"
           />
         </div>
 

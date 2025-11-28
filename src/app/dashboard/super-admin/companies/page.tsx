@@ -10,6 +10,7 @@ import Button from "@/components/ui/Button";
 import { useAuth } from "@/hooks/useAuth";
 import { Search, Filter, RefreshCcw, Loader2, Eye, Pencil, Trash2, X, Building2, Plus } from "lucide-react";
 import toast from "react-hot-toast";
+import MarketSyncButton from "@/components/market/MarketSyncButton";
 
 type ManagementMode = "SUPER_ADMIN" | "ADMIN" | "TELLER";
 
@@ -278,16 +279,19 @@ export default function CompaniesPage() {
             </div>
             <p className="mt-1 text-sm text-gray-500">{config.subtitle}</p>
           </div>
-          {config.canCreate ? (
-            <Button
-              variant="outline"
-              className="flex items-center gap-2"
-              onClick={() => setIsCreateOpen(true)}
-            >
-              <Plus className="h-4 w-4" />
-              New company
-            </Button>
-          ) : null}
+          <div className="flex items-center gap-3">
+            <MarketSyncButton />
+            {config.canCreate ? (
+              <Button
+                variant="outline"
+                className="flex items-center gap-2"
+                onClick={() => setIsCreateOpen(true)}
+              >
+                <Plus className="h-4 w-4" />
+                New company
+              </Button>
+            ) : null}
+          </div>
         </div>
 
         <Card className="p-6 space-y-6">
@@ -357,15 +361,14 @@ export default function CompaniesPage() {
                   <th className="p-3 text-left">Company</th>
                   <th className="p-3 text-left">Sector</th>
                   <th className="p-3 text-left">Share price</th>
-                  <th className="p-3 text-left">Closing price</th>
-                  <th className="p-3 text-left whitespace-nowrap">Snapshot</th>
+                  <th className="p-3 text-left">Total shares</th>
                   <th className="p-3 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="p-6 text-center text-[#004B5B]">
+                    <td colSpan={5} className="p-6 text-center text-[#004B5B]">
                       <div className="flex items-center justify-center gap-2">
                         <Loader2 className="h-5 w-5 animate-spin" />
                         Loading companies...
@@ -374,7 +377,7 @@ export default function CompaniesPage() {
                   </tr>
                 ) : error ? (
                   <tr>
-                    <td colSpan={6} className="p-6 text-center text-red-500">
+                    <td colSpan={5} className="p-6 text-center text-red-500">
                       <div className="space-y-2">
                         <p>{error}</p>
                         <Button variant="secondary" size="sm" onClick={() => void fetchCompanies()}>
@@ -385,7 +388,7 @@ export default function CompaniesPage() {
                   </tr>
                 ) : paginatedCompanies.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="p-6 text-center text-gray-500">
+                    <td colSpan={5} className="p-6 text-center text-gray-500">
                       {config.emptyMessage}
                     </td>
                   </tr>
@@ -408,8 +411,7 @@ export default function CompaniesPage() {
                       </td>
                       <td className="p-3">{sectorLabel(company.sector)}</td>
                       <td className="p-3">{company.sharePrice ?? "—"}</td>
-                      <td className="p-3">{company.closingPrice ?? "—"}</td>
-                      <td className="p-3">{formatSnapshot(company.snapshotDate)}</td>
+                      <td className="p-3">{company.totalShares?.toLocaleString() ?? "—"}</td>
                       <td className="p-3">
                         <div className="flex justify-center gap-3">
                           <button

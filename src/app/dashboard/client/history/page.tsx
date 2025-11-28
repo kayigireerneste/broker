@@ -427,9 +427,9 @@ export default function HistoryPage() {
                         </td>
                       </tr>
                     ) : (
-                      filteredHistory.map((item) => (
+                      filteredHistory.map((item, index) => (
                         <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                          <td className="py-2 md:py-4 px-1.5 md:px-2 text-xs md:text-base font-medium text-slate-900">{item.id}</td>
+                          <td className="py-2 md:py-4 px-1.5 md:px-2 text-xs md:text-base font-medium text-slate-900">{(currentPage - 1) * itemsPerPage + index + 1}</td>
                           <td className="py-2 md:py-4 px-1.5 md:px-2">
                             <div className={`inline-flex items-center gap-1 md:gap-2 px-1.5 md:px-3 py-0.5 md:py-1.5 rounded-full text-[10px] md:text-xs font-semibold ${getTypeColor(item.category, item.type)}`}>
                               <span className="hidden sm:inline">{getTypeIcon(item.category, item.type)}</span>

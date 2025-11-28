@@ -260,25 +260,25 @@ export default function SettingsLayout({
 											Sign out safely or permanently delete your account. Deletion is irreversible.
 										</p>
 									</div>
-									<div className="flex flex-col gap-3 sm:flex-row">
+									<div className="flex flex-col gap-3">
 										<Button
 											type="button"
 											variant="primary"
-											className="flex items-center gap-2 px-5"
+											className="flex items-center gap-2 px-3 py-1.5 text-sm"
 											onClick={handleLogout}
 											disabled={logoutLoading || deleteLoading}
 										>
-											<LogOut className="h-4 w-4" aria-hidden="true" />
+											<LogOut className="h-3.5 w-3.5" aria-hidden="true" />
 											<span>{logoutLoading ? "Logging out..." : "Log out"}</span>
 										</Button>
 										<Button
 											type="button"
 											variant="secondary"
-											className="flex items-center gap-2 bg-red-50! text-red-600! hover:bg-red-100!"
+											className="flex items-center gap-2 px-3 py-1.5 text-sm bg-red-50! text-red-600! hover:bg-red-100!"
 											onClick={handleDeleteAccount}
 											disabled={deleteLoading || logoutLoading}
 										>
-											<Trash2 className="h-4 w-4"  aria-hidden="true" />
+											<Trash2 className="h-3.5 w-3.5"  aria-hidden="true" />
 											<span>{deleteLoading ? "Deleting..." : "Delete account"}</span>
 										</Button>
 									</div>
@@ -314,7 +314,7 @@ export default function SettingsLayout({
 									</div>
 								</div>
 								{deleteError && (
-									<p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+									<p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">
 										{deleteError}
 									</p>
 								)}
@@ -329,7 +329,7 @@ export default function SettingsLayout({
 									</Button>
 									<Button
 										variant="primary"
-										className="flex items-center gap-2 px-4 py-2 bg-red-600! text-white hover:bg-red-700!"
+										className="flex items-center gap-2 px-4 py-2 bg-red-900! text-white hover:bg-red-1000!"
 										onClick={confirmDeleteAccount}
 										disabled={deleteLoading}
 									>

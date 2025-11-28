@@ -32,11 +32,12 @@ export async function GET(request: NextRequest) {
 
     // Calculate current values and P&L
     const portfolioWithMetrics = portfolios.map((portfolio) => {
-      const currentPrice = Number(portfolio.company.sharePrice || 0);
+      const currentPrice = Number(portfolio.company.closingPrice || portfolio.company.sharePrice || 0);
       const currentValue = currentPrice * portfolio.quantity;
       const totalInvested = Number(portfolio.totalInvested);
       const profitLoss = currentValue - totalInvested;
       const profitLossPercentage = totalInvested > 0 ? (profitLoss / totalInvested) * 100 : 0;
+      const priceChange = portfolio.company.priceChange || "0.00";
 
       return {
         id: portfolio.id,
@@ -50,7 +51,7 @@ export async function GET(request: NextRequest) {
         currentValue,
         profitLoss,
         profitLossPercentage,
-        priceChange: portfolio.company.priceChange,
+        priceChange,
         createdAt: portfolio.createdAt,
         updatedAt: portfolio.updatedAt,
       };

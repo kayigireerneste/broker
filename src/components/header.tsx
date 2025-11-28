@@ -420,7 +420,7 @@ export default function Header() {
                       : "bg-[#f11616]"
                 } text-white`}
               >
-                {`Market Status - ${statusInfo.label}`}
+                {`${statusInfo.label}`}
               </div>
             )}
           </div>

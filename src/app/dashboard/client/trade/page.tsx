@@ -24,6 +24,10 @@ interface Security {
   ask: number;
   source: "rse" | "database";
   sector?: string;
+  availableShares?: string;
+  sharePrice?: number;
+  closingPrice?: number;
+  priceChange?: number;
 }
 
 export default function TradePage() {
@@ -48,6 +52,20 @@ export default function TradePage() {
     openOrders: 0,
     todayTrades: 0,
   });
+  const [recentTrades, setRecentTrades] = useState<Array<{
+    id: string;
+    type: string;
+    status: string;
+    quantity: number;
+    executedPrice: string;
+    totalAmount: string;
+    createdAt: string;
+    company: { name: string; symbol: string };
+  }>>([]);
+  const [marketStatus, setMarketStatus] = useState<{
+    label: string;
+    isOpen: boolean;
+  } | null>(null);
 
   const { token } = useAuth();
 
@@ -66,6 +84,22 @@ export default function TradePage() {
           setSelectedSecurity(securitiesData.data[0].symbol);
         }
 
+        // Fetch market status
+        try {
+          const marketRes = await fetch("/api/market-summary");
+          if (marketRes.ok) {
+            const marketData = await marketRes.json();
+            if (marketData.marketStatus) {
+              setMarketStatus({
+                label: marketData.marketStatus.label,
+                isOpen: marketData.marketStatus.isOpen,
+              });
+            }
+          }
+        } catch (err) {
+          console.error("Error fetching market status:", err);
+        }
+
         // Fetch wallet data
         const walletData = await axios.get("/wallet", { headers: { Authorization: `Bearer ${token}` } }) as { wallet: { balance: string; availableBalance: string } };
         const walletBalance = parseFloat(walletData.wallet?.balance || "0");
@@ -75,13 +109,14 @@ export default function TradePage() {
         let todayTrades = 0;
         let openOrders = 0;
         try {
-          const tradesData = await axios.get("/trade/history?limit=100", { headers: { Authorization: `Bearer ${token}` } }) as { trades: Array<{ createdAt: string; status: string }> };
+          const tradesData = await axios.get("/trade/history?limit=100", { headers: { Authorization: `Bearer ${token}` } }) as { trades: Array<{ id: string; type: string; status: string; quantity: number; executedPrice: string; totalAmount: string; createdAt: string; company: { name: string; symbol: string } }> };
           const trades = tradesData.trades || [];
           const today = new Date().toDateString();
           todayTrades = trades.filter((t) => 
             new Date(t.createdAt).toDateString() === today
           ).length;
           openOrders = trades.filter((t) => t.status === "PENDING").length;
+          setRecentTrades(trades.slice(0, 5));
         } catch (tradeErr) {
           console.error("Error fetching trades:", tradeErr);
         }
@@ -369,6 +404,52 @@ export default function TradePage() {
                 </select>
               </div>
 
+              {/* Security Details Card */}
+              {currentSecurity.symbol && (
+                <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 md:p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-slate-900">Security Details</h3>
+                    {marketStatus && (
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                        marketStatus.isOpen 
+                          ? "bg-emerald-100 text-emerald-700" 
+                          : "bg-rose-100 text-rose-700"
+                      }`}>
+                        {marketStatus.isOpen ? "● Market Open" : "● Market Closed"}
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-xs text-slate-600 mb-1">Symbol</p>
+                      <p className="text-base font-bold text-slate-900">{currentSecurity.symbol}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-600 mb-1">Available Shares</p>
+                      <p className="text-base font-bold text-slate-900">{currentSecurity.availableShares ? Number(currentSecurity.availableShares).toLocaleString() : 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-600 mb-1">Share Price</p>
+                      <p className="text-base font-bold text-slate-900">Rwf {currentSecurity.sharePrice?.toFixed(2) || currentSecurity.price.toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-600 mb-1">Closing Price</p>
+                      <p className="text-base font-bold text-slate-900">Rwf {currentSecurity.closingPrice?.toFixed(2) || currentSecurity.price.toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-600 mb-1">Price Change</p>
+                      <p className={`text-base font-bold ${
+                        (currentSecurity.priceChange || currentSecurity.change) >= 0 
+                          ? "text-emerald-600" 
+                          : "text-rose-600"
+                      }`}>
+                        {(currentSecurity.priceChange || currentSecurity.change) >= 0 ? '+' : ''}{(currentSecurity.priceChange || currentSecurity.change).toFixed(2)}%
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Quantity */}
               <div>
                 <InputField
@@ -394,7 +475,11 @@ export default function TradePage() {
                         setQuantity(qty.toString());
                         setQuantityError("");
                       }}
-                      className="px-3 py-1 text-xs font-medium rounded-md bg-slate-100 text-slate-700 hover:bg-[#004B5B] hover:text-white transition-colors"
+                      className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                        quantity === qty.toString()
+                          ? "bg-[#004B5B] text-white"
+                          : "bg-slate-100 text-slate-700 hover:bg-[#004B5B] hover:text-white"
+                      }`}
                     >
                       {qty}
                     </button>
@@ -552,87 +637,60 @@ export default function TradePage() {
         </div>
         )}
 
-        {/* Selected Security Details */}
-        {!loading && !error && currentSecurity.symbol && (
+        {/* Trade History */}
         <Card className="p-4 md:p-6" hover={false}>
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <h2 className="text-lg md:text-xl font-semibold text-slate-900">{currentSecurity.name} ({currentSecurity.symbol})</h2>
-              <p className="text-sm md:text-base text-slate-600 mt-1">Current market data and trading information</p>
-            </div>
-            <div className={`px-3 py-1 rounded-full text-sm font-semibold ${
-              currentSecurity.change >= 0 ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
-            }`}>
-              {currentSecurity.change >= 0 ? "↑" : "↓"} {currentSecurity.change >= 0 ? "+" : ""}{currentSecurity.change}%
-            </div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg md:text-xl font-semibold text-slate-900">Recent Trades</h2>
+            <Link href="/dashboard/client/history" className="text-xs md:text-sm text-[#004B5B] font-medium hover:underline">
+              View All →
+            </Link>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 mb-6">
-            <div className="p-3 md:p-4 rounded-lg md:rounded-xl bg-slate-50">
-              <p className="text-xs md:text-sm text-slate-600 mb-1">Last Price</p>
-              <p className="text-base md:text-lg font-bold text-slate-900">Rwf {currentSecurity.price}</p>
+          {recentTrades.length === 0 ? (
+            <p className="text-sm text-slate-600 text-center py-8">No trades yet. Start trading to see your history here.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="text-left py-2 px-3 font-semibold text-slate-700">ID</th>
+                    <th className="text-left py-2 px-3 font-semibold text-slate-700">Type</th>
+                    <th className="text-left py-2 px-3 font-semibold text-slate-700">Description</th>
+                    <th className="text-left py-2 px-3 font-semibold text-slate-700">Amount</th>
+                    <th className="text-left py-2 px-3 font-semibold text-slate-700">Status</th>
+                    <th className="text-left py-2 px-3 font-semibold text-slate-700">Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentTrades.map((trade, index) => (
+                    <tr key={trade.id} className="border-b border-slate-100 hover:bg-slate-50">
+                      <td className="py-2 px-3 text-slate-600">{index + 1}</td>
+                      <td className="py-2 px-3">
+                        <span className={`px-2 py-0.5 rounded text-xs font-semibold lowercase ${
+                          trade.type === "BUY" ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
+                        }`}>
+                          {trade.type.toLowerCase()}_shares
+                        </span>
+                      </td>
+                      <td className="py-2 px-3 text-slate-900">
+                        Purchase of {trade.quantity} shares of {trade.company.symbol} at Rwf {parseFloat(trade.executedPrice || "0").toFixed(2)} per share
+                      </td>
+                      <td className="py-2 px-3 font-semibold text-slate-900">Rwf {parseFloat(trade.totalAmount).toLocaleString()}</td>
+                      <td className="py-2 px-3">
+                        <span className={`px-2 py-0.5 rounded text-xs font-semibold lowercase ${
+                          trade.status === "EXECUTED" ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"
+                        }`}>
+                          {trade.status.toLowerCase()}
+                        </span>
+                      </td>
+                      <td className="py-2 px-3 text-slate-600">{new Date(trade.createdAt).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <div className="p-3 md:p-4 rounded-lg md:rounded-xl bg-slate-50">
-              <p className="text-xs md:text-sm text-slate-600 mb-1">Change</p>
-              <p className={`text-base md:text-lg font-bold ${currentSecurity.change >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
-                {currentSecurity.change >= 0 ? "+" : ""}{currentSecurity.change}%
-              </p>
-            </div>
-            <div className="p-3 md:p-4 rounded-lg md:rounded-xl bg-slate-50">
-              <p className="text-xs md:text-sm text-slate-600 mb-1">Volume</p>
-              <p className="text-base md:text-lg font-bold text-slate-900">{currentSecurity.volume}</p>
-            </div>
-            <div className="p-3 md:p-4 rounded-lg md:rounded-xl bg-slate-50">
-              <p className="text-xs md:text-sm text-slate-600 mb-1">Day High</p>
-              <p className="text-base md:text-lg font-bold text-slate-900">Rwf {currentSecurity.high}</p>
-            </div>
-            <div className="p-3 md:p-4 rounded-lg md:rounded-xl bg-slate-50">
-              <p className="text-xs md:text-sm text-slate-600 mb-1">Day Low</p>
-              <p className="text-base md:text-lg font-bold text-slate-900">Rwf {currentSecurity.low}</p>
-            </div>
-            <div className="p-3 md:p-4 rounded-lg md:rounded-xl bg-slate-50">
-              <p className="text-xs md:text-sm text-slate-600 mb-1">Bid/Ask</p>
-              <p className="text-base md:text-lg font-bold text-slate-900">{currentSecurity.bid}/{currentSecurity.ask}</p>
-            </div>
-          </div>
-
-          {/* Additional Share Information */}
-          <div className="border-t border-slate-200 pt-4">
-            <h3 className="text-sm font-semibold text-slate-900 mb-3">Share Purchase Calculator</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-              {[100, 200, 500, 1000].map((shares) => {
-                const cost = shares * currentSecurity.price;
-                return (
-                  <div key={shares} className="p-3 rounded-lg bg-linear-to-br from-slate-50 to-slate-100 border border-slate-200">
-                    <p className="text-xs text-slate-600 mb-1">{shares} shares</p>
-                    <p className="text-lg font-bold text-[#004B5B]">Rwf {cost.toLocaleString()}</p>
-                    <p className="text-xs text-slate-500 mt-1">@ Rwf {currentSecurity.price}/share</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Trading Rules */}
-          <div className="mt-4 pt-4 border-t border-slate-200">
-            <h3 className="text-sm font-semibold text-slate-900 mb-3">Trading Guidelines</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
-                <p className="text-xs font-semibold text-blue-900 mb-1">Minimum Order</p>
-                <p className="text-sm text-blue-700">100 shares</p>
-              </div>
-              <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200">
-                <p className="text-xs font-semibold text-emerald-900 mb-1">Lot Size</p>
-                <p className="text-sm text-emerald-700">Multiples of 100</p>
-              </div>
-              <div className="p-3 rounded-lg bg-purple-50 border border-purple-200">
-                <p className="text-xs font-semibold text-purple-900 mb-1">Settlement</p>
-                <p className="text-sm text-purple-700">T+3 days</p>
-              </div>
-            </div>
-          </div>
+          )}
         </Card>
-        )}
       </div>
 
       {/* Toast Notification */}

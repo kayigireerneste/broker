@@ -17,6 +17,9 @@ export interface Security {
   sector?: string;
   marketCap?: string;
   availableShares?: string;
+  sharePrice?: number;
+  closingPrice?: number;
+  priceChange?: number;
 }
 
 // Helper to parse numeric values from strings
@@ -125,6 +128,9 @@ export async function GET() {
         sector: company.sector || undefined,
         marketCap: company.marketCap ? company.marketCap.toString() : undefined,
         availableShares: company.availableShares ? company.availableShares.toString() : undefined,
+        sharePrice: price,
+        closingPrice: closingPrice,
+        priceChange: change,
       };
 
       if (existingIndex !== -1) {

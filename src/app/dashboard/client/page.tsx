@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button';
 import { useAuth } from '@/hooks/useAuth';
 import axios from '@/lib/axios';
 import { AlertCircle } from 'lucide-react';
+import MarketSyncButton from '@/components/market/MarketSyncButton';
 
 export default function ClientDashboard() {
   const { user, token } = useAuth();
@@ -20,6 +21,7 @@ export default function ClientDashboard() {
     totalSharesSold: 0,
     companiesSold: 0,
     holdings: [] as Array<{ id: string; companyName: string; quantity: number; currentPrice: number; currentValue: number; profitLoss: number; profitLossPercentage: number }>,
+    marketUpdates: [] as Array<{ name: string; price: string; change: string; positive: boolean }>,
   });
   const [loading, setLoading] = useState(true);
 
@@ -113,6 +115,17 @@ export default function ClientDashboard() {
         const totalSharesSold = sellTrades.reduce((sum: number, t: { executedQuantity?: number; quantity: number }) => sum + (t.executedQuantity || t.quantity), 0);
         const companiesSold = new Set(sellTrades.map((t: { companyId: string }) => t.companyId)).size;
 
+        // Get market updates from portfolio data using company priceChange (in Rwf cents)
+        const marketUpdates = (portfolioRes.portfolio || []).slice(0, 5).map((p: { companyName: string; currentPrice: number; priceChange: string | null }) => {
+          const priceChange = p.priceChange ? parseFloat(p.priceChange) : 0;
+          return {
+            name: p.companyName,
+            price: `Rwf ${p.currentPrice.toFixed(2)}`,
+            change: `${priceChange >= 0 ? '+' : ''}Rwf ${priceChange.toFixed(2)}`,
+            positive: priceChange >= 0,
+          };
+        });
+
         setDashboardData({
           walletBalance,
           portfolioValue,
@@ -122,6 +135,7 @@ export default function ClientDashboard() {
           totalSharesSold,
           companiesSold,
           holdings,
+          marketUpdates,
         });
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
@@ -161,9 +175,12 @@ export default function ClientDashboard() {
             </Link>
           </div>
         )}
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-1">Welcome back, {displayName}!</h1>
-          <p className="text-sm text-gray-600">Here&apos;s your investment overview today.</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-1">Welcome back, {displayName}!</h1>
+            <p className="text-sm text-gray-600">Here&apos;s your investment overview today.</p>
+          </div>
+          <MarketSyncButton />
         </div>
 
         {/* <UserInfoCard name={displayName} email={email} role={dashboardRole} /> */}
@@ -244,13 +261,9 @@ export default function ClientDashboard() {
           <Card className="p-3 md:p-5 overflow-hidden">
             <h3 className="text-sm font-semibold text-gray-900 mb-3">Market Updates</h3>
             <div className="space-y-2">
-              {[
-                { name: 'BK Group', price: 'Rwf 85.50', change: '+2.5%', positive: true },
-                { name: 'Equity Bank', price: 'Rwf 42.30', change: '+1.8%', positive: true },
-                { name: 'MTN Rwanda', price: 'Rwf 28.75', change: '-0.3%', positive: false },
-                { name: 'I&M Bank', price: 'Rwf 156.20', change: '+3.1%', positive: true },
-                { name: 'KCB Group', price: 'Rwf 67.80', change: '+0.9%', positive: true }
-              ].map((stock, index) => (
+              {(dashboardData.marketUpdates.length > 0 ? dashboardData.marketUpdates : [
+                { name: 'No data', price: 'Rwf 0.00', change: '0.0%', positive: true }
+              ]).map((stock, index) => (
                 <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded text-xs">
                   <span className="font-medium truncate mr-2">{stock.name}</span>
                   <div className="text-right shrink-0">
@@ -295,7 +308,9 @@ export default function ClientDashboard() {
                   <circle cx="380" cy="65" r="4" fill="#004F64"/>
                 </svg>
                 <div className="absolute bottom-2 left-2 text-xs text-gray-600">
-                  <span className="font-semibold text-green-600">↗ +8.4%</span> this period
+                  <span className={`font-semibold ${dashboardData.portfolioChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {dashboardData.portfolioChange >= 0 ? '↗' : '↘'} {dashboardData.portfolioChange >= 0 ? '+' : ''}{dashboardData.portfolioChange.toFixed(1)}%
+                  </span> this period
                 </div>
               </div>
             </Card>

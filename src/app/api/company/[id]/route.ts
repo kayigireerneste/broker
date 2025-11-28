@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma, Role } from "@prisma/client";
 import { companySelect } from "../companySelect";
@@ -22,7 +22,7 @@ function serializeBigInt<T>(obj: T): T {
 
 type RouteParams = Promise<{ id: string }>;
 
-export async function GET(_request: Request, { params }: { params: RouteParams }) {
+export async function GET(_request: NextRequest, { params }: { params: RouteParams }) {
   try {
     const { id } = await params;
 
@@ -61,26 +61,45 @@ const ensureOwnership = async (companyId: string, userId: string) => {
   } as const;
 };
 
-export async function PATCH(request: Request, { params }: { params: RouteParams }) {
+export async function PATCH(request: NextRequest, { params }: { params: RouteParams }) {
   try {
     const { id } = await params;
-    const auth = await requireUserManagementRole(request, [
-      Role.SUPER_ADMIN,
-      Role.ADMIN,
-    ]);
+    
+    // Check if the request is from a company updating itself
+    const company = await prisma.company.findUnique({
+      where: { id },
+      select: { id: true, createdById: true },
+    });
 
-    const ownership = await ensureOwnership(id, auth.id);
-
-    if (!ownership.company) {
+    if (!company) {
       return NextResponse.json({ error: "Company not found" }, { status: 404 });
     }
 
-    if (auth.role === Role.ADMIN && !ownership.owns) {
-      throw new ForbiddenError("You can only modify companies you created");
+    // Try to authenticate as company or admin/super_admin
+    let isCompanySelf = false;
+    try {
+      const auth = await requireUserManagementRole(request, [
+        Role.SUPER_ADMIN,
+        Role.ADMIN,
+      ]);
+      
+      if (auth.role === Role.ADMIN && company.createdById !== auth.id) {
+        throw new ForbiddenError("You can only modify companies you created");
+      }
+    } catch (error) {
+      // If not admin/super_admin, check if it's the company itself
+      const { getAuthenticatedUser } = await import("@/lib/apiAuth");
+      const companyAuth = await getAuthenticatedUser(request);
+      
+      if (!companyAuth || companyAuth.id !== id) {
+        throw new ForbiddenError("Insufficient permissions");
+      }
+      isCompanySelf = true;
     }
-
     const json = await request.json();
-    const parsed = companyUpdateSchema.parse(json);
+    
+    // If company is updating itself, skip validation schema
+    const parsed = isCompanySelf ? json : companyUpdateSchema.parse(json);
 
     const sharePrice = parsed.sharePrice
       ? toDecimalOrUndefined(parsed.sharePrice)
@@ -92,7 +111,15 @@ export async function PATCH(request: Request, { params }: { params: RouteParams 
     if (parsed.description !== undefined)
       data.description = parsed.description ?? null;
     if (parsed.sector !== undefined) data.sector = parsed.sector ?? null;
-    if (sharePrice !== undefined) data.sharePrice = sharePrice;
+    if (sharePrice !== undefined) {
+      data.sharePrice = sharePrice;
+      // Only initialize closingPrice if it doesn't exist
+      const currentCompany = await prisma.company.findUnique({ where: { id }, select: { closingPrice: true } });
+      if (!currentCompany?.closingPrice) {
+        data.closingPrice = sharePrice;
+        data.priceChange = "0.00";
+      }
+    }
     if (parsed.totalShares !== undefined) data.totalShares = parsed.totalShares ?? null;
     if (parsed.availableShares !== undefined)
       data.availableShares = parsed.availableShares !== null ? Number(parsed.availableShares) : null;
@@ -151,7 +178,7 @@ export async function PATCH(request: Request, { params }: { params: RouteParams 
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: RouteParams }) {
+export async function DELETE(request: NextRequest, { params }: { params: RouteParams }) {
   try {
     const { id } = await params;
     const auth = await requireUserManagementRole(request, [

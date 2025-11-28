@@ -56,11 +56,6 @@ export async function POST(request: Request) {
     const hashedPassword = await bcrypt.hash(parsed.password, 10);
 
     const sharePrice = toDecimalOrUndefined(parsed.sharePrice);
-    const closingPrice = toDecimalOrUndefined(parsed.closingPrice);
-    const previousClosingPrice = toDecimalOrUndefined(parsed.previousClosingPrice);
-    const tradedVolume = toDecimalOrUndefined(parsed.tradedVolume);
-    const tradedValue = toDecimalOrUndefined(parsed.tradedValue);
-    const snapshotDate = parsed.snapshotDate ? new Date(parsed.snapshotDate) : undefined;
 
     const company = await prisma.$transaction(async (tx) => {
       // Generate CSD Number for company
@@ -84,12 +79,11 @@ export async function POST(request: Request) {
           sharePrice,
           totalShares: parsed.totalShares !== undefined ? parsed.totalShares : null,
           availableShares: parsed.availableShares !== undefined ? parsed.availableShares : null,
-          closingPrice,
-          previousClosingPrice,
-          priceChange: parsed.priceChange?.trim() || null,
-          tradedVolume,
-          tradedValue,
-          snapshotDate,
+          closingPrice: sharePrice, // Initialize with sharePrice
+          previousClosingPrice: sharePrice, // Initialize with sharePrice
+          priceChange: "0.00", // Initialize to 0
+          tradedVolume: 0, // Initialize to 0
+          tradedValue: 0, // Initialize to 0
           contract: parsed.contract?.trim() || null,
           createdById: auth.id,
         },

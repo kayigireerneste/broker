@@ -141,7 +141,7 @@ export default function Hero() {
 
       <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 z-30">
         <Link href={isAuthenticated ? dashboardPath : "/auth/login"} className="bg-gradient-to-r from-[#2d94b0] to-[#004f64] relative flex items-center gap-2 text-white text-lg font-semibold px-8 py-4 rounded-full shadow-[2px_2px_0_#A9E2EB] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#A9E2EB] transition-all duration-300">
-          {isAuthenticated ? "Go to Dashboard" : "Get Started"}
+          {isAuthenticated ? "Get Started Today" : "Start Your Investment Journey"}
         </Link>
       </div>
     </section>

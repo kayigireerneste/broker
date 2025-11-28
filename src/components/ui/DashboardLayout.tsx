@@ -15,12 +15,12 @@ import {
   FiZap,
   FiDollarSign,
   FiHome,
-  FiBell,
   FiMenu,
   FiHelpCircle,
   FiSearch,
 } from "react-icons/fi";
 import { useAuth } from "@/hooks/useAuth";
+import { FiBell } from "react-icons/fi";
 
 type DashboardRole = "client" | "teller" | "admin" | "super-admin" | "company";
 

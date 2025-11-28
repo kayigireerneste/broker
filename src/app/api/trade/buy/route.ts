@@ -52,7 +52,6 @@ export async function POST(request: NextRequest) {
       const company = await tx.company.findFirst({
         where: {
           symbol: companySymbol,
-          isVerified: true,
         },
         select: {
           id: true,
@@ -66,7 +65,7 @@ export async function POST(request: NextRequest) {
       });
 
       if (!company) {
-        throw new Error("Company not found or not verified");
+        throw new Error(`Company with symbol '${companySymbol}' not found`);
       }
 
       // 2. Determine the price to use
@@ -193,15 +192,30 @@ export async function POST(request: NextRequest) {
 
       // 11. Update company's available shares and trading data
       const newAvailableShares = BigInt(availableShares - quantity);
-      const currentTradedVolume = company.totalShares
-        ? new Decimal((Number(company.totalShares) - Number(newAvailableShares)).toString())
-        : new Decimal(quantity.toString());
+      
+      // Get current company data for calculations
+      const currentCompany = await tx.company.findUnique({
+        where: { id: company.id },
+        select: { closingPrice: true, previousClosingPrice: true, tradedVolume: true, tradedValue: true }
+      });
+      
+      // Update closingPrice to current trade price
+      const newClosingPrice = priceDecimal;
+      const oldClosingPrice = currentCompany?.closingPrice || priceDecimal;
+      
+      // Calculate priceChange in cents (difference between new closing and old closing)
+      const priceChangeInCents = Number(newClosingPrice) - Number(oldClosingPrice);
       
       await tx.company.update({
         where: { id: company.id },
         data: {
           availableShares: newAvailableShares,
-          tradedVolume: currentTradedVolume,
+          closingPrice: newClosingPrice,
+          previousClosingPrice: oldClosingPrice,
+          priceChange: priceChangeInCents.toFixed(2),
+          tradedVolume: {
+            increment: new Decimal(quantity.toString()),
+          },
           tradedValue: {
             increment: totalAmount,
           },
@@ -212,6 +226,25 @@ export async function POST(request: NextRequest) {
       // 12. Get updated wallet balance
       const updatedWallet = await tx.wallet.findUnique({
         where: { userId },
+      });
+
+      // 13. Create notification
+      await tx.notification.create({
+        data: {
+          userId,
+          title: "Trade Executed Successfully",
+          message: `You have successfully purchased ${quantity} shares of ${company.symbol} (${company.name}) at Rwf ${priceDecimal.toFixed(2)} per share. Total: Rwf ${totalAmount.toFixed(2)}`,
+          type: "TRADE",
+          metadata: {
+            tradeId: trade.id,
+            companySymbol: company.symbol,
+            companyName: company.name,
+            quantity,
+            pricePerShare: priceDecimal.toNumber(),
+            totalAmount: totalAmount.toNumber(),
+            type: "BUY",
+          },
+        },
       });
 
       return {
@@ -229,6 +262,26 @@ export async function POST(request: NextRequest) {
         newBalance: updatedWallet?.balance.toString() || "0",
       };
     });
+
+    // Send email notification (async, don't wait)
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (user?.email) {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/send-trade-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: user.email,
+          fullName: user.fullName,
+          tradeType: 'BUY',
+          companySymbol: result.company.symbol,
+          companyName: result.company.name,
+          quantity,
+          pricePerShare: result.transaction.pricePerShare,
+          totalAmount: result.transaction.totalAmount,
+          newBalance: result.newBalance,
+        }),
+      }).catch(err => console.error('Email send error:', err));
+    }
 
     return NextResponse.json({
       success: true,

@@ -20,12 +20,7 @@ interface FormState {
   availableShares: string;
   description: string;
   sector: string;
-  closingPrice: string;
-  previousClosingPrice: string;
-  priceChange: string;
-  tradedVolume: string;
-  tradedValue: string;
-  snapshotDate: string;
+  sectorOther: string;
 }
 
 const sanitizeIntegerInput = (value: string) =>
@@ -62,12 +57,7 @@ export function CompanyManageForm({ company, authToken, onUpdated, withCard = tr
     availableShares: company.availableShares?.toString() ?? "",
     description: company.description ?? "",
     sector: company.sector ?? "",
-    closingPrice: company.closingPrice ?? "",
-    previousClosingPrice: company.previousClosingPrice ?? "",
-    priceChange: company.priceChange ?? "",
-    tradedVolume: company.tradedVolume ?? "",
-    tradedValue: company.tradedValue ?? "",
-    snapshotDate: formatDateInput(company.snapshotDate),
+    sectorOther: "",
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -76,6 +66,10 @@ export function CompanyManageForm({ company, authToken, onUpdated, withCard = tr
   };
 
   const handleInputChange = (field: keyof FormState) => (event: ChangeEvent<HTMLInputElement>) => {
+    setFormState((prev) => ({ ...prev, [field]: event.target.value }));
+  };
+
+  const handleSelectChange = (field: keyof FormState) => (event: ChangeEvent<HTMLSelectElement>) => {
     setFormState((prev) => ({ ...prev, [field]: event.target.value }));
   };
 
@@ -94,13 +88,9 @@ export function CompanyManageForm({ company, authToken, onUpdated, withCard = tr
       totalShares: toIntegerOrUndefined(formState.totalShares),
       availableShares: toIntegerOrUndefined(formState.availableShares),
       description: formState.description.trim(),
-      sector: formState.sector.trim(),
-      closingPrice: formState.closingPrice.trim() || undefined,
-      previousClosingPrice: formState.previousClosingPrice.trim() || undefined,
-      priceChange: formState.priceChange.trim() || undefined,
-      tradedVolume: formState.tradedVolume.trim() || undefined,
-      tradedValue: formState.tradedValue.trim() || undefined,
-      snapshotDate: toIsoDate(formState.snapshotDate) || undefined,
+      sector: formState.sector === "Other" && formState.sectorOther.trim()
+        ? formState.sectorOther.trim()
+        : formState.sector.trim(),
     };
 
     try {
@@ -165,70 +155,41 @@ export function CompanyManageForm({ company, authToken, onUpdated, withCard = tr
             onChange={handleInputChange("availableShares")}
             type="number"
           />
-          <InputField
-            label="Sector"
-            name="sector"
-            value={formState.sector}
-            onChange={handleInputChange("sector")}
-            type="text"
-          />
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-600">Sector</label>
+            <select
+              name="sector"
+              value={formState.sector}
+              onChange={handleSelectChange("sector")}
+              disabled={submitting}
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#004B5B] disabled:opacity-50"
+            >
+              <option value="">Select sector</option>
+              <option value="Technology">Technology</option>
+              <option value="Finance">Finance</option>
+              <option value="Healthcare">Healthcare</option>
+              <option value="Energy">Energy</option>
+              <option value="Manufacturing">Manufacturing</option>
+              <option value="Telecommunications">Telecommunications</option>
+              <option value="Real Estate">Real Estate</option>
+              <option value="Consumer Goods">Consumer Goods</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-4">
-          <InputField
-            label="Closing Price"
-            name="closingPrice"
-            value={formState.closingPrice}
-            onChange={handleInputChange("closingPrice")}
-            placeholder="e.g. 130.75"
-            type="number"
-          />
-          <InputField
-            label="Previous Close"
-            name="previousClosingPrice"
-            value={formState.previousClosingPrice}
-            onChange={handleInputChange("previousClosingPrice")}
-            placeholder="e.g. 129.90"
-            type="number"
-          />
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-4">
-          <InputField
-            label="Price Change"
-            name="priceChange"
-            value={formState.priceChange}
-            onChange={handleInputChange("priceChange")}
-            placeholder="e.g. +0.65%"
-            type="text"
-          />
-          <InputField
-            label="Traded Volume"
-            name="tradedVolume"
-            value={formState.tradedVolume}
-            onChange={handleInputChange("tradedVolume")}
-            placeholder="e.g. 42000"
-            type="number"
-          />
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-4">
-          <InputField
-            label="Traded Value"
-            name="tradedValue"
-            value={formState.tradedValue}
-            onChange={handleInputChange("tradedValue")}
-            placeholder="e.g. 25000000"
-            type="number"
-          />
-          <InputField
-            label="Snapshot Date"
-            name="snapshotDate"
-            value={formState.snapshotDate}
-            onChange={handleInputChange("snapshotDate")}
-            type="date"
-          />
-        </div>
+        {formState.sector === "Other" && (
+          <div className="grid md:grid-cols-2 gap-4">
+            <InputField
+              label="Specify Sector"
+              name="sectorOther"
+              value={formState.sectorOther}
+              onChange={handleInputChange("sectorOther")}
+              placeholder="Enter sector name"
+              type="text"
+            />
+          </div>
+        )}
 
         <div>
           <label className="block text-sm font-medium text-gray-600 mb-2" htmlFor="company-manage-description">
@@ -256,12 +217,7 @@ export function CompanyManageForm({ company, authToken, onUpdated, withCard = tr
                 availableShares: company.availableShares?.toString() ?? "",
                 description: company.description ?? "",
                 sector: company.sector ?? "",
-                closingPrice: company.closingPrice ?? "",
-                previousClosingPrice: company.previousClosingPrice ?? "",
-                priceChange: company.priceChange ?? "",
-                tradedVolume: company.tradedVolume ?? "",
-                tradedValue: company.tradedValue ?? "",
-                snapshotDate: formatDateInput(company.snapshotDate),
+                sectorOther: "",
               })
             }
           >

@@ -76,12 +76,6 @@ const baseCompanySchema = z
     sharePrice: numericString.optional(),
     totalShares: positiveBigInt.optional(),
     availableShares: nonNegativeBigInt.optional(),
-    closingPrice: numericString.optional(),
-    previousClosingPrice: numericString.optional(),
-    priceChange: z.string().trim().max(100).optional(),
-    tradedVolume: numericString.optional(),
-    tradedValue: numericString.optional(),
-    snapshotDate: isoDateString.optional(),
     contract: z.string().trim().max(5000).optional(),
   })
   .superRefine((value, ctx) => {
@@ -115,16 +109,7 @@ const baseCompanySchema = z
       });
     }
 
-    if (value.snapshotDate !== undefined) {
-      const parsedDate = new Date(value.snapshotDate);
-      if (Number.isNaN(parsedDate.valueOf())) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["snapshotDate"],
-          message: "Snapshot date must be a valid date",
-        });
-      }
-    }
+
   });
 
 export const companyCreateSchema = baseCompanySchema;

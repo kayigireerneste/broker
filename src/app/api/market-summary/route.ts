@@ -7,7 +7,7 @@ const MARKET_URLS = [
 	"https://rse.rw/",
 	"https://www.rse.rw/market-data/market-summary",
 ];
-const CACHE_TTL_MS = 5 * 60 * 1000;
+const CACHE_TTL_MS = 1 * 60 * 1000; // 1 minute cache for real-time updates
 
 // HTTPS agent to bypass SSL certificate verification for scraping
 const httpsAgent = new https.Agent({
@@ -129,11 +129,12 @@ const classifyMarketStatus = (raw: string): MarketSummaryPayload["marketStatus"]
 	const lower = label.toLowerCase();
 	let normalized: MarketStatusValue = "unknown";
 
-	if (/suspend|halt|holiday|maintenance/u.test(lower)) {
-		normalized = "suspended";
-	} else if (/close|closed|after\s*hours|post-?close|end of day/u.test(lower)) {
+	// Check for closed first (more specific patterns)
+	if (/close|closed|after\s*hours|post-?close|end of day|market\s*close/u.test(lower)) {
 		normalized = "closed";
-	} else if (/open|trading|pre-?open|session/u.test(lower)) {
+	} else if (/suspend|halt|holiday|maintenance/u.test(lower)) {
+		normalized = "suspended";
+	} else if (/open|trading|pre-?open|session|market\s*open/u.test(lower)) {
 		normalized = "open";
 	}
 
@@ -148,20 +149,50 @@ const extractMarketStatus = (
 	$: cheerio.Root,
 	highlightStats: MarketSummaryPayload["highlightStats"]
 ): MarketSummaryPayload["marketStatus"] | undefined => {
+	// Priority 1: Check highlight stats table
 	const highlightEntry = highlightStats.find((item) => /market status/i.test(item.indicator));
 	if (highlightEntry?.current) {
 		return classifyMarketStatus(highlightEntry.current);
 	}
 
-	let marqueeStatus: string | undefined;
-	$("span.market-status").each((_, element) => {
-		const text = normaliseText($(element).text());
-		if (!text) {
-			return;
+	// Priority 2: Check for visible market status spans (RSE has both open/closed spans)
+	// The one with red background (#f11616) is the active status
+	let closedSpan: string | undefined;
+	let openSpan: string | undefined;
+	
+	$("span.market-status, .market-status").each((_, element) => {
+		const $el = $(element);
+		const style = $el.attr("style") || "";
+		const id = $el.attr("id") || "";
+		const text = normaliseText($el.text());
+		
+		if (!text) return;
+		
+		// Check if this span has red background (indicates active closed status)
+		if (/background.*#f11616|background.*red/i.test(style)) {
+			closedSpan = text;
+		} else if (id === "open") {
+			openSpan = text;
 		}
-		const directMatch = text.match(/market status\s*[:\-]?\s*(.+)/iu);
-		marqueeStatus = directMatch?.[1] ?? text;
-		if (marqueeStatus) {
+	});
+	
+	// If closed span has red background, market is closed
+	if (closedSpan) {
+		return classifyMarketStatus(closedSpan);
+	}
+	
+	// Otherwise use open span
+	if (openSpan) {
+		return classifyMarketStatus(openSpan);
+	}
+
+	// Priority 3: Search in marquee or ticker elements
+	let marqueeStatus: string | undefined;
+	$("marquee, .ticker, .status-bar").each((_, element) => {
+		const text = normaliseText($(element).text());
+		const match = text.match(/market status\s*[:\-]?\s*([a-z\s]+)/iu);
+		if (match?.[1]) {
+			marqueeStatus = match[1];
 			return false;
 		}
 	});
@@ -169,44 +200,7 @@ const extractMarketStatus = (
 		return classifyMarketStatus(marqueeStatus);
 	}
 
-	let extracted: string | undefined;
-
-	$('*').each((_, element) => {
-		const text = normaliseText($(element).text());
-		if (!text) {
-			return;
-		}
-
-		const directMatch = text.match(/market status\s*[:\-]?\s*(.+)/iu);
-		if (directMatch?.[1]) {
-			extracted = directMatch[1];
-			return false;
-		}
-
-		if (/^market status$/iu.test(text)) {
-			const siblingText = normaliseText($(element).next().text());
-			if (siblingText) {
-				extracted = siblingText;
-				return false;
-			}
-
-			const parentText = normaliseText($(element).parent().text());
-			const parentMatch = parentText.match(/market status\s*[:\-]?\s*(.+)/iu);
-			if (parentMatch?.[1]) {
-				extracted = parentMatch[1];
-				return false;
-			}
-		}
-	});
-
-	if (!extracted) {
-		const bodyMatch = normaliseText($("body").text()).match(/market status\s*[:\-]?\s*([A-Za-z ]{3,40})/iu);
-		if (bodyMatch?.[1]) {
-			extracted = bodyMatch[1];
-		}
-	}
-
-	return extracted ? classifyMarketStatus(extracted) : undefined;
+	return undefined;
 };
 
 const parseExchangeRates = ($: cheerio.Root, baseUrl: string) => {

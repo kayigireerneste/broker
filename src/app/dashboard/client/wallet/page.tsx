@@ -693,9 +693,9 @@ export default function WalletPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {transactions.map((txn) => (
+                    {transactions.map((txn, index) => (
                       <tr key={txn.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                        <td className="py-3 md:py-4 px-2 text-xs md:text-sm font-medium text-slate-900">{txn.reference}</td>
+                        <td className="py-3 md:py-4 px-2 text-xs md:text-sm font-medium text-slate-900">{index + 1}</td>
                         <td className="py-3 md:py-4 px-2">
                           <div className="flex items-center gap-1 md:gap-2">
                             {txn.type === "DEPOSIT" ? (
